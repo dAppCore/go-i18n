@@ -201,6 +201,34 @@ Calibration: {I_seed₁, I_seed₂, ..., I_seed₈₈ₖ} → reference distribu
 
 The surjection property is what gives privacy. The similarity-preservation property is what gives utility. You get both because grammar structure correlates with meaning but doesn't encode content.
 
+## Use Case: Training Data Multiplier
+
+The grammar engine enables **combinatorial expansion** of training prompts without LLM API calls. Given 88K scored seeds, grammatical transformations produce verified variations at near-zero cost:
+
+```go
+// Original seed: "Delete the configuration file"
+seed := "Delete the configuration file"
+
+// Tense flip — deterministic, no API call:
+PastTense("delete")  → "Deleted the configuration file"
+Gerund("delete")     → "Deleting the configuration file"
+
+// Number flip:
+PluralForm("file")   → "Delete the configuration files"
+
+// Combined:
+// past + plural     → "Deleted the configuration files"
+// gerund + plural   → "Deleting the configuration files"
+```
+
+**Economics:** 88K seeds × 3 tense variants × 2 number variants = 528K training examples. Zero API spend. All grammatically correct. No hallucination risk.
+
+**Quality verification via reversal:** Run original and flipped variants through the Grammar Reversal Engine. Their imprints should differ only in the transformed dimension (tense, number, formality). If they diverge elsewhere, the transformation introduced unintended semantic shift — automatic QA without human review.
+
+**Formality expansion:** The Formality system adds another axis. Formal/informal variants of each seed multiply the dataset further while preserving semantic content.
+
+This turns go-i18n into a **grammar-aware data augmentation engine** for the LEM pipeline — the grammar tables that compose correct output also decompose and recompose training data.
+
 ## Connection to Lethean Identity
 
 This feeds into the broader architecture:
