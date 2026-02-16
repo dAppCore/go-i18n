@@ -146,6 +146,66 @@ func TestTokeniser_MatchNoun_Regular(t *testing.T) {
 	}
 }
 
+func TestTokeniser_MatchWord(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		word    string
+		wantCat string
+		wantOK  bool
+	}{
+		{"URL", "url", true},
+		{"url", "url", true},
+		{"ID", "id", true},
+		{"SSH", "ssh", true},
+		{"PHP", "php", true},
+		{"xyzzy", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			cat, ok := tok.MatchWord(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchWord(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && cat != tt.wantCat {
+				t.Errorf("MatchWord(%q) = %q, want %q", tt.word, cat, tt.wantCat)
+			}
+		})
+	}
+}
+
+func TestTokeniser_MatchArticle(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"a", "indefinite", true},
+		{"an", "indefinite", true},
+		{"the", "definite", true},
+		{"A", "indefinite", true},
+		{"The", "definite", true},
+		{"foo", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+}
+
 func TestTokeniser_MatchVerb_Regular(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()

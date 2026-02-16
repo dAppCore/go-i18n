@@ -66,6 +66,7 @@ func NewTokeniserForLang(lang string) *Tokeniser {
 	}
 	t.buildVerbIndex()
 	t.buildNounIndex()
+	t.buildWordIndex()
 	return t
 }
 
@@ -402,4 +403,49 @@ func (t *Tokeniser) reverseRegularGerund(word string) []string {
 	candidates = append(candidates, stem+"e")
 
 	return candidates
+}
+
+// buildWordIndex reads GrammarData.Words and builds a reverse lookup map.
+// Both the key (e.g., "url") and the display form (e.g., "URL") map back
+// to the key, enabling case-insensitive lookups.
+func (t *Tokeniser) buildWordIndex() {
+	data := i18n.GetGrammarData(t.lang)
+	if data == nil || data.Words == nil {
+		return
+	}
+	for key, display := range data.Words {
+		// Map the key itself (already lowercase)
+		t.words[strings.ToLower(key)] = key
+		// Map the display form (e.g., "URL" → "url", "SSH" → "ssh")
+		t.words[strings.ToLower(display)] = key
+	}
+}
+
+// MatchWord performs a case-insensitive lookup in the words map.
+// Returns the category key and true if found, or ("", false) otherwise.
+func (t *Tokeniser) MatchWord(word string) (string, bool) {
+	cat, ok := t.words[strings.ToLower(word)]
+	return cat, ok
+}
+
+// MatchArticle checks whether a word is an article (definite or indefinite).
+// Returns the article type ("indefinite" or "definite") and true if matched,
+// or ("", false) otherwise.
+func (t *Tokeniser) MatchArticle(word string) (string, bool) {
+	data := i18n.GetGrammarData(t.lang)
+	if data == nil {
+		return "", false
+	}
+
+	lower := strings.ToLower(word)
+
+	if lower == strings.ToLower(data.Articles.IndefiniteDefault) ||
+		lower == strings.ToLower(data.Articles.IndefiniteVowel) {
+		return "indefinite", true
+	}
+	if lower == strings.ToLower(data.Articles.Definite) {
+		return "definite", true
+	}
+
+	return "", false
 }
