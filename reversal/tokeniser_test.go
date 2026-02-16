@@ -69,6 +69,83 @@ func TestTokeniser_MatchVerb_Irregular(t *testing.T) {
 	}
 }
 
+func TestTokeniser_MatchNoun_Irregular(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		word       string
+		wantOK     bool
+		wantBase   string
+		wantPlural bool
+	}{
+		{"files", true, "file", true},
+		{"file", true, "file", false},
+		{"people", true, "person", true},
+		{"person", true, "person", false},
+		{"children", true, "child", true},
+		{"child", true, "child", false},
+		{"repositories", true, "repository", true},
+		{"repository", true, "repository", false},
+		{"branches", true, "branch", true},
+		{"branch", true, "branch", false},
+		{"xyzzy", false, "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			match, ok := tok.MatchNoun(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchNoun(%q) ok = %v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if !ok {
+				return
+			}
+			if match.Base != tt.wantBase {
+				t.Errorf("MatchNoun(%q).Base = %q, want %q", tt.word, match.Base, tt.wantBase)
+			}
+			if match.Plural != tt.wantPlural {
+				t.Errorf("MatchNoun(%q).Plural = %v, want %v", tt.word, match.Plural, tt.wantPlural)
+			}
+		})
+	}
+}
+
+func TestTokeniser_MatchNoun_Regular(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		word       string
+		wantOK     bool
+		wantBase   string
+		wantPlural bool
+	}{
+		// Regular nouns NOT in grammar tables — detected by reverse morphology + round-trip
+		{"servers", true, "server", true},
+		{"processes", true, "process", true},
+		{"entries", true, "entry", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			match, ok := tok.MatchNoun(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchNoun(%q) ok = %v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if !ok {
+				return
+			}
+			if match.Base != tt.wantBase {
+				t.Errorf("MatchNoun(%q).Base = %q, want %q", tt.word, match.Base, tt.wantBase)
+			}
+			if match.Plural != tt.wantPlural {
+				t.Errorf("MatchNoun(%q).Plural = %v, want %v", tt.word, match.Plural, tt.wantPlural)
+			}
+		})
+	}
+}
+
 func TestTokeniser_MatchVerb_Regular(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()

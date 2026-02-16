@@ -65,6 +65,7 @@ func NewTokeniserForLang(lang string) *Tokeniser {
 		lang:         lang,
 	}
 	t.buildVerbIndex()
+	t.buildNounIndex()
 	return t
 }
 
@@ -100,6 +101,107 @@ func (t *Tokeniser) buildVerbIndex() {
 			}
 		}
 	}
+}
+
+// buildNounIndex reads grammar tables and irregular noun maps to build
+// inverse lookup maps: plural form → base form.
+func (t *Tokeniser) buildNounIndex() {
+	// Tier 1: Read from JSON grammar data (via GetGrammarData).
+	data := i18n.GetGrammarData(t.lang)
+	if data != nil && data.Nouns != nil {
+		for base, forms := range data.Nouns {
+			t.baseNouns[base] = true
+			if forms.Other != "" && forms.Other != base {
+				t.pluralToBase[forms.Other] = base
+			}
+		}
+	}
+
+	// Tier 2: Read from the exported irregularNouns map.
+	for base, plural := range i18n.IrregularNouns() {
+		t.baseNouns[base] = true
+		if plural != base {
+			if _, exists := t.pluralToBase[plural]; !exists {
+				t.pluralToBase[plural] = base
+			}
+		}
+	}
+}
+
+// MatchNoun performs a 3-tier reverse lookup for a noun form.
+//
+// Tier 1: Check if the word is a known base noun.
+// Tier 2: Check the pluralToBase inverse map.
+// Tier 3: Try reverse morphology rules and round-trip verify via
+// the forward function PluralForm().
+func (t *Tokeniser) MatchNoun(word string) (NounMatch, bool) {
+	word = strings.ToLower(strings.TrimSpace(word))
+	if word == "" {
+		return NounMatch{}, false
+	}
+
+	// Tier 1: Is it a base noun?
+	if t.baseNouns[word] {
+		return NounMatch{Base: word, Plural: false, Form: word}, true
+	}
+
+	// Tier 2: Check inverse map from grammar tables + irregular nouns.
+	if base, ok := t.pluralToBase[word]; ok {
+		return NounMatch{Base: base, Plural: true, Form: word}, true
+	}
+
+	// Tier 3: Reverse morphology with round-trip verification.
+	candidates := t.reverseRegularPlural(word)
+	for _, c := range candidates {
+		if i18n.PluralForm(c) == word {
+			return NounMatch{Base: c, Plural: true, Form: word}, true
+		}
+	}
+
+	return NounMatch{}, false
+}
+
+// reverseRegularPlural generates candidate base forms by reversing regular
+// plural suffixes. Returns multiple candidates ordered by likelihood.
+//
+// The forward engine applies rules in this order:
+//  1. ends in s/ss/sh/ch/x/z → +es
+//  2. ends in consonant+y → ies
+//  3. ends in f → ves, fe → ves
+//  4. default → +s
+//
+// We generate candidates for each possible reverse rule. Round-trip
+// verification ensures only correct candidates pass.
+func (t *Tokeniser) reverseRegularPlural(word string) []string {
+	var candidates []string
+
+	// Rule: consonant + "ies" → consonant + "y" (e.g., "entries" → "entry")
+	if strings.HasSuffix(word, "ies") && len(word) > 3 {
+		base := word[:len(word)-3] + "y"
+		candidates = append(candidates, base)
+	}
+
+	// Rule: "ves" → "f" or "fe" (e.g., "wolves" → "wolf", "knives" → "knife")
+	if strings.HasSuffix(word, "ves") && len(word) > 3 {
+		candidates = append(candidates, word[:len(word)-3]+"f")
+		candidates = append(candidates, word[:len(word)-3]+"fe")
+	}
+
+	// Rule: sibilant + "es" (e.g., "processes" → "process", "branches" → "branch")
+	if strings.HasSuffix(word, "ses") || strings.HasSuffix(word, "xes") ||
+		strings.HasSuffix(word, "zes") || strings.HasSuffix(word, "ches") ||
+		strings.HasSuffix(word, "shes") {
+		base := word[:len(word)-2] // strip "es"
+		candidates = append(candidates, base)
+	}
+
+	// Rule: drop "s" (e.g., "servers" → "server")
+	if strings.HasSuffix(word, "s") && len(word) > 1 {
+		base := word[:len(word)-1]
+		candidates = append(candidates, base)
+	}
+
+	return candidates
 }
 
 // MatchVerb performs a 3-tier reverse lookup for a verb form.
