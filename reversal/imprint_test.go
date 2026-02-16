@@ -60,3 +60,57 @@ func TestNewImprint_PluralRatio(t *testing.T) {
 		t.Errorf("PluralRatio = %f for all-singular input, want <= 0.5", imp.PluralRatio)
 	}
 }
+
+func TestImprint_Similar_SameText(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("Delete the configuration file")
+	imp1 := NewImprint(tokens)
+	imp2 := NewImprint(tokens)
+
+	sim := imp1.Similar(imp2)
+	if sim != 1.0 {
+		t.Errorf("Same text similarity = %f, want 1.0", sim)
+	}
+}
+
+func TestImprint_Similar_SimilarText(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	tok := NewTokeniser()
+
+	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
+	imp2 := NewImprint(tok.Tokenise("Deleted the configuration files"))
+
+	sim := imp1.Similar(imp2)
+	if sim < 0.3 {
+		t.Errorf("Similar text similarity = %f, want >= 0.3", sim)
+	}
+	if sim >= 1.0 {
+		t.Errorf("Different text similarity = %f, want < 1.0", sim)
+	}
+}
+
+func TestImprint_Similar_DifferentText(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	tok := NewTokeniser()
+
+	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
+	imp2 := NewImprint(tok.Tokenise("Building the project successfully"))
+
+	sim := imp1.Similar(imp2)
+	if sim > 0.7 {
+		t.Errorf("Different text similarity = %f, want <= 0.7", sim)
+	}
+}
+
+func TestImprint_Similar_Empty(t *testing.T) {
+	imp1 := NewImprint(nil)
+	imp2 := NewImprint(nil)
+	sim := imp1.Similar(imp2)
+	if sim != 1.0 {
+		t.Errorf("Empty imprint similarity = %f, want 1.0", sim)
+	}
+}

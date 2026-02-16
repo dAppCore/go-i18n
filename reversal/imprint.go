@@ -1,5 +1,7 @@
 package reversal
 
+import "math"
+
 // GrammarImprint is a low-dimensional grammar feature vector.
 type GrammarImprint struct {
 	VerbDistribution   map[string]float64 // verb base -> frequency
@@ -99,4 +101,80 @@ func normaliseMap(m map[string]float64) {
 	for k, v := range m {
 		m[k] = v / total
 	}
+}
+
+// Similar returns weighted cosine similarity between two imprints (0.0-1.0).
+// Weights: verb(0.30), tense(0.20), noun(0.25), article(0.15), punct(0.10).
+func (a GrammarImprint) Similar(b GrammarImprint) float64 {
+	// Two empty imprints are identical.
+	if a.TokenCount == 0 && b.TokenCount == 0 {
+		return 1.0
+	}
+
+	type component struct {
+		weight float64
+		a, b   map[string]float64
+	}
+
+	components := []component{
+		{0.30, a.VerbDistribution, b.VerbDistribution},
+		{0.20, a.TenseDistribution, b.TenseDistribution},
+		{0.25, a.NounDistribution, b.NounDistribution},
+		{0.15, a.ArticleUsage, b.ArticleUsage},
+		{0.10, a.PunctuationPattern, b.PunctuationPattern},
+	}
+
+	var totalWeight float64
+	var weightedSum float64
+
+	for _, c := range components {
+		// Skip components where both maps are empty (no signal).
+		if len(c.a) == 0 && len(c.b) == 0 {
+			continue
+		}
+		totalWeight += c.weight
+		weightedSum += c.weight * mapSimilarity(c.a, c.b)
+	}
+
+	if totalWeight == 0 {
+		return 1.0
+	}
+
+	return weightedSum / totalWeight
+}
+
+// mapSimilarity computes cosine similarity between two frequency maps.
+// Returns 1.0 for identical distributions, 0.0 for completely disjoint.
+func mapSimilarity(a, b map[string]float64) float64 {
+	if len(a) == 0 && len(b) == 0 {
+		return 1.0
+	}
+	if len(a) == 0 || len(b) == 0 {
+		return 0.0
+	}
+
+	// Collect the union of keys.
+	keys := make(map[string]bool)
+	for k := range a {
+		keys[k] = true
+	}
+	for k := range b {
+		keys[k] = true
+	}
+
+	var dot, magA, magB float64
+	for k := range keys {
+		va := a[k]
+		vb := b[k]
+		dot += va * vb
+		magA += va * va
+		magB += vb * vb
+	}
+
+	denom := math.Sqrt(magA) * math.Sqrt(magB)
+	if denom == 0 {
+		return 0.0
+	}
+
+	return dot / denom
 }
