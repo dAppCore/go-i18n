@@ -35,6 +35,30 @@ type NounMatch struct {
 	Form   string // The original form
 }
 
+// TokenType classifies a token identified during tokenisation.
+type TokenType int
+
+const (
+	TokenUnknown     TokenType = iota // Unrecognised word
+	TokenVerb                         // Matched verb (see VerbInfo)
+	TokenNoun                         // Matched noun (see NounInfo)
+	TokenArticle                      // Matched article ("a", "an", "the")
+	TokenWord                         // Matched word from grammar word map
+	TokenPunctuation                  // Punctuation ("...", "?")
+)
+
+// Token represents a single classified token from a text string.
+type Token struct {
+	Raw       string    // Original text as it appeared in input
+	Lower     string    // Lowercased form
+	Type      TokenType // Classification
+	VerbInfo  VerbMatch // Set when Type == TokenVerb
+	NounInfo  NounMatch // Set when Type == TokenNoun
+	WordCat   string    // Set when Type == TokenWord
+	ArtType   string    // Set when Type == TokenArticle
+	PunctType string    // Set when Type == TokenPunctuation
+}
+
 // Tokeniser provides reverse grammar lookups by maintaining inverse
 // indexes built from the forward grammar tables.
 type Tokeniser struct {
@@ -447,5 +471,91 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		return "definite", true
 	}
 
+	return "", false
+}
+
+// Tokenise splits text on whitespace and classifies each word.
+// Priority: punctuation → article → verb → noun → word → unknown.
+// Trailing punctuation is stripped from words before matching.
+func (t *Tokeniser) Tokenise(text string) []Token {
+	text = strings.TrimSpace(text)
+	if text == "" {
+		return nil
+	}
+
+	parts := strings.Fields(text)
+	var tokens []Token
+
+	for _, raw := range parts {
+		// Strip trailing punctuation to get the clean word.
+		word, punct := splitTrailingPunct(raw)
+
+		// Classify the word portion (if any).
+		if word != "" {
+			tok := Token{Raw: raw, Lower: strings.ToLower(word)}
+
+			if artType, ok := t.MatchArticle(word); ok {
+				tok.Type = TokenArticle
+				tok.ArtType = artType
+			} else if vm, ok := t.MatchVerb(word); ok {
+				tok.Type = TokenVerb
+				tok.VerbInfo = vm
+			} else if nm, ok := t.MatchNoun(word); ok {
+				tok.Type = TokenNoun
+				tok.NounInfo = nm
+			} else if cat, ok := t.MatchWord(word); ok {
+				tok.Type = TokenWord
+				tok.WordCat = cat
+			} else {
+				tok.Type = TokenUnknown
+			}
+			tokens = append(tokens, tok)
+		}
+
+		// Emit a punctuation token if trailing punctuation was found.
+		if punct != "" {
+			if punctType, ok := matchPunctuation(punct); ok {
+				tokens = append(tokens, Token{
+					Raw:       punct,
+					Lower:     punct,
+					Type:      TokenPunctuation,
+					PunctType: punctType,
+				})
+			}
+		}
+	}
+
+	return tokens
+}
+
+// splitTrailingPunct separates a word from its trailing punctuation.
+// Returns the word and the punctuation suffix. Punctuation patterns
+// recognised: "..." (progress), "?" (question), ":" (label).
+func splitTrailingPunct(s string) (string, string) {
+	// Check for "..." suffix first (3-char pattern).
+	if strings.HasSuffix(s, "...") {
+		return s[:len(s)-3], "..."
+	}
+	// Check single-char trailing punctuation.
+	if len(s) > 1 {
+		last := s[len(s)-1]
+		if last == '?' || last == ':' {
+			return s[:len(s)-1], string(last)
+		}
+	}
+	return s, ""
+}
+
+// matchPunctuation detects known punctuation patterns.
+// Returns the punctuation type and true if recognised.
+func matchPunctuation(punct string) (string, bool) {
+	switch punct {
+	case "...":
+		return "progress", true
+	case "?":
+		return "question", true
+	case ":":
+		return "label", true
+	}
 	return "", false
 }

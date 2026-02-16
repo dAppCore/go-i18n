@@ -206,6 +206,69 @@ func TestTokeniser_MatchArticle(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Tokenise(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("Deleted the configuration files")
+
+	if len(tokens) != 4 {
+		t.Fatalf("Tokenise() returned %d tokens, want 4", len(tokens))
+	}
+
+	// "Deleted" → verb, past tense
+	if tokens[0].Type != TokenVerb {
+		t.Errorf("tokens[0].Type = %v, want TokenVerb", tokens[0].Type)
+	}
+	if tokens[0].VerbInfo.Tense != "past" {
+		t.Errorf("tokens[0].VerbInfo.Tense = %q, want %q", tokens[0].VerbInfo.Tense, "past")
+	}
+
+	// "the" → article
+	if tokens[1].Type != TokenArticle {
+		t.Errorf("tokens[1].Type = %v, want TokenArticle", tokens[1].Type)
+	}
+
+	// "configuration" → unknown
+	if tokens[2].Type != TokenUnknown {
+		t.Errorf("tokens[2].Type = %v, want TokenUnknown", tokens[2].Type)
+	}
+
+	// "files" → noun, plural
+	if tokens[3].Type != TokenNoun {
+		t.Errorf("tokens[3].Type = %v, want TokenNoun", tokens[3].Type)
+	}
+	if !tokens[3].NounInfo.Plural {
+		t.Errorf("tokens[3].NounInfo.Plural = false, want true")
+	}
+}
+
+func TestTokeniser_Tokenise_Punctuation(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("Building project...")
+	hasPunct := false
+	for _, tok := range tokens {
+		if tok.Type == TokenPunctuation {
+			hasPunct = true
+		}
+	}
+	if !hasPunct {
+		t.Error("did not detect punctuation in \"Building project...\"")
+	}
+}
+
+func TestTokeniser_Tokenise_Empty(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("")
+	if len(tokens) != 0 {
+		t.Errorf("Tokenise(\"\") returned %d tokens, want 0", len(tokens))
+	}
+}
+
 func TestTokeniser_MatchVerb_Regular(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
