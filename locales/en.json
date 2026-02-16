@@ -39,7 +39,10 @@
 			"hit": { "base": "hit", "past": "hit", "gerund": "hitting" },
 			"sit": { "base": "sit", "past": "sat", "gerund": "sitting" },
 			"split": { "base": "split", "past": "split", "gerund": "splitting" },
-			"shut": { "base": "shut", "past": "shut", "gerund": "shutting" }
+			"shut": { "base": "shut", "past": "shut", "gerund": "shutting" },
+			"delete": { "base": "delete", "past": "deleted", "gerund": "deleting" },
+			"update": { "base": "update", "past": "updated", "gerund": "updating" },
+			"push": { "base": "push", "past": "pushed", "gerund": "pushing" }
 		},
 		"noun": {
 			"file": { "one": "file", "other": "files" },

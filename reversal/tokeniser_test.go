@@ -1,0 +1,110 @@
+package reversal
+
+import (
+	"testing"
+
+	i18n "forge.lthn.ai/core/go-i18n"
+)
+
+func setup(t *testing.T) {
+	t.Helper()
+	svc, err := i18n.New()
+	if err != nil {
+		t.Fatalf("i18n.New() failed: %v", err)
+	}
+	i18n.SetDefault(svc)
+}
+
+func TestTokeniser_MatchVerb_Irregular(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		word    string
+		wantOK  bool
+		wantBase string
+		wantTense string
+	}{
+		// Irregular past tense
+		{"deleted", true, "delete", "past"},
+		{"deleting", true, "delete", "gerund"},
+		{"went", true, "go", "past"},
+		{"going", true, "go", "gerund"},
+		{"was", true, "be", "past"},
+		{"being", true, "be", "gerund"},
+		{"ran", true, "run", "past"},
+		{"running", true, "run", "gerund"},
+		{"wrote", true, "write", "past"},
+		{"writing", true, "write", "gerund"},
+		{"built", true, "build", "past"},
+		{"building", true, "build", "gerund"},
+		{"committed", true, "commit", "past"},
+		{"committing", true, "commit", "gerund"},
+
+		// Base forms
+		{"delete", true, "delete", "base"},
+		{"go", true, "go", "base"},
+
+		// Unknown words return false
+		{"xyzzy", false, "", ""},
+		{"flurble", false, "", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			match, ok := tok.MatchVerb(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchVerb(%q) ok = %v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if !ok {
+				return
+			}
+			if match.Base != tt.wantBase {
+				t.Errorf("MatchVerb(%q).Base = %q, want %q", tt.word, match.Base, tt.wantBase)
+			}
+			if match.Tense != tt.wantTense {
+				t.Errorf("MatchVerb(%q).Tense = %q, want %q", tt.word, match.Tense, tt.wantTense)
+			}
+		})
+	}
+}
+
+func TestTokeniser_MatchVerb_Regular(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		word      string
+		wantOK    bool
+		wantBase  string
+		wantTense string
+	}{
+		// Regular verbs NOT in grammar tables — detected by reverse morphology + round-trip
+		{"walked", true, "walk", "past"},
+		{"walking", true, "walk", "gerund"},
+		{"processed", true, "process", "past"},
+		{"processing", true, "process", "gerund"},
+		{"copied", true, "copy", "past"},
+		{"copying", true, "copy", "gerund"},
+		{"stopped", true, "stop", "past"},
+		{"stopping", true, "stop", "gerund"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			match, ok := tok.MatchVerb(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchVerb(%q) ok = %v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if !ok {
+				return
+			}
+			if match.Base != tt.wantBase {
+				t.Errorf("MatchVerb(%q).Base = %q, want %q", tt.word, match.Base, tt.wantBase)
+			}
+			if match.Tense != tt.wantTense {
+				t.Errorf("MatchVerb(%q).Tense = %q, want %q", tt.word, match.Tense, tt.wantTense)
+			}
+		})
+	}
+}
