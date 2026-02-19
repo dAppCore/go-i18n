@@ -49,14 +49,34 @@ const (
 
 // Token represents a single classified token from a text string.
 type Token struct {
-	Raw       string    // Original text as it appeared in input
-	Lower     string    // Lowercased form
-	Type      TokenType // Classification
-	VerbInfo  VerbMatch // Set when Type == TokenVerb
-	NounInfo  NounMatch // Set when Type == TokenNoun
-	WordCat   string    // Set when Type == TokenWord
-	ArtType   string    // Set when Type == TokenArticle
-	PunctType string    // Set when Type == TokenPunctuation
+	Raw        string          // Original text as it appeared in input
+	Lower      string          // Lowercased form
+	Type       TokenType       // Classification
+	Confidence float64         // 0.0-1.0 classification confidence
+	AltType    TokenType       // Runner-up classification (dual-class only)
+	AltConf    float64         // Runner-up confidence
+	VerbInfo   VerbMatch       // Set when Type OR AltType == TokenVerb
+	NounInfo   NounMatch       // Set when Type OR AltType == TokenNoun
+	WordCat    string          // Set when Type == TokenWord
+	ArtType    string          // Set when Type == TokenArticle
+	PunctType  string          // Set when Type == TokenPunctuation
+	Signals    *SignalBreakdown // Non-nil only when WithSignals() option is set
+}
+
+// SignalBreakdown provides detailed scoring for dual-class disambiguation.
+type SignalBreakdown struct {
+	VerbScore  float64
+	NounScore  float64
+	Components []SignalComponent
+}
+
+// SignalComponent describes a single signal's contribution to disambiguation.
+type SignalComponent struct {
+	Name    string  // "noun_determiner", "verb_auxiliary", etc.
+	Weight  float64 // Signal weight (0.0-1.0)
+	Value   float64 // Signal firing strength (0.0-1.0)
+	Contrib float64 // weight x value
+	Reason  string  // Human-readable: "preceded by 'the'"
 }
 
 // Tokeniser provides reverse grammar lookups by maintaining inverse
@@ -497,15 +517,19 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			if artType, ok := t.MatchArticle(word); ok {
 				tok.Type = TokenArticle
 				tok.ArtType = artType
+				tok.Confidence = 1.0
 			} else if vm, ok := t.MatchVerb(word); ok {
 				tok.Type = TokenVerb
 				tok.VerbInfo = vm
+				tok.Confidence = 1.0
 			} else if nm, ok := t.MatchNoun(word); ok {
 				tok.Type = TokenNoun
 				tok.NounInfo = nm
+				tok.Confidence = 1.0
 			} else if cat, ok := t.MatchWord(word); ok {
 				tok.Type = TokenWord
 				tok.WordCat = cat
+				tok.Confidence = 1.0
 			} else {
 				tok.Type = TokenUnknown
 			}
@@ -516,10 +540,11 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		if punct != "" {
 			if punctType, ok := matchPunctuation(punct); ok {
 				tokens = append(tokens, Token{
-					Raw:       punct,
-					Lower:     punct,
-					Type:      TokenPunctuation,
-					PunctType: punctType,
+					Raw:        punct,
+					Lower:      punct,
+					Type:       TokenPunctuation,
+					PunctType:  punctType,
+					Confidence: 1.0,
 				})
 			}
 		}

@@ -308,3 +308,15 @@ func TestTokeniser_MatchVerb_Regular(t *testing.T) {
 		})
 	}
 }
+
+func TestToken_ConfidenceField(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("Deleted the branch")
+
+	for _, token := range tokens {
+		if token.Type != TokenUnknown && token.Confidence == 0 {
+			t.Errorf("token %q (type %d) has zero Confidence", token.Raw, token.Type)
+		}
+	}
+}
