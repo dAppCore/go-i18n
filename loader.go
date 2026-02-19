@@ -160,7 +160,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if arr, ok := nd.([]any); ok {
 						for _, item := range arr {
 							if s, ok := item.(string); ok {
-								grammar.Signals.NounDeterminers = append(grammar.Signals.NounDeterminers, s)
+								grammar.Signals.NounDeterminers = append(grammar.Signals.NounDeterminers, strings.ToLower(s))
 							}
 						}
 					}
@@ -169,7 +169,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if arr, ok := va.([]any); ok {
 						for _, item := range arr {
 							if s, ok := item.(string); ok {
-								grammar.Signals.VerbAuxiliaries = append(grammar.Signals.VerbAuxiliaries, s)
+								grammar.Signals.VerbAuxiliaries = append(grammar.Signals.VerbAuxiliaries, strings.ToLower(s))
 							}
 						}
 					}
@@ -178,7 +178,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if arr, ok := vi.([]any); ok {
 						for _, item := range arr {
 							if s, ok := item.(string); ok {
-								grammar.Signals.VerbInfinitive = append(grammar.Signals.VerbInfinitive, s)
+								grammar.Signals.VerbInfinitive = append(grammar.Signals.VerbInfinitive, strings.ToLower(s))
 							}
 						}
 					}

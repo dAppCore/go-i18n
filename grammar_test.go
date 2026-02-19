@@ -357,25 +357,35 @@ func TestGrammarData_Signals(t *testing.T) {
 	if data == nil {
 		t.Fatal("GetGrammarData(\"en\") returned nil")
 	}
-	if len(data.Signals.NounDeterminers) == 0 {
-		t.Error("Signals.NounDeterminers is empty")
+	if got := len(data.Signals.NounDeterminers); got < 20 {
+		t.Errorf("NounDeterminers: got %d entries, want >= 20", got)
 	}
-	if len(data.Signals.VerbAuxiliaries) == 0 {
-		t.Error("Signals.VerbAuxiliaries is empty")
+	if got := len(data.Signals.VerbAuxiliaries); got < 19 {
+		t.Errorf("VerbAuxiliaries: got %d entries, want >= 19", got)
 	}
-	if len(data.Signals.VerbInfinitive) == 0 {
-		t.Error("Signals.VerbInfinitive is empty")
+	if len(data.Signals.VerbInfinitive) != 1 || data.Signals.VerbInfinitive[0] != "to" {
+		t.Errorf("VerbInfinitive: got %v, want [\"to\"]", data.Signals.VerbInfinitive)
 	}
 
 	// Spot-check known values
-	found := false
+	detFound := false
 	for _, d := range data.Signals.NounDeterminers {
 		if d == "the" {
-			found = true
+			detFound = true
 		}
 	}
-	if !found {
+	if !detFound {
 		t.Error("NounDeterminers missing 'the'")
+	}
+
+	auxFound := false
+	for _, a := range data.Signals.VerbAuxiliaries {
+		if a == "will" {
+			auxFound = true
+		}
+	}
+	if !auxFound {
+		t.Error("VerbAuxiliaries missing 'will'")
 	}
 }
 
