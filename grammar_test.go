@@ -346,6 +346,39 @@ func TestActionFailed(t *testing.T) {
 	}
 }
 
+func TestGrammarData_Signals(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	if len(data.Signals.NounDeterminers) == 0 {
+		t.Error("Signals.NounDeterminers is empty")
+	}
+	if len(data.Signals.VerbAuxiliaries) == 0 {
+		t.Error("Signals.VerbAuxiliaries is empty")
+	}
+	if len(data.Signals.VerbInfinitive) == 0 {
+		t.Error("Signals.VerbInfinitive is empty")
+	}
+
+	// Spot-check known values
+	found := false
+	for _, d := range data.Signals.NounDeterminers {
+		if d == "the" {
+			found = true
+		}
+	}
+	if !found {
+		t.Error("NounDeterminers missing 'the'")
+	}
+}
+
 func TestTemplateFuncs(t *testing.T) {
 	funcs := TemplateFuncs()
 	expected := []string{"title", "lower", "upper", "past", "gerund", "plural", "pluralForm", "article", "quote"}

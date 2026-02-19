@@ -192,6 +192,7 @@ type GrammarData struct {
 	Articles ArticleForms         // article configuration
 	Words    map[string]string    // base word translations
 	Punct    PunctuationRules     // language-specific punctuation
+	Signals  SignalData           // disambiguation signal word lists
 }
 
 // VerbForms holds verb conjugations.
@@ -219,6 +220,14 @@ type ArticleForms struct {
 type PunctuationRules struct {
 	LabelSuffix    string // ":" (French uses " :")
 	ProgressSuffix string // "..."
+}
+
+// SignalData holds word lists used for disambiguation signals.
+type SignalData struct {
+	NounDeterminers []string                      // Words that precede nouns: "the", "a", "this", "my", ...
+	VerbAuxiliaries []string                      // Auxiliaries/modals before verbs: "is", "was", "will", ...
+	VerbInfinitive  []string                      // Infinitive markers: "to"
+	Priors          map[string]map[string]float64 // Reserved: per-word priors {"commit": {"verb": 0.4, "noun": 0.6}}
 }
 
 // --- Number Formatting ---

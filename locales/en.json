@@ -110,6 +110,23 @@
 			"label": ":",
 			"progress": "..."
 		},
+		"signal": {
+			"noun_determiner": [
+				"the", "a", "an",
+				"this", "that", "these", "those",
+				"my", "your", "his", "her", "its", "our", "their",
+				"every", "each", "some", "any", "no",
+				"many", "few", "several", "all", "both"
+			],
+			"verb_auxiliary": [
+				"is", "are", "was", "were",
+				"has", "had", "have",
+				"do", "does", "did",
+				"will", "would", "could", "should",
+				"can", "may", "might", "shall", "must"
+			],
+			"verb_infinitive": ["to"]
+		},
 		"number": {
 			"thousands": ",",
 			"decimal": ".",

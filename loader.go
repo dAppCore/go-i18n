@@ -154,6 +154,38 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				}
 			}
 
+			// Signal data for disambiguation
+			if grammar != nil && fullKey == "gram.signal" {
+				if nd, ok := v["noun_determiner"]; ok {
+					if arr, ok := nd.([]any); ok {
+						for _, item := range arr {
+							if s, ok := item.(string); ok {
+								grammar.Signals.NounDeterminers = append(grammar.Signals.NounDeterminers, s)
+							}
+						}
+					}
+				}
+				if va, ok := v["verb_auxiliary"]; ok {
+					if arr, ok := va.([]any); ok {
+						for _, item := range arr {
+							if s, ok := item.(string); ok {
+								grammar.Signals.VerbAuxiliaries = append(grammar.Signals.VerbAuxiliaries, s)
+							}
+						}
+					}
+				}
+				if vi, ok := v["verb_infinitive"]; ok {
+					if arr, ok := vi.([]any); ok {
+						for _, item := range arr {
+							if s, ok := item.(string); ok {
+								grammar.Signals.VerbInfinitive = append(grammar.Signals.VerbInfinitive, s)
+							}
+						}
+					}
+				}
+				continue
+			}
+
 			// Article configuration
 			if grammar != nil && fullKey == "gram.article" {
 				if indef, ok := v["indefinite"].(map[string]any); ok {
