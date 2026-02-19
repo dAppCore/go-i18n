@@ -86,3 +86,53 @@ The technical↔creative confusion (calls some technical text "creative") is the
 2. **Calibration target**: 1B classifications can be spot-checked against Gemma3-27B classifications to measure drift.
 3. **Article/irregular strength**: The 100% article correctness and irregular base form accuracy suggest these grammar features are well-learned. Worth testing as lightweight validators in the forward composition path.
 4. **Dead zones to avoid**: Don't use 1B for pattern fill, tense detection, or generative tasks. These need the full 27B or rule-based approaches.
+
+---
+
+## 2026-02-19: Dual-Class Word Disambiguation (Implementation)
+
+### What Was Built
+
+Two-pass probabilistic disambiguation for words that exist as both verbs and nouns in the grammar tables. Replaces the previous verb-first hard classification with context-aware scoring.
+
+### Dual-Class Set
+
+{commit, run, test, check, file, build} — all 6 words now appear in both `gram.verb` and `gram.noun` in en.json.
+
+### Algorithm: Two-Pass Tokenise
+
+**Pass 1** classifies unambiguous tokens. Inflected forms self-resolve (e.g. "committed" → verb, "commits" → noun). Base forms of dual-class words are marked as ambiguous.
+
+**Pass 2** evaluates 7 weighted signals to resolve ambiguous tokens:
+
+| Signal | Weight | Description |
+|--------|--------|-------------|
+| noun_determiner | 0.35 | Preceded by "the", "a", "my", etc. → noun |
+| verb_auxiliary | 0.25 | Preceded by "will", "can", "don't", etc. → verb |
+| following_class | 0.15 | Followed by noun → verb; followed by verb → noun |
+| sentence_position | 0.10 | Sentence-initial → verb (imperative) |
+| verb_saturation | 0.10 | Clause already has a confident verb → noun |
+| inflection_echo | 0.03 | Inflected form of same word elsewhere → other role |
+| default_prior | 0.02 | Verb-first tiebreaker |
+
+### Key Design Decisions
+
+- **Confidence scores** flow into imprints: dual-class tokens contribute to both verb and noun distributions weighted by Confidence and AltConf. This preserves uncertainty for scoring rather than forcing a hard classification.
+- **Clause boundaries** for verb saturation: scans only within clause (delimited by punctuation and coordinating conjunctions "and", "or", "but"). Prevents multi-clause sentences from incorrectly pushing second verbs toward noun.
+- **Confidence floor** (B3): when only the default prior fires (total < 0.10), confidence is capped at 0.55/0.45 rather than deriving a misleading 1.0 from `0.02/0.02`.
+- **Contractions** (D1): 15 contractions added to verb_auxiliary signal list (don't, can't, won't, etc.).
+- **Configurable weights** (F3): `WithWeights()` option allows overriding signal weights without code changes.
+- **DisambiguationStats** (F1): `DisambiguationStatsFromTokens()` provides aggregate stats for Phase 2 calibration.
+- **SignalBreakdown** opt-in: `WithSignals()` populates detailed per-token signal diagnostics.
+
+### Test Coverage
+
+- 9 disambiguation scenario tests (noun after determiner, verb imperative, verb saturation, clause boundary, contraction aux, etc.)
+- 12 dual-class round-trip tests covering all 6 words in both roles
+- Imprint convergence test (same-role similar, different-role divergent)
+- DisambiguationStats tests (ambiguous and non-ambiguous inputs)
+- Race detector: clean
+
+### Expanded Dual-Class Candidates (Phase 2)
+
+Per REVIEW.md F4, additional candidates for future expansion: patch, release, update, change, merge, push, pull, tag, log, watch, link, host, import, export, process, function, handle, trigger, stream, queue. Measure which ones cause imprint drift in the 88K seeds before adding.

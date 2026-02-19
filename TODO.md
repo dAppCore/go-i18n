@@ -6,8 +6,8 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 
 ## Phase 1: Harden the Engine
 
-- [ ] **Add CLAUDE.md** — Document the grammar engine contract: what it is (grammar primitives + reversal), what it isn't (translation file manager). Include build/test commands, the gram.* sacred rule, and the agent-flattening prohibition.
-- [ ] **Ambiguity resolution for dual-class words** — Words like "run", "file", "test", "check", "build" are both verb and noun. Tokeniser currently picks first match. Need context-aware disambiguation (look at surrounding tokens: article before = noun, after subject = verb).
+- [x] **Add CLAUDE.md** — Document the grammar engine contract: what it is (grammar primitives + reversal), what it isn't (translation file manager). Include build/test commands, the gram.* sacred rule, and the agent-flattening prohibition. *(d5b3eac)*
+- [x] **Ambiguity resolution for dual-class words** — Two-pass probabilistic disambiguation with 7 weighted signals. All 6 dual-class words {commit, run, test, check, file, build} correctly disambiguate in both verb and noun contexts. Confidence scores flow into imprints. *(3848297)*
 - [ ] **Extend irregular verb coverage** — Audit against common dev/ops vocabulary. Missing forms cause silent fallback to regular rules which may produce wrong output (e.g. "builded" instead of "built").
 - [ ] **Add benchmarks** — `grammar_test.go` and `reversal/tokeniser_test.go` need `Benchmark*` functions. The engine will run in hot paths (TIM, Poindexter) — need baseline numbers.
 
