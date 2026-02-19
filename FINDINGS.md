@@ -142,3 +142,52 @@ Two-pass probabilistic disambiguation for words that exist as both verbs and nou
 ### Expanded Dual-Class Candidates (Phase 2)
 
 Per REVIEW.md F4, additional candidates for future expansion: patch, release, update, change, merge, push, pull, tag, log, watch, link, host, import, export, process, function, handle, trigger, stream, queue. Measure which ones cause imprint drift in the 88K seeds before adding.
+
+---
+
+## 2026-02-19: Irregular Verb Coverage Extension
+
+Added 44 irregular verbs to `irregularVerbs` map in `types.go`:
+
+- **17 compound irregular** (prefix + base): undo, redo, rerun, rewrite, rebuild, resend, override, rethink, remake, undergo, overcome, withdraw, uphold, withhold, outgrow, outrun, overshoot
+- **22 simple irregular** (dev/ops): become, come, give, fall, understand, arise, bind, spin, quit, cast, broadcast, burst, cost, shed, rid, shrink, shoot, forbid, offset, upset, input, output
+- **5 CVC doubling overrides**: debug, embed, unzip, remap, unpin, unwrap — these have stressed final syllable but `shouldDoubleConsonant()` returns false for words >4 chars
+
+Total irregular verb count: ~140 entries (from ~96).
+
+---
+
+## 2026-02-19: Benchmark Baselines (M3 Ultra, arm64)
+
+### Forward Composition (`grammar_test.go`)
+
+| Benchmark | ns/op | allocs/op | B/op |
+|-----------|-------|-----------|------|
+| PastTense (irregular) | 25.67 | 0 | 0 |
+| PastTense (regular) | 48.52 | 1 | 8 |
+| PastTense (compound) | 26.15 | 0 | 0 |
+| Gerund | 25.87 | 0 | 0 |
+| Pluralize | 67.97 | 1 | 16 |
+| Article | 177.4 | 0 | 0 |
+| Progress | 107.1 | 2 | 24 |
+| ActionResult | 115.3 | 3 | 48 |
+
+### Reversal Engine (`reversal/tokeniser_test.go`)
+
+| Benchmark | ns/op | allocs/op | B/op |
+|-----------|-------|-----------|------|
+| Tokenise (3 words) | 639 | 8 | 1600 |
+| Tokenise (12 words) | 2859 | 14 | 7072 |
+| Tokenise (dual-class) | 1657 | 9 | 3472 |
+| Tokenise (WithSignals) | 2255 | 28 | 4680 |
+| NewImprint | 648 | 10 | 1120 |
+| Imprint.Similar | 516 | 0 | 0 |
+| Multiplier.Expand | 3609 | 63 | 11400 |
+
+### Key Observations
+
+- **Forward composition is fast**: irregular verb lookup is ~26ns (map lookup), regular ~49ns (string manipulation). Both are hot-path safe.
+- **Tokenise scales linearly**: ~200-240ns/word. 12-word sentence at 2.9µs means ~350K sentences/sec single-threaded.
+- **Similar is zero-alloc**: 516ns with no heap allocation makes it suitable for high-volume imprint comparison.
+- **Multiplier is allocation-heavy**: 63 allocs for a 4-word sentence. If this becomes a bottleneck, pool the Token slices.
+- **WithSignals adds overhead**: ~36% more time and 3x allocs vs plain tokenise. Keep it opt-in for diagnostics only.

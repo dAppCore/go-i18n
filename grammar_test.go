@@ -32,6 +32,57 @@ func TestPastTense(t *testing.T) {
 		{"steal", "stole"},
 		{"freeze", "froze"},
 
+		// Compound irregular verbs
+		{"undo", "undid"},
+		{"redo", "redid"},
+		{"rerun", "reran"},
+		{"rewrite", "rewrote"},
+		{"rebuild", "rebuilt"},
+		{"resend", "resent"},
+		{"override", "overrode"},
+		{"rethink", "rethought"},
+		{"remake", "remade"},
+		{"undergo", "underwent"},
+		{"overcome", "overcame"},
+		{"withdraw", "withdrew"},
+		{"uphold", "upheld"},
+		{"withhold", "withheld"},
+		{"outgrow", "outgrew"},
+		{"outrun", "outran"},
+		{"overshoot", "overshot"},
+
+		// Simple irregular verbs (dev/ops)
+		{"become", "became"},
+		{"come", "came"},
+		{"give", "gave"},
+		{"fall", "fell"},
+		{"understand", "understood"},
+		{"arise", "arose"},
+		{"bind", "bound"},
+		{"spin", "spun"},
+		{"quit", "quit"},
+		{"cast", "cast"},
+		{"broadcast", "broadcast"},
+		{"burst", "burst"},
+		{"cost", "cost"},
+		{"shed", "shed"},
+		{"rid", "rid"},
+		{"shrink", "shrank"},
+		{"shoot", "shot"},
+		{"forbid", "forbade"},
+		{"offset", "offset"},
+		{"upset", "upset"},
+		{"input", "input"},
+		{"output", "output"},
+
+		// CVC doubling failures (stressed final syllable)
+		{"debug", "debugged"},
+		{"embed", "embedded"},
+		{"unzip", "unzipped"},
+		{"remap", "remapped"},
+		{"unpin", "unpinned"},
+		{"unwrap", "unwrapped"},
+
 		// Regular verbs
 		{"delete", "deleted"},
 		{"update", "updated"},
@@ -75,6 +126,29 @@ func TestGerund(t *testing.T) {
 		{"build", "building"},
 		{"write", "writing"},
 		{"commit", "committing"},
+
+		// Compound irregular verbs
+		{"undo", "undoing"},
+		{"rerun", "rerunning"},
+		{"override", "overriding"},
+		{"rebuild", "rebuilding"},
+
+		// Simple irregular (dev/ops)
+		{"become", "becoming"},
+		{"give", "giving"},
+		{"bind", "binding"},
+		{"spin", "spinning"},
+		{"quit", "quitting"},
+		{"cast", "casting"},
+		{"broadcast", "broadcasting"},
+
+		// CVC doubling failures
+		{"debug", "debugging"},
+		{"embed", "embedding"},
+		{"unzip", "unzipping"},
+		{"remap", "remapping"},
+		{"unpin", "unpinning"},
+		{"unwrap", "unwrapping"},
 
 		// Regular verbs
 		{"delete", "deleting"},
@@ -412,5 +486,76 @@ func TestTemplateFuncs(t *testing.T) {
 		if _, ok := funcs[name]; !ok {
 			t.Errorf("TemplateFuncs() missing %q", name)
 		}
+	}
+}
+
+// --- Benchmarks ---
+
+func BenchmarkPastTense_Irregular(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		PastTense("build")
+	}
+}
+
+func BenchmarkPastTense_Regular(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		PastTense("delete")
+	}
+}
+
+func BenchmarkPastTense_Compound(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		PastTense("rebuild")
+	}
+}
+
+func BenchmarkGerund(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Gerund("commit")
+	}
+}
+
+func BenchmarkPluralize(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Pluralize("repository", 5)
+	}
+}
+
+func BenchmarkArticle(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Article("error")
+	}
+}
+
+func BenchmarkProgress(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		Progress("build")
+	}
+}
+
+func BenchmarkActionResult(b *testing.B) {
+	svc, _ := New()
+	SetDefault(svc)
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		ActionResult("delete", "config.yaml")
 	}
 }

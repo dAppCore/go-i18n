@@ -8,8 +8,8 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 
 - [x] **Add CLAUDE.md** — Document the grammar engine contract: what it is (grammar primitives + reversal), what it isn't (translation file manager). Include build/test commands, the gram.* sacred rule, and the agent-flattening prohibition. *(d5b3eac)*
 - [x] **Ambiguity resolution for dual-class words** — Two-pass probabilistic disambiguation with 7 weighted signals. All 6 dual-class words {commit, run, test, check, file, build} correctly disambiguate in both verb and noun contexts. Confidence scores flow into imprints. *(3848297)*
-- [ ] **Extend irregular verb coverage** — Audit against common dev/ops vocabulary. Missing forms cause silent fallback to regular rules which may produce wrong output (e.g. "builded" instead of "built").
-- [ ] **Add benchmarks** — `grammar_test.go` and `reversal/tokeniser_test.go` need `Benchmark*` functions. The engine will run in hot paths (TIM, Poindexter) — need baseline numbers.
+- [x] **Extend irregular verb coverage** — Added 44 irregular verbs: 17 compound (undo, redo, rerun, rewrite, rebuild, resend, override, rethink, remake, undergo, overcome, withdraw, uphold, withhold, outgrow, outrun, overshoot), 22 simple (become, come, give, fall, understand, arise, bind, spin, quit, cast, broadcast, burst, cost, shed, rid, shrink, shoot, forbid, offset, upset, input, output), 5 CVC doubling overrides (debug, embed, unzip, remap, unpin, unwrap).
+- [x] **Add benchmarks** — 8 forward composition + 7 reversal benchmarks. Baseline on M3 Ultra: PastTense 26ns/0alloc, Tokenise(short) 639ns/8alloc, Imprint 648ns/10alloc, Similar 516ns/0alloc.
 
 ## Phase 2: Reference Distribution + 1B Classification Pipeline
 

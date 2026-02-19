@@ -395,6 +395,32 @@ var irregularVerbs = map[string]VerbForms{
 	"optimise":    {Past: "optimised", Gerund: "optimising"},
 	"initialise":  {Past: "initialised", Gerund: "initialising"},
 	"synchronise": {Past: "synchronised", Gerund: "synchronising"},
+	// Compound irregular verbs (prefix + base)
+	"undo": {Past: "undid", Gerund: "undoing"}, "redo": {Past: "redid", Gerund: "redoing"},
+	"rerun": {Past: "reran", Gerund: "rerunning"}, "rewrite": {Past: "rewrote", Gerund: "rewriting"},
+	"rebuild": {Past: "rebuilt", Gerund: "rebuilding"}, "resend": {Past: "resent", Gerund: "resending"},
+	"override": {Past: "overrode", Gerund: "overriding"}, "rethink": {Past: "rethought", Gerund: "rethinking"},
+	"remake": {Past: "remade", Gerund: "remaking"}, "undergo": {Past: "underwent", Gerund: "undergoing"},
+	"overcome": {Past: "overcame", Gerund: "overcoming"}, "withdraw": {Past: "withdrew", Gerund: "withdrawing"},
+	"uphold": {Past: "upheld", Gerund: "upholding"}, "withhold": {Past: "withheld", Gerund: "withholding"},
+	"outgrow": {Past: "outgrew", Gerund: "outgrowing"}, "outrun": {Past: "outran", Gerund: "outrunning"},
+	"overshoot": {Past: "overshot", Gerund: "overshooting"},
+	// Simple irregular verbs (dev/ops)
+	"become": {Past: "became", Gerund: "becoming"}, "come": {Past: "came", Gerund: "coming"},
+	"give": {Past: "gave", Gerund: "giving"}, "fall": {Past: "fell", Gerund: "falling"},
+	"understand": {Past: "understood", Gerund: "understanding"}, "arise": {Past: "arose", Gerund: "arising"},
+	"bind": {Past: "bound", Gerund: "binding"}, "spin": {Past: "spun", Gerund: "spinning"},
+	"quit": {Past: "quit", Gerund: "quitting"}, "cast": {Past: "cast", Gerund: "casting"},
+	"broadcast": {Past: "broadcast", Gerund: "broadcasting"}, "burst": {Past: "burst", Gerund: "bursting"},
+	"cost": {Past: "cost", Gerund: "costing"}, "shed": {Past: "shed", Gerund: "shedding"},
+	"rid": {Past: "rid", Gerund: "ridding"}, "shrink": {Past: "shrank", Gerund: "shrinking"},
+	"shoot": {Past: "shot", Gerund: "shooting"}, "forbid": {Past: "forbade", Gerund: "forbidding"},
+	"offset": {Past: "offset", Gerund: "offsetting"}, "upset": {Past: "upset", Gerund: "upsetting"},
+	"input": {Past: "input", Gerund: "inputting"}, "output": {Past: "output", Gerund: "outputting"},
+	// CVC doubling failures (stressed final syllable, >4 chars)
+	"debug": {Past: "debugged", Gerund: "debugging"}, "embed": {Past: "embedded", Gerund: "embedding"},
+	"unzip": {Past: "unzipped", Gerund: "unzipping"}, "remap": {Past: "remapped", Gerund: "remapping"},
+	"unpin": {Past: "unpinned", Gerund: "unpinning"}, "unwrap": {Past: "unwrapped", Gerund: "unwrapping"},
 }
 
 var noDoubleConsonant = map[string]bool{

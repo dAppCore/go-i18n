@@ -538,3 +538,83 @@ func TestWithWeights_Override(t *testing.T) {
 		t.Errorf("with noun_determiner=0, 'commit' Type = %v, want TokenVerb", tokens[1].Type)
 	}
 }
+
+// --- Benchmarks ---
+
+func benchSetup(b *testing.B) {
+	b.Helper()
+	svc, err := i18n.New()
+	if err != nil {
+		b.Fatalf("i18n.New() failed: %v", err)
+	}
+	i18n.SetDefault(svc)
+}
+
+func BenchmarkTokenise_Short(b *testing.B) {
+	benchSetup(b)
+	tok := NewTokeniser()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tok.Tokenise("Delete the file")
+	}
+}
+
+func BenchmarkTokenise_Medium(b *testing.B) {
+	benchSetup(b)
+	tok := NewTokeniser()
+	text := "The build failed because the test commit was not pushed to the branch"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tok.Tokenise(text)
+	}
+}
+
+func BenchmarkTokenise_DualClass(b *testing.B) {
+	benchSetup(b)
+	tok := NewTokeniser()
+	text := "Commit the changes and run the build test"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tok.Tokenise(text)
+	}
+}
+
+func BenchmarkTokenise_WithSignals(b *testing.B) {
+	benchSetup(b)
+	tok := NewTokeniser(WithSignals())
+	text := "The commit was rebuilt and the test passed"
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		tok.Tokenise(text)
+	}
+}
+
+func BenchmarkNewImprint(b *testing.B) {
+	benchSetup(b)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("Delete the configuration file and rebuild the project")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		NewImprint(tokens)
+	}
+}
+
+func BenchmarkImprint_Similar(b *testing.B) {
+	benchSetup(b)
+	tok := NewTokeniser()
+	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
+	imp2 := NewImprint(tok.Tokenise("Delete the old file"))
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		imp1.Similar(imp2)
+	}
+}
+
+func BenchmarkMultiplier_Expand(b *testing.B) {
+	benchSetup(b)
+	m := NewMultiplier()
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		m.Expand("Delete the configuration file")
+	}
+}
