@@ -42,7 +42,10 @@
 			"shut": { "base": "shut", "past": "shut", "gerund": "shutting" },
 			"delete": { "base": "delete", "past": "deleted", "gerund": "deleting" },
 			"update": { "base": "update", "past": "updated", "gerund": "updating" },
-			"push": { "base": "push", "past": "pushed", "gerund": "pushing" }
+			"push": { "base": "push", "past": "pushed", "gerund": "pushing" },
+			"test": { "base": "test", "past": "tested", "gerund": "testing" },
+			"check": { "base": "check", "past": "checked", "gerund": "checking" },
+			"file": { "base": "file", "past": "filed", "gerund": "filing" }
 		},
 		"noun": {
 			"file": { "one": "file", "other": "files" },
@@ -67,7 +70,9 @@
 			"failed": { "one": "failed", "other": "failed" },
 			"skipped": { "one": "skipped", "other": "skipped" },
 			"check": { "one": "check", "other": "checks" },
-			"test": { "one": "test", "other": "tests" }
+			"test": { "one": "test", "other": "tests" },
+			"run": { "one": "run", "other": "runs" },
+			"build": { "one": "build", "other": "builds" }
 		},
 		"article": {
 			"indefinite": { "default": "a", "vowel": "an" },
@@ -123,7 +128,10 @@
 				"has", "had", "have",
 				"do", "does", "did",
 				"will", "would", "could", "should",
-				"can", "may", "might", "shall", "must"
+				"can", "may", "might", "shall", "must",
+				"don't", "can't", "won't", "shouldn't", "couldn't", "wouldn't",
+				"doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't",
+				"hasn't", "hadn't", "haven't"
 			],
 			"verb_infinitive": ["to"]
 		},

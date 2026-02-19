@@ -65,7 +65,8 @@ func TestImprint_Similar_SameText(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	tok := NewTokeniser()
-	tokens := tok.Tokenise("Delete the configuration file")
+	// Use "branch" (noun-only) to avoid dual-class ambiguity with "file" (now both verb and noun).
+	tokens := tok.Tokenise("Delete the configuration branch")
 	imp1 := NewImprint(tokens)
 	imp2 := NewImprint(tokens)
 
@@ -80,8 +81,9 @@ func TestImprint_Similar_SimilarText(t *testing.T) {
 	i18n.SetDefault(svc)
 	tok := NewTokeniser()
 
-	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
-	imp2 := NewImprint(tok.Tokenise("Deleted the configuration files"))
+	// Use "branch" (noun-only) to avoid dual-class ambiguity with "file" (now both verb and noun).
+	imp1 := NewImprint(tok.Tokenise("Delete the configuration branch"))
+	imp2 := NewImprint(tok.Tokenise("Deleted the configuration branches"))
 
 	sim := imp1.Similar(imp2)
 	if sim < 0.3 {
@@ -97,7 +99,7 @@ func TestImprint_Similar_DifferentText(t *testing.T) {
 	i18n.SetDefault(svc)
 	tok := NewTokeniser()
 
-	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
+	imp1 := NewImprint(tok.Tokenise("Delete the configuration branch"))
 	imp2 := NewImprint(tok.Tokenise("Building the project successfully"))
 
 	sim := imp1.Similar(imp2)

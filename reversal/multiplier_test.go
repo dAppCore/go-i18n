@@ -10,17 +10,18 @@ func TestMultiplier_Expand(t *testing.T) {
 	svc, _ := i18n.New()
 	i18n.SetDefault(svc)
 	m := NewMultiplier()
-	variants := m.Expand("Delete the configuration file")
+	// Use "branch" (noun-only) to avoid dual-class ambiguity with "file" (now both verb and noun).
+	variants := m.Expand("Delete the configuration branch")
 
 	if len(variants) < 4 {
 		t.Errorf("Expand() returned %d variants, want >= 4", len(variants))
 	}
 
 	expected := map[string]bool{
-		"Delete the configuration file":   true, // original
-		"Deleted the configuration file":  true, // past
-		"Deleting the configuration file": true, // gerund
-		"Delete the configuration files":  true, // plural
+		"Delete the configuration branch":   true, // original
+		"Deleted the configuration branch":  true, // past
+		"Deleting the configuration branch": true, // gerund
+		"Delete the configuration branches": true, // plural
 	}
 	for _, v := range variants {
 		delete(expected, v)

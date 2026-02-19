@@ -389,6 +389,22 @@ func TestGrammarData_Signals(t *testing.T) {
 	}
 }
 
+func TestGrammarData_DualClassEntries(t *testing.T) {
+	svc, _ := New()
+	SetDefault(svc)
+	data := GetGrammarData("en")
+
+	dualClass := []string{"commit", "run", "test", "check", "file", "build"}
+	for _, word := range dualClass {
+		if _, ok := data.Verbs[word]; !ok {
+			t.Errorf("gram.verb missing dual-class word %q", word)
+		}
+		if _, ok := data.Nouns[word]; !ok {
+			t.Errorf("gram.noun missing dual-class word %q", word)
+		}
+	}
+}
+
 func TestTemplateFuncs(t *testing.T) {
 	funcs := TemplateFuncs()
 	expected := []string{"title", "lower", "upper", "past", "gerund", "plural", "pluralForm", "article", "quote"}
