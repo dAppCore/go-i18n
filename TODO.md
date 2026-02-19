@@ -13,12 +13,49 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 
 ## Phase 2: Reference Distribution + 1B Classification Pipeline
 
-### 2a: 1B Pre-Classification (NEW — based on benchmark findings)
+### 2a: 1B Pre-Classification — UNBLOCKED (19 Feb 2026)
+
+go-mlx Phases 2-5 are complete. Gemma3-1B inference validated at 46 tok/s, batch classify at 152 prompts/sec on M3 Ultra. Import go-inference + go-mlx directly — no go-ai needed.
+
+**Setup**: Add to go.mod:
+```
+require forge.lthn.ai/core/go-inference v0.0.0
+require forge.lthn.ai/core/go-mlx v0.0.0
+
+replace forge.lthn.ai/core/go-inference => ../go-inference
+replace forge.lthn.ai/core/go-mlx => ../go-mlx
+```
+
+**Usage**:
+```go
+import (
+    "forge.lthn.ai/core/go-inference"
+    _ "forge.lthn.ai/core/go-mlx"  // registers "metal" backend via init()
+)
+
+m, err := inference.LoadModel("/Volumes/Data/lem/LEM-Gemma3-1B-layered-v2")
+defer m.Close()
+
+// Option A: Batch classify (prefill-only, 152 prompts/sec) — best for domain sorting
+results, err := m.Classify(ctx, prompts, inference.WithMaxTokens(1))
+
+// Option B: Single-token generation (46 tok/s) — for article/irregular validation
+for tok := range m.Generate(ctx, prompt, inference.WithMaxTokens(1), inference.WithTemperature(0.05)) {
+    fmt.Print(tok.Text)
+}
+
+// Model discovery (finds all models under a directory)
+models, _ := inference.Discover("/Volumes/Data/lem/")
+```
+
+**Key types** (all from `inference` package): `Token`, `Message`, `TextModel`, `Backend`, `GenerateConfig`, `ClassifyResult`, `BatchResult`, `GenerateMetrics`.
+
+---
 
 - [x] **Classification benchmark suite** — 220 domain-tagged sentences, leave-one-out classification via imprint similarity. Grammar engine: technical 78%, creative 82%, ethical 46%, casual 11%. Ethical↔technical and casual↔creative confusion confirms 1B model needed for those domains.
-- [ ] **1B pre-sort pipeline tool** ⏳ *Blocked: needs go-ai bindings for MLX/Gemma3-1B inference* — CLI command or Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through LEK-Gemma3-1B domain classification, and writes back JSONL with `domain_1b` field added. Target: ~5K sentences/sec on M3.
-- [ ] **1B vs 27B calibration check** ⏳ *Blocked: needs go-ai* — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
-- [ ] **Article/irregular validator** ⏳ *Blocked: needs go-ai* — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators.
+- [ ] **1B pre-sort pipeline tool** — Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through Gemma3-1B domain classification via `m.Classify()` batch API, and writes back JSONL with `domain_1b` field added. Use batch size 4-8 for best throughput. Model path: `/Volumes/Data/lem/LEM-Gemma3-1B-layered-v2`. Target: 152+ prompts/sec via Classify (88K corpus in ~10 minutes).
+- [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Load 27B via same `inference.LoadModel()` path. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
+- [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Use `m.Generate()` with `inference.WithMaxTokens(1)` and `inference.WithTemperature(0.05)` for single-token classification.
 
 ### 2b: Reference Distributions
 
