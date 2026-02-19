@@ -1,0 +1,157 @@
+{
+	"gram": {
+		"verb": {
+			"être": { "base": "être", "past": "été", "gerund": "étant" },
+			"avoir": { "base": "avoir", "past": "eu", "gerund": "ayant" },
+			"faire": { "base": "faire", "past": "fait", "gerund": "faisant" },
+			"aller": { "base": "aller", "past": "allé", "gerund": "allant" },
+			"prendre": { "base": "prendre", "past": "pris", "gerund": "prenant" },
+			"mettre": { "base": "mettre", "past": "mis", "gerund": "mettant" },
+			"dire": { "base": "dire", "past": "dit", "gerund": "disant" },
+			"voir": { "base": "voir", "past": "vu", "gerund": "voyant" },
+			"savoir": { "base": "savoir", "past": "su", "gerund": "sachant" },
+			"pouvoir": { "base": "pouvoir", "past": "pu", "gerund": "pouvant" },
+			"vouloir": { "base": "vouloir", "past": "voulu", "gerund": "voulant" },
+			"devoir": { "base": "devoir", "past": "dû", "gerund": "devant" },
+			"venir": { "base": "venir", "past": "venu", "gerund": "venant" },
+			"tenir": { "base": "tenir", "past": "tenu", "gerund": "tenant" },
+			"écrire": { "base": "écrire", "past": "écrit", "gerund": "écrivant" },
+			"lire": { "base": "lire", "past": "lu", "gerund": "lisant" },
+			"ouvrir": { "base": "ouvrir", "past": "ouvert", "gerund": "ouvrant" },
+			"suivre": { "base": "suivre", "past": "suivi", "gerund": "suivant" },
+			"construire": { "base": "construire", "past": "construit", "gerund": "construisant" },
+			"détruire": { "base": "détruire", "past": "détruit", "gerund": "détruisant" },
+			"produire": { "base": "produire", "past": "produit", "gerund": "produisant" },
+			"conduire": { "base": "conduire", "past": "conduit", "gerund": "conduisant" },
+			"supprimer": { "base": "supprimer", "past": "supprimé", "gerund": "supprimant" },
+			"créer": { "base": "créer", "past": "créé", "gerund": "créant" },
+			"exécuter": { "base": "exécuter", "past": "exécuté", "gerund": "exécutant" },
+			"déployer": { "base": "déployer", "past": "déployé", "gerund": "déployant" },
+			"pousser": { "base": "pousser", "past": "poussé", "gerund": "poussant" },
+			"tirer": { "base": "tirer", "past": "tiré", "gerund": "tirant" },
+			"tester": { "base": "tester", "past": "testé", "gerund": "testant" },
+			"vérifier": { "base": "vérifier", "past": "vérifié", "gerund": "vérifiant" },
+			"trouver": { "base": "trouver", "past": "trouvé", "gerund": "trouvant" },
+			"envoyer": { "base": "envoyer", "past": "envoyé", "gerund": "envoyant" },
+			"commencer": { "base": "commencer", "past": "commencé", "gerund": "commençant" },
+			"arrêter": { "base": "arrêter", "past": "arrêté", "gerund": "arrêtant" },
+			"garder": { "base": "garder", "past": "gardé", "gerund": "gardant" },
+			"couper": { "base": "couper", "past": "coupé", "gerund": "coupant" },
+			"diviser": { "base": "diviser", "past": "divisé", "gerund": "divisant" },
+			"formater": { "base": "formater", "past": "formaté", "gerund": "formatant" },
+			"scanner": { "base": "scanner", "past": "scanné", "gerund": "scannant" },
+			"configurer": { "base": "configurer", "past": "configuré", "gerund": "configurant" },
+			"installer": { "base": "installer", "past": "installé", "gerund": "installant" },
+			"compiler": { "base": "compiler", "past": "compilé", "gerund": "compilant" },
+			"corriger": { "base": "corriger", "past": "corrigé", "gerund": "corrigeant" },
+			"résoudre": { "base": "résoudre", "past": "résolu", "gerund": "résolvant" },
+			"choisir": { "base": "choisir", "past": "choisi", "gerund": "choisissant" },
+			"finir": { "base": "finir", "past": "fini", "gerund": "finissant" },
+			"réussir": { "base": "réussir", "past": "réussi", "gerund": "réussissant" },
+			"perdre": { "base": "perdre", "past": "perdu", "gerund": "perdant" },
+			"rompre": { "base": "rompre", "past": "rompu", "gerund": "rompant" },
+			"découvrir": { "base": "découvrir", "past": "découvert", "gerund": "découvrant" }
+		},
+		"noun": {
+			"fichier": { "one": "fichier", "other": "fichiers", "gender": "m" },
+			"dépôt": { "one": "dépôt", "other": "dépôts", "gender": "m" },
+			"branche": { "one": "branche", "other": "branches", "gender": "f" },
+			"commit": { "one": "commit", "other": "commits", "gender": "m" },
+			"changement": { "one": "changement", "other": "changements", "gender": "m" },
+			"tâche": { "one": "tâche", "other": "tâches", "gender": "f" },
+			"problème": { "one": "problème", "other": "problèmes", "gender": "m" },
+			"paquet": { "one": "paquet", "other": "paquets", "gender": "m" },
+			"vulnérabilité": { "one": "vulnérabilité", "other": "vulnérabilités", "gender": "f" },
+			"dépendance": { "one": "dépendance", "other": "dépendances", "gender": "f" },
+			"répertoire": { "one": "répertoire", "other": "répertoires", "gender": "m" },
+			"personne": { "one": "personne", "other": "personnes", "gender": "f" },
+			"enfant": { "one": "enfant", "other": "enfants", "gender": "m" },
+			"serveur": { "one": "serveur", "other": "serveurs", "gender": "m" },
+			"test": { "one": "test", "other": "tests", "gender": "m" },
+			"construction": { "one": "construction", "other": "constructions", "gender": "f" },
+			"version": { "one": "version", "other": "versions", "gender": "f" },
+			"erreur": { "one": "erreur", "other": "erreurs", "gender": "f" },
+			"configuration": { "one": "configuration", "other": "configurations", "gender": "f" },
+			"mise à jour": { "one": "mise à jour", "other": "mises à jour", "gender": "f" },
+			"sauvegarde": { "one": "sauvegarde", "other": "sauvegardes", "gender": "f" },
+			"requête": { "one": "requête", "other": "requêtes", "gender": "f" },
+			"catégorie": { "one": "catégorie", "other": "catégories", "gender": "f" },
+			"élément": { "one": "élément", "other": "éléments", "gender": "m" }
+		},
+		"article": {
+			"indefinite": { "default": "un", "vowel": "un" },
+			"definite": "le",
+			"by_gender": { "m": "le", "f": "la" }
+		},
+		"word": {
+			"url": "URL",
+			"id": "ID",
+			"api": "API",
+			"sdk": "SDK",
+			"html": "HTML",
+			"ssh": "SSH",
+			"ssl": "SSL",
+			"pr": "PR",
+			"ci": "CI"
+		},
+		"punct": {
+			"label": " :",
+			"progress": "..."
+		},
+		"signal": {
+			"noun_determiner": [
+				"le", "la", "les", "l'",
+				"un", "une", "des",
+				"ce", "cet", "cette", "ces",
+				"mon", "ton", "son", "ma", "ta", "sa",
+				"notre", "votre", "leur",
+				"mes", "tes", "ses", "nos", "vos", "leurs",
+				"chaque", "tout", "toute", "tous", "toutes",
+				"aucun", "aucune", "plusieurs", "quelques"
+			],
+			"verb_auxiliary": [
+				"est", "sont", "était", "étaient",
+				"a", "ont", "avait", "avaient",
+				"sera", "seront", "serait", "seraient",
+				"fait", "font", "faisait",
+				"peut", "peuvent", "pouvait",
+				"doit", "doivent", "devait",
+				"va", "vont", "allait",
+				"veut", "veulent",
+				"ne", "n'"
+			],
+			"verb_infinitive": ["de", "à"]
+		},
+		"number": {
+			"thousands": " ",
+			"decimal": ",",
+			"percent": "%s %%"
+		}
+	},
+	"prompt": {
+		"yes": "o",
+		"no": "n",
+		"continue": "Continuer ?",
+		"proceed": "Procéder ?",
+		"confirm": "Êtes-vous sûr ?",
+		"overwrite": "Écraser ?",
+		"discard": "Abandonner les modifications ?"
+	},
+	"time": {
+		"just_now": "à l'instant",
+		"ago": {
+			"second": { "one": "il y a {{.Count}} seconde", "other": "il y a {{.Count}} secondes" },
+			"minute": { "one": "il y a {{.Count}} minute", "other": "il y a {{.Count}} minutes" },
+			"hour": { "one": "il y a {{.Count}} heure", "other": "il y a {{.Count}} heures" },
+			"day": { "one": "il y a {{.Count}} jour", "other": "il y a {{.Count}} jours" },
+			"week": { "one": "il y a {{.Count}} semaine", "other": "il y a {{.Count}} semaines" }
+		}
+	},
+	"lang": {
+		"de": "allemand",
+		"en": "anglais",
+		"es": "espagnol",
+		"fr": "français",
+		"zh": "chinois"
+	}
+}

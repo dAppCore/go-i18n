@@ -199,6 +199,14 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				if def, ok := v["definite"].(string); ok {
 					grammar.Articles.Definite = def
 				}
+				if bg, ok := v["by_gender"].(map[string]any); ok {
+					grammar.Articles.ByGender = make(map[string]string, len(bg))
+					for g, art := range bg {
+						if s, ok := art.(string); ok {
+							grammar.Articles.ByGender[g] = s
+						}
+					}
+				}
 				continue
 			}
 

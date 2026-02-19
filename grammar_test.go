@@ -479,6 +479,109 @@ func TestGrammarData_DualClassEntries(t *testing.T) {
 	}
 }
 
+func TestFrenchGrammarData(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("fr")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"fr\") returned nil")
+	}
+
+	// Verbs loaded
+	if got := len(data.Verbs); got < 40 {
+		t.Errorf("French verbs: got %d, want >= 40", got)
+	}
+
+	// Spot-check irregular verb forms
+	verbTests := []struct {
+		verb, past, gerund string
+	}{
+		{"être", "été", "étant"},
+		{"avoir", "eu", "ayant"},
+		{"faire", "fait", "faisant"},
+		{"supprimer", "supprimé", "supprimant"},
+		{"construire", "construit", "construisant"},
+		{"écrire", "écrit", "écrivant"},
+		{"prendre", "pris", "prenant"},
+	}
+	for _, tt := range verbTests {
+		forms, ok := data.Verbs[tt.verb]
+		if !ok {
+			t.Errorf("French verb %q not found", tt.verb)
+			continue
+		}
+		if forms.Past != tt.past {
+			t.Errorf("French verb %q past = %q, want %q", tt.verb, forms.Past, tt.past)
+		}
+		if forms.Gerund != tt.gerund {
+			t.Errorf("French verb %q gerund = %q, want %q", tt.verb, forms.Gerund, tt.gerund)
+		}
+	}
+
+	// Nouns loaded with gender
+	if got := len(data.Nouns); got < 20 {
+		t.Errorf("French nouns: got %d, want >= 20", got)
+	}
+	nounTests := []struct {
+		noun, one, other, gender string
+	}{
+		{"fichier", "fichier", "fichiers", "m"},
+		{"branche", "branche", "branches", "f"},
+		{"vulnérabilité", "vulnérabilité", "vulnérabilités", "f"},
+		{"serveur", "serveur", "serveurs", "m"},
+	}
+	for _, tt := range nounTests {
+		forms, ok := data.Nouns[tt.noun]
+		if !ok {
+			t.Errorf("French noun %q not found", tt.noun)
+			continue
+		}
+		if forms.One != tt.one {
+			t.Errorf("French noun %q one = %q, want %q", tt.noun, forms.One, tt.one)
+		}
+		if forms.Other != tt.other {
+			t.Errorf("French noun %q other = %q, want %q", tt.noun, forms.Other, tt.other)
+		}
+		if forms.Gender != tt.gender {
+			t.Errorf("French noun %q gender = %q, want %q", tt.noun, forms.Gender, tt.gender)
+		}
+	}
+
+	// Articles with gender
+	if data.Articles.Definite != "le" {
+		t.Errorf("French definite article = %q, want \"le\"", data.Articles.Definite)
+	}
+	if data.Articles.IndefiniteDefault != "un" {
+		t.Errorf("French indefinite article = %q, want \"un\"", data.Articles.IndefiniteDefault)
+	}
+	if data.Articles.ByGender == nil {
+		t.Fatal("French articles.ByGender is nil")
+	}
+	if got := data.Articles.ByGender["m"]; got != "le" {
+		t.Errorf("French article by_gender[m] = %q, want \"le\"", got)
+	}
+	if got := data.Articles.ByGender["f"]; got != "la" {
+		t.Errorf("French article by_gender[f] = %q, want \"la\"", got)
+	}
+
+	// Punctuation — French space before colon
+	if data.Punct.LabelSuffix != " :" {
+		t.Errorf("French label suffix = %q, want \" :\"", data.Punct.LabelSuffix)
+	}
+
+	// Signals loaded
+	if got := len(data.Signals.NounDeterminers); got < 25 {
+		t.Errorf("French NounDeterminers: got %d, want >= 25", got)
+	}
+	if got := len(data.Signals.VerbAuxiliaries); got < 15 {
+		t.Errorf("French VerbAuxiliaries: got %d, want >= 15", got)
+	}
+}
+
 func TestTemplateFuncs(t *testing.T) {
 	funcs := TemplateFuncs()
 	expected := []string{"title", "lower", "upper", "past", "gerund", "plural", "pluralForm", "article", "quote"}

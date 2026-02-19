@@ -28,8 +28,8 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 
 ## Phase 3: Multi-Language
 
-- [ ] **Grammar table format spec** — Document the exact JSON schema for `gram.*` keys so new languages can be added. Currently only inferred from `en.json`.
-- [ ] **French grammar tables** — First non-English language. French has gendered nouns, complex verb conjugation, elision rules. Good stress test for the grammar engine's language-agnostic design.
+- [x] **Grammar table format spec** — Full JSON schema documented in `docs/grammar-table-spec.md`. Covers all 7 `gram.*` sub-keys, required/optional fields, examples for English and French, 3-tier fallback chain, and new-language checklist.
+- [x] **French grammar tables** — 50 verbs, 24 gendered nouns, gendered articles (by_gender), French punctuation spacing, 33 noun determiners, 21 verb auxiliaries. Loader extended to parse `by_gender` article map. Stress test confirms: verb/noun/article/punct/signal all load correctly; elision (l') and plural articles (les/des) need future Article() extension.
 
 ---
 
