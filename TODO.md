@@ -15,7 +15,7 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 
 ### 2a: 1B Pre-Classification (NEW — based on benchmark findings)
 
-- [ ] **Classification benchmark suite** — Standalone Go test file (`classify_bench_test.go`) that feeds 200+ domain-tagged sentences through the tokeniser and measures accuracy against known labels. Categories: {technical, creative, ethical, casual}. This is the ground truth for calibrating 1B pre-tags.
+- [x] **Classification benchmark suite** — 220 domain-tagged sentences, leave-one-out classification via imprint similarity. Grammar engine: technical 78%, creative 82%, ethical 46%, casual 11%. Ethical↔technical and casual↔creative confusion confirms 1B model needed for those domains.
 - [ ] **1B pre-sort pipeline tool** — CLI command or Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through LEK-Gemma3-1B domain classification, and writes back JSONL with `domain_1b` field added. Target: ~5K sentences/sec on M3. Use MLX via go-ai bindings or shell out to `mlx_lm.generate`.
 - [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. The 75% accuracy from benchmarks should improve with targeted prompt tuning. Document the confusion matrix (technical↔creative is the known weak spot).
 - [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Could supplement rule-based `Article()` and `PastTense()` for edge cases the grammar tables don't cover.
