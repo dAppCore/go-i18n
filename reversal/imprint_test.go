@@ -116,3 +116,44 @@ func TestImprint_Similar_Empty(t *testing.T) {
 		t.Errorf("Empty imprint similarity = %f, want 1.0", sim)
 	}
 }
+
+func TestImprint_ConfidenceWeighting(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	tok := NewTokeniser()
+
+	// "the commit was approved" — "commit" should be noun with high confidence
+	tokens := tok.Tokenise("the commit was approved")
+	imp := NewImprint(tokens)
+
+	// Commit should contribute primarily to noun distribution
+	if imp.NounDistribution["commit"] == 0 {
+		t.Error("NounDistribution should contain 'commit'")
+	}
+
+	// But also fractionally to verb distribution (via AltConf)
+	if imp.VerbDistribution["commit"] == 0 {
+		t.Error("VerbDistribution should contain fractional 'commit' from AltConf")
+	}
+
+	// Noun contribution should be larger than verb contribution
+	// (before normalisation, noun ~0.96, verb ~0.04)
+	// After normalisation we check the raw pre-norm isn't zero
+}
+
+func TestImprint_ConfidenceWeighting_BackwardsCompat(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	tok := NewTokeniser()
+
+	// Non-ambiguous tokens should work identically (Confidence=1.0, AltConf=0)
+	tokens := tok.Tokenise("Deleted the files")
+	imp := NewImprint(tokens)
+
+	if imp.VerbDistribution["delete"] == 0 {
+		t.Error("VerbDistribution should contain 'delete'")
+	}
+	if imp.NounDistribution["file"] == 0 {
+		t.Error("NounDistribution should contain 'file'")
+	}
+}

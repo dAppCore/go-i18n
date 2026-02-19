@@ -41,20 +41,42 @@ func NewImprint(tokens []Token) GrammarImprint {
 	for _, tok := range tokens {
 		switch tok.Type {
 		case TokenVerb:
+			conf := tok.Confidence
+			if conf == 0 {
+				conf = 1.0
+			}
 			verbCount++
 			base := tok.VerbInfo.Base
-			imp.VerbDistribution[base]++
-			imp.TenseDistribution[tok.VerbInfo.Tense]++
+			imp.VerbDistribution[base] += conf
+			imp.TenseDistribution[tok.VerbInfo.Tense] += conf
 			verbBases[base] = true
 
+			// Dual-class: contribute alt confidence to noun distribution
+			if tok.AltType == TokenNoun && tok.NounInfo.Base != "" {
+				imp.NounDistribution[tok.NounInfo.Base] += tok.AltConf
+				nounBases[tok.NounInfo.Base] = true
+				totalNouns++
+			}
+
 		case TokenNoun:
+			conf := tok.Confidence
+			if conf == 0 {
+				conf = 1.0
+			}
 			nounCount++
 			base := tok.NounInfo.Base
-			imp.NounDistribution[base]++
+			imp.NounDistribution[base] += conf
 			nounBases[base] = true
 			totalNouns++
 			if tok.NounInfo.Plural {
 				pluralNouns++
+			}
+
+			// Dual-class: contribute alt confidence to verb distribution
+			if tok.AltType == TokenVerb && tok.VerbInfo.Base != "" {
+				imp.VerbDistribution[tok.VerbInfo.Base] += tok.AltConf
+				imp.TenseDistribution[tok.VerbInfo.Tense] += tok.AltConf
+				verbBases[tok.VerbInfo.Base] = true
 			}
 
 		case TokenArticle:
