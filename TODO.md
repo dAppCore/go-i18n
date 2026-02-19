@@ -11,10 +11,20 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 - [ ] **Extend irregular verb coverage** — Audit against common dev/ops vocabulary. Missing forms cause silent fallback to regular rules which may produce wrong output (e.g. "builded" instead of "built").
 - [ ] **Add benchmarks** — `grammar_test.go` and `reversal/tokeniser_test.go` need `Benchmark*` functions. The engine will run in hot paths (TIM, Poindexter) — need baseline numbers.
 
-## Phase 2: Reference Distribution
+## Phase 2: Reference Distribution + 1B Classification Pipeline
 
-- [ ] **Reference distribution builder** — Process the 88K scored seeds from LEM Phase 0 through the tokeniser + imprint pipeline. Output: per-category (ethical, technical, harmful) reference distributions stored as JSON. This calibrates what "normal" grammar looks like.
+### 2a: 1B Pre-Classification (NEW — based on benchmark findings)
+
+- [ ] **Classification benchmark suite** — Standalone Go test file (`classify_bench_test.go`) that feeds 200+ domain-tagged sentences through the tokeniser and measures accuracy against known labels. Categories: {technical, creative, ethical, casual}. This is the ground truth for calibrating 1B pre-tags.
+- [ ] **1B pre-sort pipeline tool** — CLI command or Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through LEK-Gemma3-1B domain classification, and writes back JSONL with `domain_1b` field added. Target: ~5K sentences/sec on M3. Use MLX via go-ai bindings or shell out to `mlx_lm.generate`.
+- [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. The 75% accuracy from benchmarks should improve with targeted prompt tuning. Document the confusion matrix (technical↔creative is the known weak spot).
+- [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Could supplement rule-based `Article()` and `PastTense()` for edge cases the grammar tables don't cover.
+
+### 2b: Reference Distributions
+
+- [ ] **Reference distribution builder** — Process the 88K scored seeds from LEM Phase 0 through the tokeniser + imprint pipeline. Pre-sort by `domain_1b` tag from step 2a first. Output: per-category (ethical, technical, creative, casual) reference distributions stored as JSON. This calibrates what "normal" grammar looks like per domain.
 - [ ] **Imprint comparator** — Given a new text and reference distributions, compute distance metrics (cosine, KL divergence, Mahalanobis). Return a classification signal with confidence score. This is the Poindexter integration point.
+- [ ] **Cross-domain anomaly detection** — Flag texts where 1B domain tag disagrees with imprint-based classification. These are either misclassified by 1B (training signal) or genuinely cross-domain (ethical text using technical jargon). Both are valuable for refining the pipeline.
 
 ## Phase 3: Multi-Language
 
