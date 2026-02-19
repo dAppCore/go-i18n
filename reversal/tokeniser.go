@@ -586,9 +586,22 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	return "", false
 }
 
-// Tokenise splits text on whitespace and classifies each word.
-// Priority: punctuation → article → verb → noun → word → unknown.
-// Trailing punctuation is stripped from words before matching.
+// tokenAmbiguous is an internal sentinel used during Pass 1 to mark
+// dual-class base forms that need disambiguation in Pass 2.
+const tokenAmbiguous TokenType = -1
+
+// clauseBoundaries lists words that delimit clause boundaries for
+// the verb_saturation signal (D2 review fix).
+var clauseBoundaries = map[string]bool{
+	"and": true, "or": true, "but": true, "because": true,
+	"when": true, "while": true, "if": true, "then": true, "so": true,
+}
+
+// Tokenise splits text on whitespace and classifies each word using a
+// two-pass algorithm:
+//
+// Pass 1 classifies unambiguous tokens and marks dual-class base forms.
+// Pass 2 resolves ambiguous tokens using weighted disambiguation signals.
 func (t *Tokeniser) Tokenise(text string) []Token {
 	text = strings.TrimSpace(text)
 	if text == "" {
@@ -598,6 +611,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	parts := strings.Fields(text)
 	var tokens []Token
 
+	// --- Pass 1: Classify & Mark ---
 	for _, raw := range parts {
 		// Strip trailing punctuation to get the clean word.
 		word, punct := splitTrailingPunct(raw)
@@ -607,23 +621,50 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			tok := Token{Raw: raw, Lower: strings.ToLower(word)}
 
 			if artType, ok := t.MatchArticle(word); ok {
+				// Articles are unambiguous.
 				tok.Type = TokenArticle
 				tok.ArtType = artType
 				tok.Confidence = 1.0
-			} else if vm, ok := t.MatchVerb(word); ok {
-				tok.Type = TokenVerb
-				tok.VerbInfo = vm
-				tok.Confidence = 1.0
-			} else if nm, ok := t.MatchNoun(word); ok {
-				tok.Type = TokenNoun
-				tok.NounInfo = nm
-				tok.Confidence = 1.0
-			} else if cat, ok := t.MatchWord(word); ok {
-				tok.Type = TokenWord
-				tok.WordCat = cat
-				tok.Confidence = 1.0
 			} else {
-				tok.Type = TokenUnknown
+				// For non-articles, check BOTH verb and noun.
+				vm, verbOK := t.MatchVerb(word)
+				nm, nounOK := t.MatchNoun(word)
+
+				if verbOK && nounOK && t.dualClass[tok.Lower] {
+					// Dual-class word: check for self-resolving inflections.
+					if vm.Tense != "base" {
+						// Inflected verb form self-resolves.
+						tok.Type = TokenVerb
+						tok.VerbInfo = vm
+						tok.NounInfo = nm
+						tok.Confidence = 1.0
+					} else if nm.Plural {
+						// Inflected noun form self-resolves.
+						tok.Type = TokenNoun
+						tok.VerbInfo = vm
+						tok.NounInfo = nm
+						tok.Confidence = 1.0
+					} else {
+						// Base form: ambiguous, stash both and defer to Pass 2.
+						tok.Type = tokenAmbiguous
+						tok.VerbInfo = vm
+						tok.NounInfo = nm
+					}
+				} else if verbOK {
+					tok.Type = TokenVerb
+					tok.VerbInfo = vm
+					tok.Confidence = 1.0
+				} else if nounOK {
+					tok.Type = TokenNoun
+					tok.NounInfo = nm
+					tok.Confidence = 1.0
+				} else if cat, ok := t.MatchWord(word); ok {
+					tok.Type = TokenWord
+					tok.WordCat = cat
+					tok.Confidence = 1.0
+				} else {
+					tok.Type = TokenUnknown
+				}
 			}
 			tokens = append(tokens, tok)
 		}
@@ -642,7 +683,244 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		}
 	}
 
+	// --- Pass 2: Resolve Ambiguous ---
+	t.resolveAmbiguous(tokens)
+
 	return tokens
+}
+
+// resolveAmbiguous iterates all tokens and resolves any marked as
+// tokenAmbiguous using the weighted scoring function.
+func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
+	for i := range tokens {
+		if tokens[i].Type != tokenAmbiguous {
+			continue
+		}
+		verbScore, nounScore, components := t.scoreAmbiguous(tokens, i)
+		t.resolveToken(&tokens[i], verbScore, nounScore, components)
+	}
+}
+
+// scoreAmbiguous evaluates 7 weighted signals to determine whether an
+// ambiguous token should be classified as verb or noun.
+func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, []SignalComponent) {
+	var verbScore, nounScore float64
+	var components []SignalComponent
+
+	// 1. noun_determiner: preceding token is a noun determiner
+	if w, ok := t.weights["noun_determiner"]; ok && idx > 0 {
+		prev := tokens[idx-1]
+		if t.nounDet[prev.Lower] {
+			nounScore += w * 1.0
+			if t.withSignals {
+				components = append(components, SignalComponent{
+					Name: "noun_determiner", Weight: w, Value: 1.0, Contrib: w,
+					Reason: "preceded by '" + prev.Lower + "'",
+				})
+			}
+		}
+	}
+
+	// 2. verb_auxiliary: preceding token is an auxiliary or infinitive marker
+	if w, ok := t.weights["verb_auxiliary"]; ok && idx > 0 {
+		prev := tokens[idx-1]
+		if t.verbAux[prev.Lower] || t.verbInf[prev.Lower] {
+			verbScore += w * 1.0
+			if t.withSignals {
+				components = append(components, SignalComponent{
+					Name: "verb_auxiliary", Weight: w, Value: 1.0, Contrib: w,
+					Reason: "preceded by '" + prev.Lower + "'",
+				})
+			}
+		}
+	}
+
+	// 3. following_class: next token's class informs this token's role
+	if w, ok := t.weights["following_class"]; ok && idx+1 < len(tokens) {
+		next := tokens[idx+1]
+		if next.Type != tokenAmbiguous {
+			if next.Type == TokenArticle || t.nounDet[next.Lower] || next.Type == TokenNoun {
+				// Followed by article/determiner/noun → verb signal
+				verbScore += w * 1.0
+				if t.withSignals {
+					components = append(components, SignalComponent{
+						Name: "following_class", Weight: w, Value: 1.0, Contrib: w,
+						Reason: "followed by " + next.Lower + " (article/noun)",
+					})
+				}
+			} else if next.Type == TokenVerb {
+				// Followed by verb → noun signal
+				nounScore += w * 1.0
+				if t.withSignals {
+					components = append(components, SignalComponent{
+						Name: "following_class", Weight: w, Value: 1.0, Contrib: w,
+						Reason: "followed by verb '" + next.Lower + "'",
+					})
+				}
+			}
+		}
+	}
+
+	// 4. sentence_position: first token in sentence → verb signal (imperative)
+	if w, ok := t.weights["sentence_position"]; ok && idx == 0 {
+		verbScore += w * 1.0
+		if t.withSignals {
+			components = append(components, SignalComponent{
+				Name: "sentence_position", Weight: w, Value: 1.0, Contrib: w,
+				Reason: "sentence-initial position (imperative)",
+			})
+		}
+	}
+
+	// 5. verb_saturation: if a confident verb already exists in the same clause
+	if w, ok := t.weights["verb_saturation"]; ok {
+		if t.hasConfidentVerbInClause(tokens, idx) {
+			nounScore += w * 1.0
+			if t.withSignals {
+				components = append(components, SignalComponent{
+					Name: "verb_saturation", Weight: w, Value: 1.0, Contrib: w,
+					Reason: "confident verb already in clause",
+				})
+			}
+		}
+	}
+
+	// 6. inflection_echo: another token shares the same base in inflected form
+	if w, ok := t.weights["inflection_echo"]; ok {
+		echoVerb, echoNoun := t.checkInflectionEcho(tokens, idx)
+		if echoNoun {
+			// Another token uses same base as inflected noun → signal verb
+			verbScore += w * 1.0
+			if t.withSignals {
+				components = append(components, SignalComponent{
+					Name: "inflection_echo", Weight: w, Value: 1.0, Contrib: w,
+					Reason: "inflected noun echo found",
+				})
+			}
+		}
+		if echoVerb {
+			// Another token uses same base as inflected verb → signal noun
+			nounScore += w * 1.0
+			if t.withSignals {
+				components = append(components, SignalComponent{
+					Name: "inflection_echo", Weight: w, Value: 1.0, Contrib: w,
+					Reason: "inflected verb echo found",
+				})
+			}
+		}
+	}
+
+	// 7. default_prior: always fires as verb signal
+	if w, ok := t.weights["default_prior"]; ok {
+		verbScore += w * 1.0
+		if t.withSignals {
+			components = append(components, SignalComponent{
+				Name: "default_prior", Weight: w, Value: 1.0, Contrib: w,
+				Reason: "default verb prior",
+			})
+		}
+	}
+
+	return verbScore, nounScore, components
+}
+
+// hasConfidentVerbInClause scans for a confident verb (Confidence >= 1.0)
+// within the same clause as the token at idx. Clause boundaries are
+// punctuation tokens and clause-boundary conjunctions/subordinators (D2).
+func (t *Tokeniser) hasConfidentVerbInClause(tokens []Token, idx int) bool {
+	// Scan backwards from idx to find clause start.
+	start := 0
+	for i := idx - 1; i >= 0; i-- {
+		if tokens[i].Type == TokenPunctuation || clauseBoundaries[tokens[i].Lower] {
+			start = i + 1
+			break
+		}
+	}
+	// Scan forwards from idx to find clause end.
+	end := len(tokens)
+	for i := idx + 1; i < len(tokens); i++ {
+		if tokens[i].Type == TokenPunctuation || clauseBoundaries[tokens[i].Lower] {
+			end = i
+			break
+		}
+	}
+	// Look for a confident verb in [start, end), excluding idx itself.
+	for i := start; i < end; i++ {
+		if i == idx {
+			continue
+		}
+		if tokens[i].Type == TokenVerb && tokens[i].Confidence >= 1.0 {
+			return true
+		}
+	}
+	return false
+}
+
+// checkInflectionEcho checks whether another token shares the same base
+// as this ambiguous token but in an inflected form. Returns (echoVerb, echoNoun)
+// where echoVerb means another token has the same base as an inflected verb,
+// and echoNoun means another token has the same base as an inflected noun.
+func (t *Tokeniser) checkInflectionEcho(tokens []Token, idx int) (bool, bool) {
+	target := tokens[idx]
+	var echoVerb, echoNoun bool
+
+	for i, tok := range tokens {
+		if i == idx {
+			continue
+		}
+		// Check if another token is a verb with the same base
+		if tok.Type == TokenVerb && tok.VerbInfo.Base == target.VerbInfo.Base && tok.VerbInfo.Tense != "base" {
+			echoVerb = true
+		}
+		// Check if another token is a noun with the same base
+		if tok.Type == TokenNoun && tok.NounInfo.Base == target.NounInfo.Base && tok.NounInfo.Plural {
+			echoNoun = true
+		}
+	}
+
+	return echoVerb, echoNoun
+}
+
+// resolveToken assigns the final classification to an ambiguous token
+// based on verb and noun scores from disambiguation signals.
+func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, components []SignalComponent) {
+	total := verbScore + nounScore
+
+	// B3 review fix: if total < 0.10 (only default prior fired),
+	// use low-information confidence floor.
+	if total < 0.10 {
+		if verbScore >= nounScore {
+			tok.Type = TokenVerb
+			tok.Confidence = 0.55
+			tok.AltType = TokenNoun
+			tok.AltConf = 0.45
+		} else {
+			tok.Type = TokenNoun
+			tok.Confidence = 0.55
+			tok.AltType = TokenVerb
+			tok.AltConf = 0.45
+		}
+	} else {
+		if verbScore >= nounScore {
+			tok.Type = TokenVerb
+			tok.Confidence = verbScore / total
+			tok.AltType = TokenNoun
+			tok.AltConf = nounScore / total
+		} else {
+			tok.Type = TokenNoun
+			tok.Confidence = nounScore / total
+			tok.AltType = TokenVerb
+			tok.AltConf = verbScore / total
+		}
+	}
+
+	if t.withSignals {
+		tok.Signals = &SignalBreakdown{
+			VerbScore:  verbScore,
+			NounScore:  nounScore,
+			Components: components,
+		}
+	}
 }
 
 // splitTrailingPunct separates a word from its trailing punctuation.

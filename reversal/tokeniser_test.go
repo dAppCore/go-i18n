@@ -345,3 +345,111 @@ func TestToken_ConfidenceField(t *testing.T) {
 		}
 	}
 }
+
+func TestTokeniser_Disambiguate_NounAfterDeterminer(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("the commit was approved")
+	if tokens[1].Type != TokenNoun {
+		t.Errorf("'commit' after 'the': Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Confidence < 0.8 {
+		t.Errorf("'commit' Confidence = %f, want >= 0.8", tokens[1].Confidence)
+	}
+	if tokens[1].AltType != TokenVerb {
+		t.Errorf("'commit' AltType = %v, want TokenVerb", tokens[1].AltType)
+	}
+}
+
+func TestTokeniser_Disambiguate_VerbImperative(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("Commit the changes")
+	if tokens[0].Type != TokenVerb {
+		t.Errorf("'Commit' imperative: Type = %v, want TokenVerb", tokens[0].Type)
+	}
+	if tokens[0].Confidence < 0.8 {
+		t.Errorf("'Commit' Confidence = %f, want >= 0.8", tokens[0].Confidence)
+	}
+}
+
+func TestTokeniser_Disambiguate_NounWithVerbSaturation(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("The test failed")
+	if tokens[1].Type != TokenNoun {
+		t.Errorf("'test' in 'The test failed': Type = %v, want TokenNoun", tokens[1].Type)
+	}
+}
+
+func TestTokeniser_Disambiguate_VerbBeforeNoun(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("Run tests")
+	if tokens[0].Type != TokenVerb {
+		t.Errorf("'Run' in 'Run tests': Type = %v, want TokenVerb", tokens[0].Type)
+	}
+}
+
+func TestTokeniser_Disambiguate_InflectedSelfResolve(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("committed the branch")
+	if tokens[0].Type != TokenVerb || tokens[0].Confidence != 1.0 {
+		t.Errorf("'committed' should self-resolve as verb with confidence 1.0")
+	}
+	tokens = tok.Tokenise("the commits were reviewed")
+	if tokens[1].Type != TokenNoun || tokens[1].Confidence != 1.0 {
+		t.Errorf("'commits' should self-resolve as noun with confidence 1.0")
+	}
+}
+
+func TestTokeniser_Disambiguate_VerbAfterAuxiliary(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("will commit the changes")
+	if tokens[1].Type != TokenVerb {
+		t.Errorf("'commit' after 'will': Type = %v, want TokenVerb", tokens[1].Type)
+	}
+}
+
+func TestTokeniser_Disambiguate_ProseMultiple(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("The test failed because the commit introduced a regression")
+	for _, token := range tokens {
+		if token.Lower == "test" && token.Type != TokenNoun {
+			t.Errorf("'test' in prose: Type = %v, want TokenNoun", token.Type)
+		}
+		if token.Lower == "commit" && token.Type != TokenNoun {
+			t.Errorf("'commit' in prose: Type = %v, want TokenNoun", token.Type)
+		}
+	}
+}
+
+func TestTokeniser_Disambiguate_ClauseBoundary(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	// "passed" is a confident verb in clause 1, "commit" is a verb in clause 2
+	tokens := tok.Tokenise("The test passed and we should commit the fix")
+	for _, token := range tokens {
+		if token.Lower == "test" && token.Type != TokenNoun {
+			t.Errorf("'test' should be noun: got %v", token.Type)
+		}
+		if token.Lower == "commit" && token.Type != TokenVerb {
+			t.Errorf("'commit' after 'should' should be verb: got %v", token.Type)
+		}
+	}
+}
+
+func TestTokeniser_Disambiguate_ContractionAux(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("don't run the tests")
+	// "run" after "don't" (contraction auxiliary) should be verb
+	for _, token := range tokens {
+		if token.Lower == "run" && token.Type != TokenVerb {
+			t.Errorf("'run' after \"don't\": Type = %v, want TokenVerb", token.Type)
+		}
+	}
+}
