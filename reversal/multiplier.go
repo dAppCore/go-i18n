@@ -139,9 +139,10 @@ func (m *Multiplier) applyVerbTransform(tokens []Token, vi int, targetTense stri
 	newForm = preserveCase(tok.Raw, newForm)
 
 	result[vi] = Token{
-		Raw:   newForm,
-		Lower: strings.ToLower(newForm),
-		Type:  TokenVerb,
+		Raw:        newForm,
+		Lower:      strings.ToLower(newForm),
+		Type:       TokenVerb,
+		Confidence: 1.0,
 		VerbInfo: VerbMatch{
 			Base:  base,
 			Tense: targetTense,
@@ -189,9 +190,10 @@ func (m *Multiplier) applyNounTransformOnTokens(tokens []Token, ni int) []Token 
 	newForm = preserveCase(tok.Raw, newForm)
 
 	result[ni] = Token{
-		Raw:   newForm,
-		Lower: strings.ToLower(newForm),
-		Type:  TokenNoun,
+		Raw:        newForm,
+		Lower:      strings.ToLower(newForm),
+		Type:       TokenNoun,
+		Confidence: 1.0,
 		NounInfo: NounMatch{
 			Base:   base,
 			Plural: newPlural,

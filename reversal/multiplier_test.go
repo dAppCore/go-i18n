@@ -66,3 +66,44 @@ func TestMultiplier_Expand_Deterministic(t *testing.T) {
 		}
 	}
 }
+
+func TestMultiplier_Expand_DualClass(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	m := NewMultiplier()
+
+	// "the commit" — commit is noun, should still produce variants
+	variants := m.Expand("the commit")
+	if len(variants) < 2 {
+		t.Errorf("Expand('the commit') returned %d variants, want >= 2", len(variants))
+	}
+
+	// Should have at least original + plural toggle
+	found := false
+	for _, v := range variants {
+		if v == "the commits" {
+			found = true
+		}
+	}
+	if !found {
+		t.Errorf("Expected 'the commits' variant, got: %v", variants)
+	}
+}
+
+func TestMultiplier_TransformedTokenConfidence(t *testing.T) {
+	svc, _ := i18n.New()
+	i18n.SetDefault(svc)
+	m := NewMultiplier()
+
+	// Verify that transformed tokens have Confidence set
+	tokens := m.tokeniser.Tokenise("Delete the branch")
+	pastTokens := m.applyVerbTransform(tokens, 0, "past")
+	if pastTokens[0].Confidence == 0 {
+		t.Error("Verb-transformed token has zero Confidence, want 1.0")
+	}
+
+	pluralTokens := m.applyNounTransformOnTokens(tokens, 2)
+	if pluralTokens[2].Confidence == 0 {
+		t.Error("Noun-transformed token has zero Confidence, want 1.0")
+	}
+}
