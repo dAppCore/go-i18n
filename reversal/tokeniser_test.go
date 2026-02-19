@@ -496,3 +496,45 @@ func TestTokeniser_WithoutSignals_NilBreakdown(t *testing.T) {
 		t.Error("Without WithSignals(), Signals should be nil")
 	}
 }
+
+func TestDisambiguationStats_WithAmbiguous(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("The commit passed the test")
+	stats := DisambiguationStatsFromTokens(tokens)
+	if stats.AmbiguousTokens == 0 {
+		t.Error("expected ambiguous tokens for dual-class words")
+	}
+	if stats.TotalTokens != len(tokens) {
+		t.Errorf("TotalTokens = %d, want %d", stats.TotalTokens, len(tokens))
+	}
+}
+
+func TestDisambiguationStats_NoAmbiguous(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	tokens := tok.Tokenise("Deleted the files")
+	stats := DisambiguationStatsFromTokens(tokens)
+	if stats.AmbiguousTokens != 0 {
+		t.Errorf("AmbiguousTokens = %d, want 0", stats.AmbiguousTokens)
+	}
+}
+
+func TestWithWeights_Override(t *testing.T) {
+	setup(t)
+	// Override noun_determiner to 0 — "The commit" should no longer resolve as noun
+	tok := NewTokeniser(WithWeights(map[string]float64{
+		"noun_determiner":   0.0,
+		"verb_auxiliary":    0.25,
+		"following_class":   0.15,
+		"sentence_position": 0.10,
+		"verb_saturation":   0.10,
+		"inflection_echo":   0.03,
+		"default_prior":     0.02,
+	}))
+	tokens := tok.Tokenise("The commit")
+	// With noun_determiner zeroed, default_prior (verb) should win
+	if tokens[1].Type != TokenVerb {
+		t.Errorf("with noun_determiner=0, 'commit' Type = %v, want TokenVerb", tokens[1].Type)
+	}
+}

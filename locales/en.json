@@ -66,9 +66,6 @@
 			"directory": { "one": "directory", "other": "directories" },
 			"category": { "one": "category", "other": "categories" },
 			"query": { "one": "query", "other": "queries" },
-			"passed": { "one": "passed", "other": "passed" },
-			"failed": { "one": "failed", "other": "failed" },
-			"skipped": { "one": "skipped", "other": "skipped" },
 			"check": { "one": "check", "other": "checks" },
 			"test": { "one": "test", "other": "tests" },
 			"run": { "one": "run", "other": "runs" },
@@ -106,10 +103,7 @@
 			"test": "test",
 			"package": "package",
 			"filter": "filter",
-			"coverage": "coverage",
-			"passed": "passed",
-			"failed": "failed",
-			"skipped": "skipped"
+			"coverage": "coverage"
 		},
 		"punct": {
 			"label": ":",

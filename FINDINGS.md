@@ -125,12 +125,18 @@ Two-pass probabilistic disambiguation for words that exist as both verbs and nou
 - **DisambiguationStats** (F1): `DisambiguationStatsFromTokens()` provides aggregate stats for Phase 2 calibration.
 - **SignalBreakdown** opt-in: `WithSignals()` populates detailed per-token signal diagnostics.
 
+### Post-Implementation Cleanup (R1-R3)
+
+- **R1**: Removed "passed", "failed", "skipped" from `gram.noun` and `gram.word` — these are past participles, not nouns. Prevents future dual-class false positives when verb coverage expands.
+- **R3**: `buildSignalIndex` now guards each signal list independently. Partial locale data falls back per-field rather than silently disabling signals for locales with incomplete `gram.signal` blocks.
+
 ### Test Coverage
 
 - 9 disambiguation scenario tests (noun after determiner, verb imperative, verb saturation, clause boundary, contraction aux, etc.)
 - 12 dual-class round-trip tests covering all 6 words in both roles
 - Imprint convergence test (same-role similar, different-role divergent)
-- DisambiguationStats tests (ambiguous and non-ambiguous inputs)
+- DisambiguationStats tests in tokeniser_test.go (ambiguous and non-ambiguous inputs)
+- WithWeights override test (zeroing noun_determiner flips classification)
 - Race detector: clean
 
 ### Expanded Dual-Class Candidates (Phase 2)

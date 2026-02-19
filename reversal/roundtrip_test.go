@@ -161,40 +161,4 @@ func TestRoundTrip_DualClassImprintConvergence(t *testing.T) {
 	}
 }
 
-func TestDisambiguationStats(t *testing.T) {
-	svc, _ := i18n.New()
-	i18n.SetDefault(svc)
-	tok := NewTokeniser()
-
-	tokens := tok.Tokenise("The commit was approved")
-	stats := DisambiguationStatsFromTokens(tokens)
-
-	if stats.TotalTokens != 4 {
-		t.Errorf("TotalTokens = %d, want 4", stats.TotalTokens)
-	}
-	if stats.AmbiguousTokens < 1 {
-		t.Errorf("AmbiguousTokens = %d, want >= 1 ('commit' is dual-class)", stats.AmbiguousTokens)
-	}
-	if stats.ResolvedAsNoun < 1 {
-		t.Errorf("ResolvedAsNoun = %d, want >= 1", stats.ResolvedAsNoun)
-	}
-	if stats.AvgConfidence == 0 {
-		t.Error("AvgConfidence = 0, want > 0")
-	}
-}
-
-func TestDisambiguationStats_NoAmbiguity(t *testing.T) {
-	svc, _ := i18n.New()
-	i18n.SetDefault(svc)
-	tok := NewTokeniser()
-
-	tokens := tok.Tokenise("Deleted the files")
-	stats := DisambiguationStatsFromTokens(tokens)
-
-	if stats.AmbiguousTokens != 0 {
-		t.Errorf("AmbiguousTokens = %d, want 0 (no dual-class words)", stats.AmbiguousTokens)
-	}
-	if stats.AvgConfidence != 1.0 {
-		t.Errorf("AvgConfidence = %f, want 1.0 (all unambiguous)", stats.AvgConfidence)
-	}
-}
+// DisambiguationStats tests are in tokeniser_test.go using setup(t) pattern.

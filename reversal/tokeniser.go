@@ -107,6 +107,7 @@ func WithSignals() TokeniserOption {
 }
 
 // WithWeights overrides the default signal weights for disambiguation.
+// All 7 signal keys must be present; omitted keys silently disable those signals.
 func WithWeights(w map[string]float64) TokeniserOption {
 	return func(t *Tokeniser) { t.weights = w }
 }
@@ -513,36 +514,45 @@ func (t *Tokeniser) buildSignalIndex() {
 	t.verbInf = make(map[string]bool)
 
 	data := i18n.GetGrammarData(t.lang)
+
+	// Guard each signal list independently so partial locale data
+	// falls back per-field rather than silently disabling signals.
 	if data != nil && len(data.Signals.NounDeterminers) > 0 {
 		for _, w := range data.Signals.NounDeterminers {
 			t.nounDet[strings.ToLower(w)] = true
 		}
+	} else {
+		for _, w := range []string{
+			"the", "a", "an", "this", "that", "these", "those",
+			"my", "your", "his", "her", "its", "our", "their",
+			"every", "each", "some", "any", "no",
+			"many", "few", "several", "all", "both",
+		} {
+			t.nounDet[w] = true
+		}
+	}
+
+	if data != nil && len(data.Signals.VerbAuxiliaries) > 0 {
 		for _, w := range data.Signals.VerbAuxiliaries {
 			t.verbAux[strings.ToLower(w)] = true
 		}
+	} else {
+		for _, w := range []string{
+			"is", "are", "was", "were", "has", "had", "have",
+			"do", "does", "did", "will", "would", "could", "should",
+			"can", "may", "might", "shall", "must",
+		} {
+			t.verbAux[w] = true
+		}
+	}
+
+	if data != nil && len(data.Signals.VerbInfinitive) > 0 {
 		for _, w := range data.Signals.VerbInfinitive {
 			t.verbInf[strings.ToLower(w)] = true
 		}
-		return
+	} else {
+		t.verbInf["to"] = true
 	}
-
-	// Fallback: hardcoded English defaults
-	for _, w := range []string{
-		"the", "a", "an", "this", "that", "these", "those",
-		"my", "your", "his", "her", "its", "our", "their",
-		"every", "each", "some", "any", "no",
-		"many", "few", "several", "all", "both",
-	} {
-		t.nounDet[w] = true
-	}
-	for _, w := range []string{
-		"is", "are", "was", "were", "has", "had", "have",
-		"do", "does", "did", "will", "would", "could", "should",
-		"can", "may", "might", "shall", "must",
-	} {
-		t.verbAux[w] = true
-	}
-	t.verbInf["to"] = true
 }
 
 func defaultWeights() map[string]float64 {
