@@ -960,3 +960,44 @@ func matchPunctuation(punct string) (string, bool) {
 	}
 	return "", false
 }
+
+// DisambiguationStats provides aggregate statistics about token disambiguation.
+type DisambiguationStats struct {
+	TotalTokens     int
+	AmbiguousTokens int
+	ResolvedAsVerb  int
+	ResolvedAsNoun  int
+	AvgConfidence   float64
+	LowConfidence   int // count where confidence < 0.7
+}
+
+// DisambiguationStatsFromTokens computes aggregate disambiguation stats from a token slice.
+func DisambiguationStatsFromTokens(tokens []Token) DisambiguationStats {
+	var s DisambiguationStats
+	s.TotalTokens = len(tokens)
+	var confSum float64
+	var confCount int
+
+	for _, tok := range tokens {
+		if tok.AltType != 0 && tok.AltConf > 0 {
+			s.AmbiguousTokens++
+			if tok.Type == TokenVerb {
+				s.ResolvedAsVerb++
+			} else if tok.Type == TokenNoun {
+				s.ResolvedAsNoun++
+			}
+		}
+		if tok.Type != TokenUnknown && tok.Confidence > 0 {
+			confSum += tok.Confidence
+			confCount++
+			if tok.Confidence < 0.7 {
+				s.LowConfidence++
+			}
+		}
+	}
+
+	if confCount > 0 {
+		s.AvgConfidence = confSum / float64(confCount)
+	}
+	return s
+}
