@@ -191,3 +191,34 @@ Total irregular verb count: ~140 entries (from ~96).
 - **Similar is zero-alloc**: 516ns with no heap allocation makes it suitable for high-volume imprint comparison.
 - **Multiplier is allocation-heavy**: 63 allocs for a 4-word sentence. If this becomes a bottleneck, pool the Token slices.
 - **WithSignals adds overhead**: ~36% more time and 3x allocs vs plain tokenise. Keep it opt-in for diagnostics only.
+
+---
+
+## 2026-02-19: Classification Benchmark Results
+
+220 domain-tagged sentences (55/domain) classified via leave-one-out imprint similarity.
+
+| Domain | Accuracy | Token Coverage | Tense Signature |
+|--------|----------|---------------|-----------------|
+| Technical | 78.2% | 69.4% | base=46%, gerund=30%, past=24% |
+| Creative | 81.8% | 46.5% | past=80%, gerund=16%, base=4% |
+| Ethical | 45.5% | 34.0% | base=55%, past=25%, gerund=20% |
+| Casual | 10.9% | 39.1% | past=70%, base=17%, gerund=14% |
+
+**Overall: 54.1%** (vs 25% random chance)
+
+### Confusion Axes
+
+1. **Ethical → Technical** (16/55 misclassified): Both domains use base-form verbs heavily (imperative vs prescriptive). Grammar features alone cannot distinguish "Delete the file" from "We should find a fair solution" — both register as base-form verb + noun patterns.
+
+2. **Casual → Creative** (39/55 misclassified): Both domains use past tense heavily (narrative vs anecdotal). "She wrote the story by candlelight" and "She made dinner for everyone" have identical grammar profiles.
+
+### Implication for Phase 2a
+
+Grammar-based classification is a strong first pass for technical (78%) and creative (82%). The 1B model is specifically needed to resolve:
+- ethical vs technical — likely needs semantic understanding of modal/prescriptive framing
+- casual vs creative — likely needs vocabulary complexity or formality signals
+
+### Dependency: go-ai Bindings
+
+Phase 2a tasks (1B pre-sort, calibration, article/irregular validator) are blocked on go-ai providing MLX inference bindings for Gemma3-1B. Request dispatched to core/go orchestration.

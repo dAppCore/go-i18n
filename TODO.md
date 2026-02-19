@@ -16,9 +16,9 @@ Dispatched from core/go orchestration. Pick up tasks in order.
 ### 2a: 1B Pre-Classification (NEW — based on benchmark findings)
 
 - [x] **Classification benchmark suite** — 220 domain-tagged sentences, leave-one-out classification via imprint similarity. Grammar engine: technical 78%, creative 82%, ethical 46%, casual 11%. Ethical↔technical and casual↔creative confusion confirms 1B model needed for those domains.
-- [ ] **1B pre-sort pipeline tool** — CLI command or Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through LEK-Gemma3-1B domain classification, and writes back JSONL with `domain_1b` field added. Target: ~5K sentences/sec on M3. Use MLX via go-ai bindings or shell out to `mlx_lm.generate`.
-- [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. The 75% accuracy from benchmarks should improve with targeted prompt tuning. Document the confusion matrix (technical↔creative is the known weak spot).
-- [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Could supplement rule-based `Article()` and `PastTense()` for edge cases the grammar tables don't cover.
+- [ ] **1B pre-sort pipeline tool** ⏳ *Blocked: needs go-ai bindings for MLX/Gemma3-1B inference* — CLI command or Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through LEK-Gemma3-1B domain classification, and writes back JSONL with `domain_1b` field added. Target: ~5K sentences/sec on M3.
+- [ ] **1B vs 27B calibration check** ⏳ *Blocked: needs go-ai* — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
+- [ ] **Article/irregular validator** ⏳ *Blocked: needs go-ai* — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators.
 
 ### 2b: Reference Distributions
 
