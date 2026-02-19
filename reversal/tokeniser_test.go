@@ -453,3 +453,46 @@ func TestTokeniser_Disambiguate_ContractionAux(t *testing.T) {
 		}
 	}
 }
+
+func TestTokeniser_WithSignals_Breakdown(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithSignals())
+
+	tokens := tok.Tokenise("the commit was approved")
+	// "commit" should have a SignalBreakdown
+	commitTok := tokens[1]
+	if commitTok.Signals == nil {
+		t.Fatal("WithSignals(): commit token has nil Signals")
+	}
+	if commitTok.Signals.NounScore <= commitTok.Signals.VerbScore {
+		t.Errorf("NounScore (%f) should exceed VerbScore (%f) for 'the commit'",
+			commitTok.Signals.NounScore, commitTok.Signals.VerbScore)
+	}
+	if len(commitTok.Signals.Components) == 0 {
+		t.Error("Components should not be empty")
+	}
+
+	// Verify noun_determiner signal fired
+	foundDet := false
+	for _, c := range commitTok.Signals.Components {
+		if c.Name == "noun_determiner" {
+			foundDet = true
+			if c.Contrib != 0.35 {
+				t.Errorf("noun_determiner Contrib = %f, want 0.35", c.Contrib)
+			}
+		}
+	}
+	if !foundDet {
+		t.Error("noun_determiner signal should have fired")
+	}
+}
+
+func TestTokeniser_WithoutSignals_NilBreakdown(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser() // no WithSignals
+
+	tokens := tok.Tokenise("the commit was approved")
+	if tokens[1].Signals != nil {
+		t.Error("Without WithSignals(), Signals should be nil")
+	}
+}
