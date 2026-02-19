@@ -89,16 +89,36 @@ type Tokeniser struct {
 	baseNouns    map[string]bool   // "file" → true
 	words        map[string]string // word translations
 	lang         string
+
+	dualClass   map[string]bool    // words in both verb AND noun tables
+	nounDet     map[string]bool    // signal: noun determiners
+	verbAux     map[string]bool    // signal: verb auxiliaries
+	verbInf     map[string]bool    // signal: infinitive markers
+	withSignals bool               // allocate SignalBreakdown on ambiguous tokens
+	weights     map[string]float64 // signal weights (F3: configurable)
+}
+
+// TokeniserOption configures a Tokeniser.
+type TokeniserOption func(*Tokeniser)
+
+// WithSignals enables detailed SignalBreakdown on ambiguous tokens.
+func WithSignals() TokeniserOption {
+	return func(t *Tokeniser) { t.withSignals = true }
+}
+
+// WithWeights overrides the default signal weights for disambiguation.
+func WithWeights(w map[string]float64) TokeniserOption {
+	return func(t *Tokeniser) { t.weights = w }
 }
 
 // NewTokeniser creates a Tokeniser for English ("en").
-func NewTokeniser() *Tokeniser {
-	return NewTokeniserForLang("en")
+func NewTokeniser(opts ...TokeniserOption) *Tokeniser {
+	return NewTokeniserForLang("en", opts...)
 }
 
 // NewTokeniserForLang creates a Tokeniser for the specified language,
 // building inverse indexes from the grammar data.
-func NewTokeniserForLang(lang string) *Tokeniser {
+func NewTokeniserForLang(lang string, opts ...TokeniserOption) *Tokeniser {
 	t := &Tokeniser{
 		pastToBase:   make(map[string]string),
 		gerundToBase: make(map[string]string),
@@ -108,9 +128,17 @@ func NewTokeniserForLang(lang string) *Tokeniser {
 		words:        make(map[string]string),
 		lang:         lang,
 	}
+	for _, opt := range opts {
+		opt(t)
+	}
 	t.buildVerbIndex()
 	t.buildNounIndex()
 	t.buildWordIndex()
+	t.buildDualClassIndex()
+	t.buildSignalIndex()
+	if t.weights == nil {
+		t.weights = defaultWeights()
+	}
 	return t
 }
 
@@ -462,6 +490,70 @@ func (t *Tokeniser) buildWordIndex() {
 		t.words[strings.ToLower(key)] = key
 		// Map the display form (e.g., "URL" → "url", "SSH" → "ssh")
 		t.words[strings.ToLower(display)] = key
+	}
+}
+
+// IsDualClass returns true if the word exists in both verb and noun tables.
+func (t *Tokeniser) IsDualClass(word string) bool {
+	return t.dualClass[strings.ToLower(word)]
+}
+
+func (t *Tokeniser) buildDualClassIndex() {
+	t.dualClass = make(map[string]bool)
+	for base := range t.baseVerbs {
+		if t.baseNouns[base] {
+			t.dualClass[base] = true
+		}
+	}
+}
+
+func (t *Tokeniser) buildSignalIndex() {
+	t.nounDet = make(map[string]bool)
+	t.verbAux = make(map[string]bool)
+	t.verbInf = make(map[string]bool)
+
+	data := i18n.GetGrammarData(t.lang)
+	if data != nil && len(data.Signals.NounDeterminers) > 0 {
+		for _, w := range data.Signals.NounDeterminers {
+			t.nounDet[strings.ToLower(w)] = true
+		}
+		for _, w := range data.Signals.VerbAuxiliaries {
+			t.verbAux[strings.ToLower(w)] = true
+		}
+		for _, w := range data.Signals.VerbInfinitive {
+			t.verbInf[strings.ToLower(w)] = true
+		}
+		return
+	}
+
+	// Fallback: hardcoded English defaults
+	for _, w := range []string{
+		"the", "a", "an", "this", "that", "these", "those",
+		"my", "your", "his", "her", "its", "our", "their",
+		"every", "each", "some", "any", "no",
+		"many", "few", "several", "all", "both",
+	} {
+		t.nounDet[w] = true
+	}
+	for _, w := range []string{
+		"is", "are", "was", "were", "has", "had", "have",
+		"do", "does", "did", "will", "would", "could", "should",
+		"can", "may", "might", "shall", "must",
+	} {
+		t.verbAux[w] = true
+	}
+	t.verbInf["to"] = true
+}
+
+func defaultWeights() map[string]float64 {
+	return map[string]float64{
+		"noun_determiner":   0.35,
+		"verb_auxiliary":    0.25,
+		"following_class":   0.15,
+		"sentence_position": 0.10,
+		"verb_saturation":   0.10,
+		"inflection_echo":   0.03,
+		"default_prior":     0.02,
 	}
 }
 

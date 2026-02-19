@@ -309,6 +309,31 @@ func TestTokeniser_MatchVerb_Regular(t *testing.T) {
 	}
 }
 
+func TestTokeniser_WithSignals(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithSignals())
+	_ = tok // verify it compiles and accepts the option
+}
+
+func TestTokeniser_DualClassDetection(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	dualClass := []string{"commit", "run", "test", "check", "file", "build"}
+	for _, word := range dualClass {
+		if !tok.IsDualClass(word) {
+			t.Errorf("%q should be dual-class", word)
+		}
+	}
+
+	notDual := []string{"delete", "go", "push", "branch", "repo"}
+	for _, word := range notDual {
+		if tok.IsDualClass(word) {
+			t.Errorf("%q should not be dual-class", word)
+		}
+	}
+}
+
 func TestToken_ConfidenceField(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
