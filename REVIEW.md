@@ -170,3 +170,151 @@ Everything else is Phase 2+.
 ## Approved
 
 The plan is approved for implementation with the B1-B3 fixes applied. D1 (contractions) should be added to Task 2's en.json changes. The rest are suggestions, not blockers.
+
+---
+
+## Post-Implementation Review (2026-02-19, Virgil)
+
+**Reviewed commits:** `f0c4beb..f11c127` (8 commits)
+**Tests:** All pass, race detector clean (`go test ./... -count=1 -race`)
+**Verdict:** Approve for PR with 3 minor fixes below
+
+### What Was Done Well
+
+The implementation addressed every item from the original review:
+
+| Item | Status | Notes |
+|------|--------|-------|
+| B1 (loader type assertion) | Fixed | Correct pattern, no panic risk |
+| B2 (test/check noun entries) | Fixed | Both added to `gram.noun` |
+| B3 (confidence floor) | Fixed | Clean 0.55/0.45 when `total < 0.10` |
+| D1 (contractions) | Fixed | 15 contractions in `verb_auxiliary` signal data |
+| D2 (clause boundaries) | Fixed | `clauseBoundaries` map + `hasConfidentVerbInClause` scoped correctly |
+| F1 (DisambiguationStats) | Implemented | Struct + `DisambiguationStatsFromTokens()` |
+| F3 (WithWeights) | Implemented | Configurable signal weights via option |
+
+The confidence-weighted imprint contributions are exactly right. The clause boundary implementation handles conjunctions and punctuation correctly. The code comments reference the review items (B3, D2) which is good traceability.
+
+### Fixes Required Before PR
+
+#### R1: Remove "passed", "failed", "skipped" from `gram.noun`
+
+**File:** `locales/en.json`
+
+These are past participles, not nouns. They appear in `gram.noun` as:
+```json
+"passed": { "one": "passed", "other": "passed" },
+"failed": { "one": "failed", "other": "failed" },
+"skipped": { "one": "skipped", "other": "skipped" },
+```
+
+This doesn't break tests today because "pass", "fail", "skip" aren't in `gram.verb`, so `MatchVerb("failed")` returns false and these words never trigger the dual-class path. But it's wrong data that will bite when we expand the verb table (Phase 2 F4 candidates include these verbs).
+
+Also remove "passed", "failed", "skipped" from `gram.word` — they're duplicated there too and are dead data (unreachable given the lookup order: verb → noun → word).
+
+**Action:** Delete the 3 entries from `gram.noun` and the 3 from `gram.word`. Run tests to confirm nothing breaks.
+
+#### R2: Add tests for `DisambiguationStats` and `WithWeights`
+
+**File:** `reversal/tokeniser_test.go`
+
+Both features are implemented but have zero test coverage. FINDINGS.md claims "DisambiguationStats tests" exist — they don't. Add at minimum:
+
+```go
+func TestDisambiguationStats_WithAmbiguous(t *testing.T) {
+    setup(t)
+    tok := NewTokeniser()
+    tokens := tok.Tokenise("The commit passed the test")
+    stats := DisambiguationStatsFromTokens(tokens)
+    if stats.AmbiguousTokens == 0 {
+        t.Error("expected ambiguous tokens for dual-class words")
+    }
+    if stats.TotalTokens != len(tokens) {
+        t.Errorf("TotalTokens = %d, want %d", stats.TotalTokens, len(tokens))
+    }
+}
+
+func TestDisambiguationStats_NoAmbiguous(t *testing.T) {
+    setup(t)
+    tok := NewTokeniser()
+    tokens := tok.Tokenise("The cat sat on the mat")
+    stats := DisambiguationStatsFromTokens(tokens)
+    if stats.AmbiguousTokens != 0 {
+        t.Errorf("AmbiguousTokens = %d, want 0", stats.AmbiguousTokens)
+    }
+}
+
+func TestWithWeights_Override(t *testing.T) {
+    setup(t)
+    // Override noun_determiner to 0 — "The commit" should no longer resolve as noun
+    tok := NewTokeniser(WithWeights(map[string]float64{
+        "noun_determiner":  0.0,
+        "verb_auxiliary":   0.25,
+        "following_class":  0.15,
+        "sentence_position": 0.10,
+        "verb_saturation":  0.10,
+        "inflection_echo":  0.03,
+        "default_prior":    0.02,
+    }))
+    tokens := tok.Tokenise("The commit")
+    // With noun_determiner zeroed, default_prior (verb) should win
+    if tokens[1].Type != TokenVerb {
+        t.Errorf("with noun_determiner=0, 'commit' Type = %v, want TokenVerb", tokens[1].Type)
+    }
+}
+```
+
+Also note: `WithWeights` with a partial map silently disables omitted signals (missing keys → `if w, ok := t.weights[key]; ok` is false → signal skipped). This is arguably fine but should be documented in a code comment on `WithWeights`.
+
+#### R3: Guard `buildSignalIndex` per-field
+
+**File:** `reversal/tokeniser.go`, function `buildSignalIndex`
+
+Current code:
+```go
+if data != nil && len(data.Signals.NounDeterminers) > 0 {
+    // loads ALL signal lists, then returns
+    return
+}
+// fallback hardcodes
+```
+
+If a future locale has `noun_determiner` populated but `verb_auxiliary` empty, the function returns early with `t.verbAux` empty — Signal 2 silently dies. Fix: guard each list independently so partial locale data falls back per-field:
+
+```go
+if data != nil && len(data.Signals.NounDeterminers) > 0 {
+    for _, w := range data.Signals.NounDeterminers {
+        t.nounDet[strings.ToLower(w)] = true
+    }
+} else {
+    // fallback: hardcoded English noun determiners
+    for _, w := range []string{"the", "a", "an", ...} {
+        t.nounDet[w] = true
+    }
+}
+
+if data != nil && len(data.Signals.VerbAuxiliaries) > 0 {
+    for _, w := range data.Signals.VerbAuxiliaries {
+        t.verbAux[strings.ToLower(w)] = true
+    }
+} else {
+    // fallback: hardcoded English verb auxiliaries
+    for _, w := range []string{"will", "would", "can", ...} {
+        t.verbAux[w] = true
+    }
+}
+// same for VerbInfinitive
+```
+
+This is defensive but prevents a class of silent failure for new locales.
+
+### Update FINDINGS.md
+
+After fixing R1-R3, update the "Dual-Class Word Disambiguation" section in FINDINGS.md:
+- Remove the claim about DisambiguationStats tests (they didn't exist, now they do)
+- Note R1 cleanup (removed dead noun entries)
+- Note R3 per-field fallback
+
+### After Fixes
+
+Once R1-R3 are done and tests pass, create the PR targeting `main`. The disambiguation feature is solid — these are cleanup items, not architectural issues.
