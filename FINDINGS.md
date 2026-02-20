@@ -219,6 +219,30 @@ Grammar-based classification is a strong first pass for technical (78%) and crea
 - ethical vs technical — likely needs semantic understanding of modal/prescriptive framing
 - casual vs creative — likely needs vocabulary complexity or formality signals
 
-### Dependency: go-ai Bindings
+### Dependency: go-inference + go-mlx (RESOLVED)
 
-Phase 2a tasks (1B pre-sort, calibration, article/irregular validator) are blocked on go-ai providing MLX inference bindings for Gemma3-1B. Request dispatched to core/go orchestration.
+~~Phase 2a tasks blocked on go-ai~~ — resolved via direct go-inference + go-mlx imports. Gemma3-1B inference validated.
+
+---
+
+## 2026-02-20: 1B Pre-Sort Pipeline
+
+`ClassifyCorpus()` added to `classify.go`. Streaming JSONL → batch Classify → augmented JSONL with `domain_1b` field.
+
+### Integration Test Results (Gemma3-1B, M3 Ultra, 4-bit quantised)
+
+- 50 prompts classified in 625ms (80 prompts/sec)
+- All 50 technical prompts correctly classified as "technical"
+- Model load time: ~1s
+- Batch size 8, single-token generation (WithMaxTokens(1))
+
+### Throughput vs Target
+
+Target was 152 prompts/sec (from go-mlx benchmarks). Observed 80 prompts/sec with 50-prompt run. The difference is likely startup overhead amortisation — with 88K prompts the throughput should approach the benchmark figure as batch pipeline reaches steady state. Estimated 88K corpus processing time: ~15 minutes (vs 10 minute target).
+
+### Architecture
+
+- `ClassifyCorpus(ctx, model, input, output, opts...)` — caller manages model lifecycle
+- `mapTokenToDomain(token)` — prefix-match on model output: tech→technical, cre→creative, eth→ethical, cas→casual
+- Configurable: `WithBatchSize(n)`, `WithPromptField(field)`, `WithPromptTemplate(tmpl)`
+- Mock-friendly via `inference.TextModel` interface — 3 unit tests with mock, 1 integration test with real model

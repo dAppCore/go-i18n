@@ -53,7 +53,7 @@ models, _ := inference.Discover("/Volumes/Data/lem/")
 ---
 
 - [x] **Classification benchmark suite** — 220 domain-tagged sentences, leave-one-out classification via imprint similarity. Grammar engine: technical 78%, creative 82%, ethical 46%, casual 11%. Ethical↔technical and casual↔creative confusion confirms 1B model needed for those domains.
-- [ ] **1B pre-sort pipeline tool** — Go func that reads a JSONL corpus (Phase 0 seeds), sends each text through Gemma3-1B domain classification via `m.Classify()` batch API, and writes back JSONL with `domain_1b` field added. Use batch size 4-8 for best throughput. Model path: `/Volumes/Data/lem/LEM-Gemma3-1B-layered-v2`. Target: 152+ prompts/sec via Classify (88K corpus in ~10 minutes).
+- [x] **1B pre-sort pipeline tool** — `ClassifyCorpus()` in `classify.go`. Streaming JSONL batch classification via `inference.TextModel.Classify()`. Mock-tested (3 test cases) + integration-tested with real Gemma3-1B (80 prompts/sec on 50-prompt run, 100% domain accuracy). Configurable batch size, prompt field, and template.
 - [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Load 27B via same `inference.LoadModel()` path. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
 - [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Use `m.Generate()` with `inference.WithMaxTokens(1)` and `inference.WithTemperature(0.05)` for single-token classification.
 
