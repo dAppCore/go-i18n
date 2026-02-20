@@ -71,7 +71,7 @@ models, _ := inference.Discover("/Volumes/Data/lem/")
 
 ### Remaining Phase 2a Tasks
 
-- [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Load 27B via same `inference.LoadModel()` path. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
+- [x] **1B vs 27B calibration check** — `CalibrateDomains()` in `calibrate.go`. Accepts two TextModels + 500 CalibrationSamples (220 ground-truth + 280 unlabelled). Batch-classifies with both models, computes agreement rate, per-domain distribution, confusion pairs, and accuracy vs ground truth. 7 mock tests (race-clean). Integration test at `integration/calibrate_test.go` loads LEM-1B + Gemma3-27B from `/Volumes/Data/lem/`, runs full calibration with detailed reporting. Run with: `cd integration && go test -v -run TestCalibrateDomains_1Bvs27B`
 - [x] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Use `m.Generate()` with `inference.WithMaxTokens(1)` and `inference.WithTemperature(0.05)` for single-token classification.
 
 ### 2b: Reference Distributions
