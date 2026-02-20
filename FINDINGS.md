@@ -246,3 +246,71 @@ Target was 152 prompts/sec (from go-mlx benchmarks). Observed 80 prompts/sec wit
 - `mapTokenToDomain(token)` — prefix-match on model output: tech→technical, cre→creative, eth→ethical, cas→casual
 - Configurable: `WithBatchSize(n)`, `WithPromptField(field)`, `WithPromptTemplate(tmpl)`
 - Mock-friendly via `inference.TextModel` interface — 3 unit tests with mock, 1 integration test with real model
+
+---
+
+## 2026-02-20: 1B vs 27B Calibration Tool
+
+`CalibrateDomains()` added to `calibrate.go`. Accepts two `inference.TextModel` instances (typically 1B and 27B) plus a corpus of `CalibrationSample` entries, classifies all with both models, and computes agreement metrics.
+
+### Design
+
+- **Sequential batch classification**: classifies entire corpus with model A first, then model B, via `classifyAll()` — manages memory safely for large models
+- **Ground truth support**: samples with non-empty `TrueDomain` contribute to per-model accuracy metrics
+- **Agreement metrics**: total/agreed count, agreement rate, per-domain distribution for each model, confusion pairs (A→B direction), accuracy vs ground truth
+- **Reuses existing infrastructure**: same `mapTokenToDomain()`, same `ClassifyOption` config, same batch pattern as `ClassifyCorpus()`
+
+### Integration Test Corpus (500 samples)
+
+- 220 ground-truth sentences (55/domain × 4 domains) — expanded from benchmark corpus with additional realistic examples
+- 280 unlabelled diverse sentences — mixed register (technical/creative/ethical/casual interleaved) for agreement-only measurement
+- Soft assertion: agreement rate > 50% (models should share classification semantics)
+
+---
+
+## 2026-02-20: Reference Distributions & Anomaly Detection
+
+### Reference Distribution Builder (`reversal/reference.go`)
+
+`BuildReferences()` tokenises classified samples, builds `GrammarImprint` for each, groups by domain, and computes:
+
+- **Centroid imprint**: per-map-field accumulation then L1 normalisation, scalar fields averaged
+- **Per-key variance**: sample variance across all imprints per domain, prefixed by component ("verb:", "tense:", "noun:", "article:", "punct:")
+- **ReferenceSet**: holds all domain `ReferenceDistribution` entries, provides `Compare()`, `Classify()`, `DetectAnomalies()`, `DomainNames()`
+
+### Imprint Comparator
+
+Three distance metrics between an imprint and each reference centroid:
+
+| Metric | Method | Notes |
+|--------|--------|-------|
+| Cosine similarity | Reuses `Similar()` | Weighted by component (verb 0.30, tense 0.20, noun 0.25, article 0.15, punct 0.10) |
+| KL divergence | Symmetric (Jensen-Shannon style) | Epsilon-smoothed (1e-10), same component weights |
+| Mahalanobis | Variance-normalised Euclidean | Uses per-key variance from reference set, falls back to unit variance when missing |
+
+`Classify()` ranks domains by cosine similarity, returns best match + confidence margin (gap between 1st and 2nd).
+
+### Cross-Domain Anomaly Detection (`reversal/anomaly.go`)
+
+`DetectAnomalies()` compares model-assigned domain labels against imprint-based classification:
+
+- Tokenises each sample, builds imprint, classifies against references
+- Flags samples where model domain ≠ imprint domain
+- Returns per-sample `AnomalyResult` (text, both domains, confidence, anomaly flag) + `AnomalyStats` (rate, by-pair counts)
+- **Validated**: "She painted the sunset over the mountains" tagged as technical correctly flagged as creative anomaly (confidence 0.37)
+
+### Test Results
+
+| Test | Result | Key observation |
+|------|--------|----------------|
+| Technical sentence vs tech/creative centroids | tech_sim=0.38, creative_sim=0.17 | Grammar engine correctly distinguishes imperative from narrative |
+| Creative sentence mislabelled as technical | Flagged as anomaly | Anomaly detector works on real grammar profile differences |
+| Single-domain reference set | No false anomalies | Pipeline handles degenerate case cleanly |
+| KL of identical distributions | ~0.0 | Symmetric KL numerically stable |
+| Mahalanobis without variance | Falls back to Euclidean | Graceful degradation |
+
+### Implications
+
+1. **Grammar alone separates technical from creative** (sim gap 0.21) but ethical↔technical and casual↔creative overlap persists — confirms 1B model is needed for those axes
+2. **Anomaly detection is a training signal**: mislabelled samples from 1B classification can be flagged for human review or 27B verification
+3. **Reference distributions enable Poindexter integration**: the `ReferenceSet` API is the bridge between grammar analysis and the broader trust verification pipeline
