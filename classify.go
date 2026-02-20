@@ -1,7 +1,10 @@
 package i18n
 
 import (
+	"bufio"
 	"context"
+	"encoding/json"
+	"fmt"
 	"io"
 	"strings"
 	"time"
@@ -70,10 +73,95 @@ func mapTokenToDomain(token string) string {
 	}
 }
 
-// Ensure imports are used (ClassifyCorpus will be added in Task 3).
-var (
-	_ = (*inference.Token)(nil)
-	_ context.Context
-	_ io.Reader
-	_ time.Duration
-)
+// ClassifyCorpus reads JSONL from input, batch-classifies each entry through
+// model, and writes JSONL with domain_1b field added to output.
+func ClassifyCorpus(ctx context.Context, model inference.TextModel,
+	input io.Reader, output io.Writer, opts ...ClassifyOption) (*ClassifyStats, error) {
+
+	cfg := defaultClassifyConfig()
+	for _, o := range opts {
+		o(&cfg)
+	}
+
+	stats := &ClassifyStats{ByDomain: make(map[string]int)}
+	start := time.Now()
+
+	scanner := bufio.NewScanner(input)
+	scanner.Buffer(make([]byte, 1024*1024), 1024*1024)
+
+	type pending struct {
+		record map[string]any
+		prompt string
+	}
+
+	var batch []pending
+
+	flush := func() error {
+		if len(batch) == 0 {
+			return nil
+		}
+		prompts := make([]string, len(batch))
+		for i, p := range batch {
+			prompts[i] = fmt.Sprintf(cfg.promptTemplate, p.prompt)
+		}
+		results, err := model.Classify(ctx, prompts, inference.WithMaxTokens(1))
+		if err != nil {
+			return fmt.Errorf("classify batch: %w", err)
+		}
+		for i, r := range results {
+			domain := mapTokenToDomain(r.Token.Text)
+			batch[i].record["domain_1b"] = domain
+			stats.ByDomain[domain]++
+			stats.Total++
+
+			line, err := json.Marshal(batch[i].record)
+			if err != nil {
+				return fmt.Errorf("marshal output: %w", err)
+			}
+			if _, err := fmt.Fprintf(output, "%s\n", line); err != nil {
+				return fmt.Errorf("write output: %w", err)
+			}
+		}
+		batch = batch[:0]
+		return nil
+	}
+
+	for scanner.Scan() {
+		var record map[string]any
+		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
+			stats.Skipped++
+			continue
+		}
+		promptVal, ok := record[cfg.promptField]
+		if !ok {
+			stats.Skipped++
+			continue
+		}
+		prompt, ok := promptVal.(string)
+		if !ok || prompt == "" {
+			stats.Skipped++
+			continue
+		}
+
+		batch = append(batch, pending{record: record, prompt: prompt})
+		if len(batch) >= cfg.batchSize {
+			if err := flush(); err != nil {
+				return stats, err
+			}
+		}
+	}
+
+	if err := scanner.Err(); err != nil {
+		return stats, fmt.Errorf("read input: %w", err)
+	}
+	if err := flush(); err != nil {
+		return stats, err
+	}
+
+	stats.Duration = time.Since(start)
+	if stats.Duration > 0 {
+		stats.PromptsPerSec = float64(stats.Total) / stats.Duration.Seconds()
+	}
+
+	return stats, nil
+}
