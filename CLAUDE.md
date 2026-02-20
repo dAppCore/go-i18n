@@ -11,7 +11,7 @@ This is a **grammar engine** — it provides primitives for composing and revers
 ```bash
 go test ./...                    # Run all tests
 go test -v ./reversal/           # Reversal engine tests
-go test -bench=. ./...           # Benchmarks (when added)
+go test -bench=. ./...           # Benchmarks
 ```
 
 ## Critical Rules
@@ -43,7 +43,9 @@ go-i18n provides grammar primitives. Apps using it (core/cli, etc.) manage their
 | Root | Forward composition: T(), grammar primitives, handlers, service |
 | `reversal/` | Reverse grammar: tokeniser, imprint, multiplier |
 | `locales/` | Grammar tables (JSON) — only `gram.*` data |
-| `docs/plans/` | Design documents |
+| `docs/` | Architecture, development, history, grammar-table-spec, plans |
+
+See `docs/architecture.md` for full technical detail.
 
 ## Key API
 
@@ -59,9 +61,3 @@ go-i18n provides grammar primitives. Apps using it (core/cli, etc.) manage their
 - `go test ./...` must pass before commit
 - Conventional commits: `type(scope): description`
 - Co-Author: `Co-Authored-By: Virgil <virgil@lethean.io>`
-
-## Task Queue
-
-See `TODO.md` for dispatched tasks from core/go orchestration.
-See `FINDINGS.md` for research notes and architectural decisions.
-See the [wiki](https://forge.lthn.ai/core/go-i18n/wiki) for full architecture docs.
