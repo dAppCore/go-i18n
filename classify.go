@@ -54,19 +54,23 @@ func WithPromptTemplate(tmpl string) ClassifyOption {
 }
 
 // mapTokenToDomain maps a model output token to a 4-way domain label.
+// Prefix matching exists because BPE tokenisation can fragment words into
+// partial tokens (e.g. "cas" from "casual", "cre" from "creative"). We
+// only match the known short fragments that actually appear in BPE output,
+// NOT arbitrary prefixes like "cas" which would collide with "castle" etc.
 func mapTokenToDomain(token string) string {
 	if len(token) == 0 {
 		return "unknown"
 	}
 	lower := strings.ToLower(token)
 	switch {
-	case strings.HasPrefix(lower, "tech"):
+	case lower == "technical" || lower == "tech":
 		return "technical"
-	case strings.HasPrefix(lower, "cre"):
+	case lower == "creative" || lower == "cre":
 		return "creative"
-	case strings.HasPrefix(lower, "eth"):
+	case lower == "ethical" || lower == "eth":
 		return "ethical"
-	case strings.HasPrefix(lower, "cas"):
+	case lower == "casual" || lower == "cas":
 		return "casual"
 	default:
 		return "unknown"

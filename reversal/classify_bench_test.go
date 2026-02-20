@@ -325,6 +325,9 @@ func TestClassification_CorpusSize(t *testing.T) {
 // exceeds cross-domain similarity. This is the basic requirement for domain
 // classification to work.
 func TestClassification_DomainSeparation(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping slow domain separation test in short mode")
+	}
 	setup(t)
 	tok := NewTokeniser()
 	imprints := imprintCorpus(tok)
@@ -374,6 +377,9 @@ func TestClassification_DomainSeparation(t *testing.T) {
 // TestClassification_LeaveOneOut measures per-domain and overall accuracy
 // using leave-one-out nearest-centroid classification.
 func TestClassification_LeaveOneOut(t *testing.T) {
+	if testing.Short() {
+		t.Skip("skipping slow classification benchmark in short mode")
+	}
 	setup(t)
 	tok := NewTokeniser()
 	imprints := imprintCorpus(tok)

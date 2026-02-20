@@ -31,6 +31,11 @@ func TestMapTokenToDomain(t *testing.T) {
 		{"unknown", "unknown"},
 		{"", "unknown"},
 		{"foo", "unknown"},
+		// Verify prefix collision fix: these must NOT match any domain
+		{"castle", "unknown"},
+		{"cascade", "unknown"},
+		{"credential", "unknown"},
+		{"creature", "unknown"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.token, func(t *testing.T) {

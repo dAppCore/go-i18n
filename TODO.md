@@ -59,15 +59,15 @@ models, _ := inference.Discover("/Volumes/Data/lem/")
 
 **Do these first, in order, before picking up the next Phase 2a task.**
 
-- [ ] **Fix go.mod: remove go-mlx from module require** — go-mlx is darwin/arm64 CGO. Having it in go.mod makes go-i18n uncompilable on Linux and breaks any downstream consumer that vendors this module. go-i18n's founding principle is "only dependency: golang.org/x/text" plus go-inference. The integration test imports go-mlx behind a `//go:build integration` tag, which is fine — but the go.mod `require` is unconditional. Fix: remove the `require` and `replace` lines for go-mlx from go.mod. For local integration test builds, use a go.work file instead. Verify `go mod tidy` succeeds without go-mlx.
+- [x] **Fix go.mod: remove go-mlx from module require** — Removed go-mlx `require` and `replace` from go.mod. Moved integration test to `integration/` sub-module with its own go.mod that depends on go-mlx. Main module now compiles cleanly on all platforms. `go mod tidy` no longer pulls go-mlx.
 
-- [ ] **Fix go.mod: go-inference pseudo-version** — `v0.0.0` without a timestamp is not a valid Go module version. Run `go get forge.lthn.ai/core/go-inference@latest` with the workspace active to compute a proper pseudo-version (like `v0.0.0-20260219...`), or add a proper `replace` and let `go mod tidy` resolve it. This prevents `go mod verify` failures in CI.
+- [x] **Fix go.mod: go-inference pseudo-version** — `go mod tidy` resolved to the standard replaced-module pseudo-version `v0.0.0-00010101000000-000000000000`. CI-safe.
 
-- [ ] **Fix mapTokenToDomain prefix collision** — `strings.HasPrefix(lower, "cas")` matches "castle", "cascade", etc. — not just "casual". Same risk with "cre" matching "credential". Use exact match with a short-prefix fallback only for known token fragments: `lower == "casual" || lower == "cas"`. Add a comment explaining why prefix matching exists (BPE token fragmentation can produce partial words). Add test cases for "castle" and "credential" to verify they return "unknown".
+- [x] **Fix mapTokenToDomain prefix collision** — Replaced `strings.HasPrefix` with exact match + known BPE fragment fallback. Added test cases for "castle", "cascade", "credential", "creature" — all return "unknown".
 
-- [ ] **Fix classify_bench_test.go naming** — File contains 6 `Test*` functions that run on every `go test ./...`. The O(n^2) `TestClassification_LeaveOneOut` (220 sentences, ~48K similarity computations) is slow for a normal test run. Either: (a) rename to `classify_test.go` and add `testing.Short()` skip to slow tests, or (b) add a `//go:build !short` build tag. Option (a) preferred.
+- [x] **Fix classify_bench_test.go naming** — Added `testing.Short()` skip to `TestClassification_DomainSeparation` and `TestClassification_LeaveOneOut` (the two O(n^2) tests). Verified with `go test -short -v`.
 
-- [ ] **Add accuracy assertion to integration test** — Currently only checks `Total == 50` and `Skipped == 0`. If the model returns all "unknown", the test still passes. Add a minimum threshold: at least 80% of the 50 technical prompts should classify as "technical". The FINDINGS data shows 100% accuracy on controlled technical input, so 80% is a conservative floor.
+- [x] **Add accuracy assertion to integration test** — Integration test now asserts at least 80% (40/50) of technical prompts classified as "technical". Logs full domain breakdown and misclassified entries on failure. Test moved to `integration/` sub-module.
 
 ### Remaining Phase 2a Tasks
 
