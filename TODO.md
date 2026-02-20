@@ -76,9 +76,9 @@ models, _ := inference.Discover("/Volumes/Data/lem/")
 
 ### 2b: Reference Distributions
 
-- [ ] **Reference distribution builder** — Process the 88K scored seeds from LEM Phase 0 through the tokeniser + imprint pipeline. Pre-sort by `domain_1b` tag from step 2a first. Output: per-category (ethical, technical, creative, casual) reference distributions stored as JSON. This calibrates what "normal" grammar looks like per domain.
-- [ ] **Imprint comparator** — Given a new text and reference distributions, compute distance metrics (cosine, KL divergence, Mahalanobis). Return a classification signal with confidence score. This is the Poindexter integration point.
-- [ ] **Cross-domain anomaly detection** — Flag texts where 1B domain tag disagrees with imprint-based classification. These are either misclassified by 1B (training signal) or genuinely cross-domain (ethical text using technical jargon). Both are valuable for refining the pipeline.
+- [x] **Reference distribution builder** — `BuildReferences()` in `reversal/reference.go`. Tokenises samples, builds imprints, computes per-domain centroid (averaged maps + normalised) and per-key variance for Mahalanobis. `ReferenceSet` holds all domain references. 7 tests.
+- [x] **Imprint comparator** — `ReferenceSet.Compare()` + `ReferenceSet.Classify()` in `reversal/reference.go`. Three distance metrics: cosine similarity (reuses `Similar()`), symmetric KL divergence (epsilon-smoothed, weighted by component), simplified Mahalanobis (variance-normalised, Euclidean fallback). Classify returns best domain + confidence margin. 5 tests for distance functions.
+- [x] **Cross-domain anomaly detection** — `ReferenceSet.DetectAnomalies()` in `reversal/anomaly.go`. Tokenises + classifies each sample against references, flags where model domain != imprint domain. Returns `[]AnomalyResult` + `AnomalyStats` (rate, by-pair breakdown). 5 tests including mismatch detection ("She painted the sunset" tagged technical → flagged as creative anomaly).
 
 ## Phase 3: Multi-Language
 
