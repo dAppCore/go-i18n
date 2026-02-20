@@ -72,7 +72,7 @@ models, _ := inference.Discover("/Volumes/Data/lem/")
 ### Remaining Phase 2a Tasks
 
 - [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Load 27B via same `inference.LoadModel()` path. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
-- [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Use `m.Generate()` with `inference.WithMaxTokens(1)` and `inference.WithTemperature(0.05)` for single-token classification.
+- [x] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Use `m.Generate()` with `inference.WithMaxTokens(1)` and `inference.WithTemperature(0.05)` for single-token classification.
 
 ### 2b: Reference Distributions
 
