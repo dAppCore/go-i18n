@@ -1,0 +1,136 @@
+package i18n
+
+import (
+	"testing"
+	"testing/fstest"
+
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+)
+
+func TestRegisterLocales_Good(t *testing.T) {
+	// Save and restore registered locales state
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	fs := fstest.MapFS{
+		"locales/test.json": &fstest.MapFile{
+			Data: []byte(`{"custom.hook": "hooked"}`),
+		},
+	}
+
+	RegisterLocales(fs, "locales")
+
+	registeredLocalesMu.Lock()
+	count := len(registeredLocales)
+	registeredLocalesMu.Unlock()
+	assert.Equal(t, 1, count, "should have 1 registered locale")
+}
+
+func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
+	// When localesLoaded is true, RegisterLocales should also call LoadFS immediately
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	// Save and restore state
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	localesLoaded = true // Simulate already loaded
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	// Use "en.json" as filename so language matches fallback
+	fs := fstest.MapFS{
+		"i18n/en.json": &fstest.MapFile{
+			Data: []byte(`{"late.registration": "arrived late"}`),
+		},
+	}
+
+	RegisterLocales(fs, "i18n")
+
+	// Should be able to resolve the newly registered key
+	got := svc.T("late.registration")
+	assert.Equal(t, "arrived late", got)
+}
+
+func TestLoadRegisteredLocales_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+
+	// Save and restore state
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedLoaded := localesLoaded
+	registeredLocales = []localeRegistration{
+		{
+			fsys: fstest.MapFS{
+				"loc/en.json": &fstest.MapFile{
+					Data: []byte(`{"extra.key": "extra value"}`),
+				},
+			},
+			dir: "loc",
+		},
+	}
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	loadRegisteredLocales(svc)
+
+	registeredLocalesMu.Lock()
+	loaded := localesLoaded
+	registeredLocalesMu.Unlock()
+	assert.True(t, loaded, "localesLoaded should be true after loadRegisteredLocales")
+
+	got := svc.T("extra.key")
+	assert.Equal(t, "extra value", got)
+}
+
+func TestOnMissingKey_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	svc.SetMode(ModeCollect)
+
+	var captured MissingKey
+	OnMissingKey(func(m MissingKey) {
+		captured = m
+	})
+
+	_ = svc.T("missing.test.key", map[string]any{"foo": "bar"})
+
+	assert.Equal(t, "missing.test.key", captured.Key)
+	assert.Equal(t, "bar", captured.Args["foo"])
+	assert.NotEmpty(t, captured.CallerFile)
+}
+
+func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
+	// Store nil handler (using correct type)
+	missingKeyHandler.Store(MissingKeyHandler(nil))
+
+	// Should not panic when dispatching with nil handler
+	dispatchMissingKey("test.key", nil)
+}
