@@ -54,6 +54,23 @@ models, _ := inference.Discover("/Volumes/Data/lem/")
 
 - [x] **Classification benchmark suite** — 220 domain-tagged sentences, leave-one-out classification via imprint similarity. Grammar engine: technical 78%, creative 82%, ethical 46%, casual 11%. Ethical↔technical and casual↔creative confusion confirms 1B model needed for those domains.
 - [x] **1B pre-sort pipeline tool** — `ClassifyCorpus()` in `classify.go`. Streaming JSONL batch classification via `inference.TextModel.Classify()`. Mock-tested (3 test cases) + integration-tested with real Gemma3-1B (80 prompts/sec on 50-prompt run, 100% domain accuracy). Configurable batch size, prompt field, and template.
+
+### Virgil Review: Fix Before Continuing (20 Feb 2026)
+
+**Do these first, in order, before picking up the next Phase 2a task.**
+
+- [ ] **Fix go.mod: remove go-mlx from module require** — go-mlx is darwin/arm64 CGO. Having it in go.mod makes go-i18n uncompilable on Linux and breaks any downstream consumer that vendors this module. go-i18n's founding principle is "only dependency: golang.org/x/text" plus go-inference. The integration test imports go-mlx behind a `//go:build integration` tag, which is fine — but the go.mod `require` is unconditional. Fix: remove the `require` and `replace` lines for go-mlx from go.mod. For local integration test builds, use a go.work file instead. Verify `go mod tidy` succeeds without go-mlx.
+
+- [ ] **Fix go.mod: go-inference pseudo-version** — `v0.0.0` without a timestamp is not a valid Go module version. Run `go get forge.lthn.ai/core/go-inference@latest` with the workspace active to compute a proper pseudo-version (like `v0.0.0-20260219...`), or add a proper `replace` and let `go mod tidy` resolve it. This prevents `go mod verify` failures in CI.
+
+- [ ] **Fix mapTokenToDomain prefix collision** — `strings.HasPrefix(lower, "cas")` matches "castle", "cascade", etc. — not just "casual". Same risk with "cre" matching "credential". Use exact match with a short-prefix fallback only for known token fragments: `lower == "casual" || lower == "cas"`. Add a comment explaining why prefix matching exists (BPE token fragmentation can produce partial words). Add test cases for "castle" and "credential" to verify they return "unknown".
+
+- [ ] **Fix classify_bench_test.go naming** — File contains 6 `Test*` functions that run on every `go test ./...`. The O(n^2) `TestClassification_LeaveOneOut` (220 sentences, ~48K similarity computations) is slow for a normal test run. Either: (a) rename to `classify_test.go` and add `testing.Short()` skip to slow tests, or (b) add a `//go:build !short` build tag. Option (a) preferred.
+
+- [ ] **Add accuracy assertion to integration test** — Currently only checks `Total == 50` and `Skipped == 0`. If the model returns all "unknown", the test still passes. Add a minimum threshold: at least 80% of the 50 technical prompts should classify as "technical". The FINDINGS data shows 100% accuracy on controlled technical input, so 80% is a conservative floor.
+
+### Remaining Phase 2a Tasks
+
 - [ ] **1B vs 27B calibration check** — Sample 500 sentences, classify with both 1B and 27B, measure agreement rate. Load 27B via same `inference.LoadModel()` path. Classification benchmark shows ethical↔technical (both base-form heavy) and casual↔creative (both past-tense heavy) are the confusion axes — 1B needs to resolve these.
 - [ ] **Article/irregular validator** — Lightweight Go funcs that use the 1B model's strong article correctness (100%) and irregular base form accuracy (100%) as fast validators. Use `m.Generate()` with `inference.WithMaxTokens(1)` and `inference.WithTemperature(0.05)` for single-token classification.
 
