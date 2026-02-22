@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"maps"
 	"strings"
 	"text/template"
 	"unicode"
@@ -23,18 +24,14 @@ func SetGrammarData(lang string, data *GrammarData) {
 // IrregularVerbs returns a copy of the irregular verb forms map.
 func IrregularVerbs() map[string]VerbForms {
 	result := make(map[string]VerbForms, len(irregularVerbs))
-	for k, v := range irregularVerbs {
-		result[k] = v
-	}
+	maps.Copy(result, irregularVerbs)
 	return result
 }
 
 // IrregularNouns returns a copy of the irregular nouns map.
 func IrregularNouns() map[string]string {
 	result := make(map[string]string, len(irregularNouns))
-	for k, v := range irregularNouns {
-		result[k] = v
-	}
+	maps.Copy(result, irregularNouns)
 	return result
 }
 

@@ -25,19 +25,19 @@ type CalibrationResult struct {
 
 // CalibrationStats holds aggregate metrics from CalibrateDomains.
 type CalibrationStats struct {
-	Total          int            `json:"total"`
-	Agreed         int            `json:"agreed"`
-	AgreementRate  float64        `json:"agreement_rate"`
-	ByDomainA      map[string]int `json:"by_domain_a"`
-	ByDomainB      map[string]int `json:"by_domain_b"`
-	ConfusionPairs map[string]int `json:"confusion_pairs"` // "technical->creative": count
-	AccuracyA      float64        `json:"accuracy_a"`      // vs ground truth (0 if none)
-	AccuracyB      float64        `json:"accuracy_b"`      // vs ground truth (0 if none)
-	CorrectA       int            `json:"correct_a"`
-	CorrectB       int            `json:"correct_b"`
-	WithTruth      int            `json:"with_truth"` // samples that had ground truth
-	DurationA      time.Duration  `json:"duration_a"`
-	DurationB      time.Duration  `json:"duration_b"`
+	Total          int                 `json:"total"`
+	Agreed         int                 `json:"agreed"`
+	AgreementRate  float64             `json:"agreement_rate"`
+	ByDomainA      map[string]int      `json:"by_domain_a"`
+	ByDomainB      map[string]int      `json:"by_domain_b"`
+	ConfusionPairs map[string]int      `json:"confusion_pairs"` // "technical->creative": count
+	AccuracyA      float64             `json:"accuracy_a"`      // vs ground truth (0 if none)
+	AccuracyB      float64             `json:"accuracy_b"`      // vs ground truth (0 if none)
+	CorrectA       int                 `json:"correct_a"`
+	CorrectB       int                 `json:"correct_b"`
+	WithTruth      int                 `json:"with_truth"` // samples that had ground truth
+	DurationA      time.Duration       `json:"duration_a"`
+	DurationB      time.Duration       `json:"duration_b"`
 	Results        []CalibrationResult `json:"results"`
 }
 
@@ -134,10 +134,7 @@ func classifyAll(ctx context.Context, model inference.TextModel, prompts []strin
 	domains := make([]string, len(prompts))
 
 	for i := 0; i < len(prompts); i += batchSize {
-		end := i + batchSize
-		if end > len(prompts) {
-			end = len(prompts)
-		}
+		end := min(i+batchSize, len(prompts))
 		batch := prompts[i:end]
 
 		results, err := model.Classify(ctx, batch, inference.WithMaxTokens(1))

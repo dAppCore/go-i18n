@@ -3,6 +3,7 @@ package reversal
 import (
 	"fmt"
 	"sort"
+	"strings"
 	"testing"
 )
 
@@ -341,7 +342,7 @@ func TestClassification_DomainSeparation(t *testing.T) {
 		// Within-domain average similarity
 		var withinSum float64
 		var withinCount int
-		for i := 0; i < len(indices); i++ {
+		for i := range indices {
 			for j := i + 1; j < len(indices); j++ {
 				withinSum += imprints[indices[i]].Similar(imprints[indices[j]])
 				withinCount++
@@ -417,17 +418,19 @@ func TestClassification_LeaveOneOut(t *testing.T) {
 
 	// Print confusion matrix
 	t.Log("\nConfusion matrix (rows=actual, cols=predicted):")
-	header := fmt.Sprintf("  %-10s", "")
+	var header strings.Builder
+	header.WriteString(fmt.Sprintf("  %-10s", ""))
 	for _, d := range domains {
-		header += fmt.Sprintf(" %10s", d[:4])
+		header.WriteString(fmt.Sprintf(" %10s", d[:4]))
 	}
-	t.Log(header)
+	t.Log(header.String())
 	for _, actual := range domains {
-		row := fmt.Sprintf("  %-10s", actual[:4])
+		var row strings.Builder
+		row.WriteString(fmt.Sprintf("  %-10s", actual[:4]))
 		for _, predicted := range domains {
-			row += fmt.Sprintf(" %10d", confusion[actual][predicted])
+			row.WriteString(fmt.Sprintf(" %10d", confusion[actual][predicted]))
 		}
-		t.Log(row)
+		t.Log(row.String())
 	}
 
 	// Soft threshold: grammar-based classification won't be perfect,
@@ -503,15 +506,16 @@ func TestClassification_TenseProfile(t *testing.T) {
 			}
 		}
 
-		parts := fmt.Sprintf("%-10s verbs=%d", d, totalVerbs)
+		var parts strings.Builder
+		parts.WriteString(fmt.Sprintf("%-10s verbs=%d", d, totalVerbs))
 		for _, tense := range tenses {
 			pct := 0.0
 			if totalVerbs > 0 {
 				pct = float64(tenseCounts[tense]) / float64(totalVerbs) * 100
 			}
-			parts += fmt.Sprintf("  %s=%.0f%%", tense, pct)
+			parts.WriteString(fmt.Sprintf("  %s=%.0f%%", tense, pct))
 		}
-		t.Log(parts)
+		t.Log(parts.String())
 	}
 }
 
@@ -545,18 +549,15 @@ func TestClassification_TopVerbs(t *testing.T) {
 		}
 		sort.Slice(sorted, func(i, j int) bool { return sorted[i].count > sorted[j].count })
 
-		top := 8
-		if len(sorted) < top {
-			top = len(sorted)
-		}
-		verbs := ""
+		top := min(len(sorted), 8)
+		var verbs strings.Builder
 		for i := 0; i < top; i++ {
 			if i > 0 {
-				verbs += ", "
+				verbs.WriteString(", ")
 			}
-			verbs += fmt.Sprintf("%s(%d)", sorted[i].verb, sorted[i].count)
+			verbs.WriteString(fmt.Sprintf("%s(%d)", sorted[i].verb, sorted[i].count))
 		}
-		t.Logf("%-10s unique=%d top: %s", d, len(verbCounts), verbs)
+		t.Logf("%-10s unique=%d top: %s", d, len(verbCounts), verbs.String())
 	}
 }
 

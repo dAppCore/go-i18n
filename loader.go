@@ -116,8 +116,8 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 			// Verb form object (has base/past/gerund keys)
 			if grammar != nil && isVerbFormObject(v) {
 				verbName := key
-				if strings.HasPrefix(fullKey, "gram.verb.") {
-					verbName = strings.TrimPrefix(fullKey, "gram.verb.")
+				if after, ok := strings.CutPrefix(fullKey, "gram.verb."); ok {
+					verbName = after
 				}
 				forms := VerbForms{}
 				if past, ok := v["past"].(string); ok {
@@ -133,8 +133,8 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 			// Noun form object (under gram.noun.* or has gender field)
 			if grammar != nil && (strings.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
 				nounName := key
-				if strings.HasPrefix(fullKey, "gram.noun.") {
-					nounName = strings.TrimPrefix(fullKey, "gram.noun.")
+				if after, ok := strings.CutPrefix(fullKey, "gram.noun."); ok {
+					nounName = after
 				}
 				_, hasOne := v["one"]
 				_, hasOther := v["other"]

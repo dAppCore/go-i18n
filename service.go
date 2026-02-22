@@ -5,7 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"maps"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -160,9 +162,7 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 	}
 	flattenWithGrammar("", raw, messages, grammarData)
 	if existing, ok := s.messages[lang]; ok {
-		for key, msg := range messages {
-			existing[key] = msg
-		}
+		maps.Copy(existing, messages)
 	} else {
 		s.messages[lang] = messages
 	}
@@ -208,10 +208,10 @@ func (s *Service) AvailableLanguages() []string {
 	return langs
 }
 
-func (s *Service) SetMode(m Mode)       { s.mu.Lock(); s.mode = m; s.mu.Unlock() }
-func (s *Service) Mode() Mode           { s.mu.RLock(); defer s.mu.RUnlock(); return s.mode }
+func (s *Service) SetMode(m Mode)           { s.mu.Lock(); s.mode = m; s.mu.Unlock() }
+func (s *Service) Mode() Mode               { s.mu.RLock(); defer s.mu.RUnlock(); return s.mode }
 func (s *Service) SetFormality(f Formality) { s.mu.Lock(); s.formality = f; s.mu.Unlock() }
-func (s *Service) Formality() Formality { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
+func (s *Service) Formality() Formality     { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
 
 func (s *Service) Direction() TextDirection {
 	s.mu.RLock()
@@ -451,13 +451,7 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 			return fmt.Errorf("failed to parse locale %q: %w", entry.Name(), err)
 		}
 		tag := language.Make(lang)
-		found := false
-		for _, existing := range s.availableLangs {
-			if existing == tag {
-				found = true
-				break
-			}
-		}
+		found := slices.Contains(s.availableLangs, tag)
 		if !found {
 			s.availableLangs = append(s.availableLangs, tag)
 		}

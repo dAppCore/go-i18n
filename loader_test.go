@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"slices"
 	"testing"
 	"testing/fstest"
 )
@@ -12,13 +13,7 @@ func TestFSLoaderLanguages(t *testing.T) {
 		t.Fatal("FSLoader.Languages() returned empty")
 	}
 
-	found := false
-	for _, l := range langs {
-		if l == "en" {
-			found = true
-			break
-		}
-	}
+	found := slices.Contains(langs, "en")
 	if !found {
 		t.Errorf("Languages() = %v, expected 'en' in list", langs)
 	}
