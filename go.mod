@@ -4,7 +4,7 @@ go 1.25.5
 
 require golang.org/x/text v0.33.0
 
-require forge.lthn.ai/core/go-inference main
+require forge.lthn.ai/core/go-inference v0.0.1
 
 require (
 	github.com/davecgh/go-spew v1.1.1 // indirect
