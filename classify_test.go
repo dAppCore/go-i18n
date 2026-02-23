@@ -68,11 +68,11 @@ func (m *mockModel) BatchGenerate(_ context.Context, _ []string, _ ...inference.
 	return nil, nil
 }
 
-func (m *mockModel) ModelType() string              { return "mock" }
-func (m *mockModel) Info() inference.ModelInfo       { return inference.ModelInfo{} }
+func (m *mockModel) ModelType() string                  { return "mock" }
+func (m *mockModel) Info() inference.ModelInfo          { return inference.ModelInfo{} }
 func (m *mockModel) Metrics() inference.GenerateMetrics { return inference.GenerateMetrics{} }
-func (m *mockModel) Err() error                     { return nil }
-func (m *mockModel) Close() error                   { return nil }
+func (m *mockModel) Err() error                         { return nil }
+func (m *mockModel) Close() error                       { return nil }
 
 func TestClassifyCorpus_Basic(t *testing.T) {
 	model := &mockModel{

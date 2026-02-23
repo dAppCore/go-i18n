@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"fmt"
+	"iter"
 	"strings"
 )
 
@@ -126,6 +127,18 @@ func DefaultHandlers() []KeyHandler {
 		DoneHandler{},
 		FailHandler{},
 		NumericHandler{},
+	}
+}
+
+// DefaultHandlersSeq returns an iterator that yields default handlers.
+func DefaultHandlersSeq() iter.Seq[KeyHandler] {
+	handlers := DefaultHandlers()
+	return func(yield func(KeyHandler) bool) {
+		for _, h := range handlers {
+			if !yield(h) {
+				return
+			}
+		}
 	}
 }
 

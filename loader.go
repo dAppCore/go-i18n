@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"iter"
 	"path"
 	"strings"
 	"sync"
@@ -80,6 +81,18 @@ func (l *FSLoader) Languages() []string {
 		}
 	})
 	return l.languages
+}
+
+// LanguagesSeq returns an iterator that yields available language codes.
+func (l *FSLoader) LanguagesSeq() iter.Seq[string] {
+	langs := l.Languages()
+	return func(yield func(string) bool) {
+		for _, lang := range langs {
+			if !yield(lang) {
+				return
+			}
+		}
+	}
 }
 
 // LanguagesErr returns any error from the directory scan.

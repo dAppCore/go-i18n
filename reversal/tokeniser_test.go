@@ -20,9 +20,9 @@ func TestTokeniser_MatchVerb_Irregular(t *testing.T) {
 	tok := NewTokeniser()
 
 	tests := []struct {
-		word    string
-		wantOK  bool
-		wantBase string
+		word      string
+		wantOK    bool
+		wantBase  string
 		wantTense string
 	}{
 		// Irregular past tense
@@ -554,7 +554,7 @@ func BenchmarkTokenise_Short(b *testing.B) {
 	benchSetup(b)
 	tok := NewTokeniser()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		tok.Tokenise("Delete the file")
 	}
 }
@@ -564,7 +564,7 @@ func BenchmarkTokenise_Medium(b *testing.B) {
 	tok := NewTokeniser()
 	text := "The build failed because the test commit was not pushed to the branch"
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		tok.Tokenise(text)
 	}
 }
@@ -574,7 +574,7 @@ func BenchmarkTokenise_DualClass(b *testing.B) {
 	tok := NewTokeniser()
 	text := "Commit the changes and run the build test"
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		tok.Tokenise(text)
 	}
 }
@@ -584,7 +584,7 @@ func BenchmarkTokenise_WithSignals(b *testing.B) {
 	tok := NewTokeniser(WithSignals())
 	text := "The commit was rebuilt and the test passed"
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		tok.Tokenise(text)
 	}
 }
@@ -594,7 +594,7 @@ func BenchmarkNewImprint(b *testing.B) {
 	tok := NewTokeniser()
 	tokens := tok.Tokenise("Delete the configuration file and rebuild the project")
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		NewImprint(tokens)
 	}
 }
@@ -605,7 +605,7 @@ func BenchmarkImprint_Similar(b *testing.B) {
 	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
 	imp2 := NewImprint(tok.Tokenise("Delete the old file"))
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		imp1.Similar(imp2)
 	}
 }
@@ -614,7 +614,7 @@ func BenchmarkMultiplier_Expand(b *testing.B) {
 	benchSetup(b)
 	m := NewMultiplier()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		m.Expand("Delete the configuration file")
 	}
 }

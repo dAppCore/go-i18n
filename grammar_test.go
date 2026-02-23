@@ -598,7 +598,7 @@ func BenchmarkPastTense_Irregular(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		PastTense("build")
 	}
 }
@@ -607,7 +607,7 @@ func BenchmarkPastTense_Regular(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		PastTense("delete")
 	}
 }
@@ -616,7 +616,7 @@ func BenchmarkPastTense_Compound(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		PastTense("rebuild")
 	}
 }
@@ -625,7 +625,7 @@ func BenchmarkGerund(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		Gerund("commit")
 	}
 }
@@ -634,13 +634,13 @@ func BenchmarkPluralize(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		Pluralize("repository", 5)
 	}
 }
 
 func BenchmarkArticle(b *testing.B) {
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		Article("error")
 	}
 }
@@ -649,7 +649,7 @@ func BenchmarkProgress(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		Progress("build")
 	}
 }
@@ -658,7 +658,7 @@ func BenchmarkActionResult(b *testing.B) {
 	svc, _ := New()
 	SetDefault(svc)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		ActionResult("delete", "config.yaml")
 	}
 }

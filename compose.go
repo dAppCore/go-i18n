@@ -68,12 +68,37 @@ func (s *Subject) String() string {
 	return fmt.Sprint(s.Value)
 }
 
-func (s *Subject) IsPlural() bool  { return s != nil && s.count != 1 }
-func (s *Subject) CountInt() int   { if s == nil { return 1 }; return s.count }
-func (s *Subject) CountString() string { if s == nil { return "1" }; return fmt.Sprint(s.count) }
-func (s *Subject) GenderString() string { if s == nil { return "" }; return s.gender }
-func (s *Subject) LocationString() string { if s == nil { return "" }; return s.location }
-func (s *Subject) NounString() string { if s == nil { return "" }; return s.Noun }
+func (s *Subject) IsPlural() bool { return s != nil && s.count != 1 }
+func (s *Subject) CountInt() int {
+	if s == nil {
+		return 1
+	}
+	return s.count
+}
+func (s *Subject) CountString() string {
+	if s == nil {
+		return "1"
+	}
+	return fmt.Sprint(s.count)
+}
+func (s *Subject) GenderString() string {
+	if s == nil {
+		return ""
+	}
+	return s.gender
+}
+func (s *Subject) LocationString() string {
+	if s == nil {
+		return ""
+	}
+	return s.location
+}
+func (s *Subject) NounString() string {
+	if s == nil {
+		return ""
+	}
+	return s.Noun
+}
 func (s *Subject) FormalityString() string {
 	if s == nil {
 		return FormalityNeutral.String()

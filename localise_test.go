@@ -95,7 +95,7 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 		{"german", "de", false},
 		{"french", "fr", false},
 		{"unknown", "xx", false},
-		{"arabic_variant", "ar-EG-extra", true},  // len > 2 prefix check
+		{"arabic_variant", "ar-EG-extra", true},   // len > 2 prefix check
 		{"english_variant", "en-US-extra", false}, // len > 2, not RTL
 	}
 	for _, tt := range tests {

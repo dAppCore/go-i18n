@@ -17,31 +17,41 @@ func C(context string) *TranslationContext {
 }
 
 func (c *TranslationContext) WithGender(gender string) *TranslationContext {
-	if c == nil { return nil }
+	if c == nil {
+		return nil
+	}
 	c.Gender = gender
 	return c
 }
 
 func (c *TranslationContext) Formal() *TranslationContext {
-	if c == nil { return nil }
+	if c == nil {
+		return nil
+	}
 	c.Formality = FormalityFormal
 	return c
 }
 
 func (c *TranslationContext) Informal() *TranslationContext {
-	if c == nil { return nil }
+	if c == nil {
+		return nil
+	}
 	c.Formality = FormalityInformal
 	return c
 }
 
 func (c *TranslationContext) WithFormality(f Formality) *TranslationContext {
-	if c == nil { return nil }
+	if c == nil {
+		return nil
+	}
 	c.Formality = f
 	return c
 }
 
 func (c *TranslationContext) Set(key string, value any) *TranslationContext {
-	if c == nil { return nil }
+	if c == nil {
+		return nil
+	}
 	if c.Extra == nil {
 		c.Extra = make(map[string]any)
 	}
@@ -50,21 +60,29 @@ func (c *TranslationContext) Set(key string, value any) *TranslationContext {
 }
 
 func (c *TranslationContext) Get(key string) any {
-	if c == nil || c.Extra == nil { return nil }
+	if c == nil || c.Extra == nil {
+		return nil
+	}
 	return c.Extra[key]
 }
 
 func (c *TranslationContext) ContextString() string {
-	if c == nil { return "" }
+	if c == nil {
+		return ""
+	}
 	return c.Context
 }
 
 func (c *TranslationContext) GenderString() string {
-	if c == nil { return "" }
+	if c == nil {
+		return ""
+	}
 	return c.Gender
 }
 
 func (c *TranslationContext) FormalityValue() Formality {
-	if c == nil { return FormalityNeutral }
+	if c == nil {
+		return FormalityNeutral
+	}
 	return c.Formality
 }

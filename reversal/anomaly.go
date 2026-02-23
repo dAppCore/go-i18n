@@ -1,20 +1,22 @@
 package reversal
 
+import "iter"
+
 // AnomalyResult flags a potential domain mismatch between model classification
 // and imprint-based classification.
 type AnomalyResult struct {
 	Text          string  `json:"text"`
 	ModelDomain   string  `json:"model_domain"`   // domain from 1B model
 	ImprintDomain string  `json:"imprint_domain"` // domain from imprint comparison
-	Confidence    float64 `json:"confidence"`      // imprint classification margin
-	IsAnomaly     bool    `json:"is_anomaly"`      // true when domains disagree
+	Confidence    float64 `json:"confidence"`     // imprint classification margin
+	IsAnomaly     bool    `json:"is_anomaly"`     // true when domains disagree
 }
 
 // AnomalyStats holds aggregate anomaly detection metrics.
 type AnomalyStats struct {
 	Total     int            `json:"total"`
 	Anomalies int            `json:"anomalies"`
-	Rate      float64        `json:"rate"` // anomalies / total
+	Rate      float64        `json:"rate"`    // anomalies / total
 	ByPair    map[string]int `json:"by_pair"` // "model->imprint": count
 }
 
@@ -57,4 +59,16 @@ func (rs *ReferenceSet) DetectAnomalies(tokeniser *Tokeniser, samples []Classifi
 	}
 
 	return results, stats
+}
+
+// DetectAnomaliesSeq returns an iterator that yields AnomalyResult per sample.
+func (rs *ReferenceSet) DetectAnomaliesSeq(tokeniser *Tokeniser, samples []ClassifiedText) iter.Seq[AnomalyResult] {
+	results, _ := rs.DetectAnomalies(tokeniser, samples)
+	return func(yield func(AnomalyResult) bool) {
+		for _, res := range results {
+			if !yield(res) {
+				return
+			}
+		}
+	}
 }

@@ -2,7 +2,10 @@ package reversal
 
 import (
 	"fmt"
+	"iter"
+	"maps"
 	"math"
+	"slices"
 	"sort"
 )
 
@@ -121,12 +124,18 @@ func (rs *ReferenceSet) Classify(imprint GrammarImprint) ImprintClassification {
 
 // DomainNames returns sorted domain names in the reference set.
 func (rs *ReferenceSet) DomainNames() []string {
-	names := make([]string, 0, len(rs.Domains))
-	for d := range rs.Domains {
-		names = append(names, d)
+	return slices.Sorted(maps.Keys(rs.Domains))
+}
+
+// DomainNamesSeq returns an iterator that yields sorted domain names.
+func (rs *ReferenceSet) DomainNamesSeq() iter.Seq[string] {
+	return func(yield func(string) bool) {
+		for _, name := range rs.DomainNames() {
+			if !yield(name) {
+				return
+			}
+		}
 	}
-	sort.Strings(names)
-	return names
 }
 
 // computeCentroid averages imprints into a single centroid.

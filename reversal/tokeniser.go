@@ -16,6 +16,7 @@
 package reversal
 
 import (
+	"iter"
 	"strings"
 
 	i18n "forge.lthn.ai/core/go-i18n"
@@ -49,17 +50,17 @@ const (
 
 // Token represents a single classified token from a text string.
 type Token struct {
-	Raw        string          // Original text as it appeared in input
-	Lower      string          // Lowercased form
-	Type       TokenType       // Classification
-	Confidence float64         // 0.0-1.0 classification confidence
-	AltType    TokenType       // Runner-up classification (dual-class only)
-	AltConf    float64         // Runner-up confidence
-	VerbInfo   VerbMatch       // Set when Type OR AltType == TokenVerb
-	NounInfo   NounMatch       // Set when Type OR AltType == TokenNoun
-	WordCat    string          // Set when Type == TokenWord
-	ArtType    string          // Set when Type == TokenArticle
-	PunctType  string          // Set when Type == TokenPunctuation
+	Raw        string           // Original text as it appeared in input
+	Lower      string           // Lowercased form
+	Type       TokenType        // Classification
+	Confidence float64          // 0.0-1.0 classification confidence
+	AltType    TokenType        // Runner-up classification (dual-class only)
+	AltConf    float64          // Runner-up confidence
+	VerbInfo   VerbMatch        // Set when Type OR AltType == TokenVerb
+	NounInfo   NounMatch        // Set when Type OR AltType == TokenNoun
+	WordCat    string           // Set when Type == TokenWord
+	ArtType    string           // Set when Type == TokenArticle
+	PunctType  string           // Set when Type == TokenPunctuation
 	Signals    *SignalBreakdown // Non-nil only when WithSignals() option is set
 }
 
@@ -618,11 +619,10 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		return nil
 	}
 
-	parts := strings.Fields(text)
 	var tokens []Token
 
 	// --- Pass 1: Classify & Mark ---
-	for _, raw := range parts {
+	for raw := range strings.FieldsSeq(text) {
 		// Strip trailing punctuation to get the clean word.
 		word, punct := splitTrailingPunct(raw)
 
@@ -699,10 +699,23 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	return tokens
 }
 
+// TokeniseSeq returns an iterator that yields tokens from the given text.
+// It performs full two-pass classification before yielding results.
+func (t *Tokeniser) TokeniseSeq(text string) iter.Seq[Token] {
+	tokens := t.Tokenise(text)
+	return func(yield func(Token) bool) {
+		for _, tok := range tokens {
+			if !yield(tok) {
+				return
+			}
+		}
+	}
+}
+
 // resolveAmbiguous iterates all tokens and resolves any marked as
 // tokenAmbiguous using the weighted scoring function.
 func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
-	for i := range tokens {
+	for i := range len(tokens) {
 		if tokens[i].Type != tokenAmbiguous {
 			continue
 		}

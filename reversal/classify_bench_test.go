@@ -551,7 +551,7 @@ func TestClassification_TopVerbs(t *testing.T) {
 
 		top := min(len(sorted), 8)
 		var verbs strings.Builder
-		for i := 0; i < top; i++ {
+		for i := range top {
 			if i > 0 {
 				verbs.WriteString(", ")
 			}
@@ -567,7 +567,7 @@ func BenchmarkClassification_Tokenise(b *testing.B) {
 	benchSetup(b)
 	tok := NewTokeniser()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for _, s := range classificationCorpus {
 			tok.Tokenise(s.Text)
 		}
@@ -578,7 +578,7 @@ func BenchmarkClassification_ImprintAll(b *testing.B) {
 	benchSetup(b)
 	tok := NewTokeniser()
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		imprintCorpus(tok)
 	}
 }
@@ -589,7 +589,7 @@ func BenchmarkClassification_FullPipeline(b *testing.B) {
 	groups := corpusByDomain()
 	imprints := imprintCorpus(tok)
 	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		for idx := range classificationCorpus {
 			classifyLeaveOneOut(idx, imprints, groups)
 		}

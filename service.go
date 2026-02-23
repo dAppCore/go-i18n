@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
+	"iter"
 	"maps"
 	"path"
 	"slices"
@@ -202,10 +203,22 @@ func (s *Service) AvailableLanguages() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	langs := make([]string, len(s.availableLangs))
-	for i, tag := range s.availableLangs {
-		langs[i] = tag.String()
+	for i := range len(s.availableLangs) {
+		langs[i] = s.availableLangs[i].String()
 	}
 	return langs
+}
+
+// AvailableLanguagesSeq returns an iterator that yields available language codes.
+func (s *Service) AvailableLanguagesSeq() iter.Seq[string] {
+	langs := s.AvailableLanguages()
+	return func(yield func(string) bool) {
+		for _, lang := range langs {
+			if !yield(lang) {
+				return
+			}
+		}
+	}
 }
 
 func (s *Service) SetMode(m Mode)           { s.mu.Lock(); s.mode = m; s.mu.Unlock() }
@@ -254,6 +267,18 @@ func (s *Service) Handlers() []KeyHandler {
 	result := make([]KeyHandler, len(s.handlers))
 	copy(result, s.handlers)
 	return result
+}
+
+// HandlersSeq returns an iterator that yields key handlers.
+func (s *Service) HandlersSeq() iter.Seq[KeyHandler] {
+	handlers := s.Handlers()
+	return func(yield func(KeyHandler) bool) {
+		for _, h := range handlers {
+			if !yield(h) {
+				return
+			}
+		}
+	}
 }
 
 // T translates a message by its ID with handler chain support.

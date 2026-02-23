@@ -52,7 +52,7 @@ type TextDirection int
 
 const (
 	DirLTR TextDirection = iota // Left-to-right
-	DirRTL                     // Right-to-left
+	DirRTL                      // Right-to-left
 )
 
 // PluralCategory represents CLDR plural categories.
@@ -385,7 +385,7 @@ var irregularVerbs = map[string]VerbForms{
 	"rebel": {Past: "rebelled", Gerund: "rebelling"}, "excel": {Past: "excelled", Gerund: "excelling"},
 	"cancel": {Past: "cancelled", Gerund: "cancelling"}, "travel": {Past: "travelled", Gerund: "travelling"},
 	"label": {Past: "labelled", Gerund: "labelling"}, "model": {Past: "modelled", Gerund: "modelling"},
-	"level": {Past: "levelled", Gerund: "levelling"},
+	"level":       {Past: "levelled", Gerund: "levelling"},
 	"format":      {Past: "formatted", Gerund: "formatting"},
 	"analyse":     {Past: "analysed", Gerund: "analysing"},
 	"organise":    {Past: "organised", Gerund: "organising"},

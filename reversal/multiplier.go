@@ -1,6 +1,7 @@
 package reversal
 
 import (
+	"iter"
 	"strings"
 	"unicode"
 
@@ -105,6 +106,18 @@ func (m *Multiplier) Expand(text string) []string {
 	}
 
 	return results
+}
+
+// ExpandSeq returns an iterator that yields deterministic grammatical variants of text.
+func (m *Multiplier) ExpandSeq(text string) iter.Seq[string] {
+	results := m.Expand(text)
+	return func(yield func(string) bool) {
+		for _, res := range results {
+			if !yield(res) {
+				return
+			}
+		}
+	}
 }
 
 // applyVerbTransform returns a copy of tokens with the verb at index vi
