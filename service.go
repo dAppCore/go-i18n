@@ -3,6 +3,7 @@ package i18n
 import (
 	"embed"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io/fs"
 	"maps"
@@ -97,7 +98,7 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 
 	langs := loader.Languages()
 	if len(langs) == 0 {
-		return nil, fmt.Errorf("no languages available from loader")
+		return nil, errors.New("no languages available from loader")
 	}
 
 	for _, lang := range langs {
@@ -181,7 +182,7 @@ func (s *Service) SetLanguage(lang string) error {
 		return fmt.Errorf("invalid language tag %q: %w", lang, err)
 	}
 	if len(s.availableLangs) == 0 {
-		return fmt.Errorf("no languages available")
+		return errors.New("no languages available")
 	}
 	matcher := language.NewMatcher(s.availableLangs)
 	bestMatch, _, confidence := matcher.Match(requestedLang)
