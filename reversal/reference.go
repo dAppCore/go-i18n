@@ -2,9 +2,9 @@ package reversal
 
 import (
 	"errors"
+	"maps"
 	"math"
 	"slices"
-	"sort"
 )
 
 // ClassifiedText is a text sample with a domain label (from 1B model or ground truth).
@@ -130,12 +130,7 @@ func (rs *ReferenceSet) Classify(imprint GrammarImprint) ImprintClassification {
 
 // DomainNames returns sorted domain names in the reference set.
 func (rs *ReferenceSet) DomainNames() []string {
-	names := make([]string, 0, len(rs.Domains))
-	for d := range rs.Domains {
-		names = append(names, d)
-	}
-	sort.Strings(names)
-	return names
+	return slices.Sorted(maps.Keys(rs.Domains))
 }
 
 // computeCentroid averages imprints into a single centroid.
