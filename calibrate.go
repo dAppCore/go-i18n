@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -48,7 +49,7 @@ func CalibrateDomains(ctx context.Context, modelA, modelB inference.TextModel,
 	samples []CalibrationSample, opts ...ClassifyOption) (*CalibrationStats, error) {
 
 	if len(samples) == 0 {
-		return nil, fmt.Errorf("calibrate: empty sample set")
+		return nil, errors.New("calibrate: empty sample set")
 	}
 
 	cfg := defaultClassifyConfig()

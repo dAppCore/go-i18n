@@ -1,7 +1,7 @@
 package reversal
 
 import (
-	"fmt"
+	"errors"
 	"math"
 	"sort"
 )
@@ -45,7 +45,7 @@ type ImprintClassification struct {
 // per unique domain label.
 func BuildReferences(tokeniser *Tokeniser, samples []ClassifiedText) (*ReferenceSet, error) {
 	if len(samples) == 0 {
-		return nil, fmt.Errorf("empty sample set")
+		return nil, errors.New("empty sample set")
 	}
 
 	// Group imprints by domain.
@@ -60,7 +60,7 @@ func BuildReferences(tokeniser *Tokeniser, samples []ClassifiedText) (*Reference
 	}
 
 	if len(grouped) == 0 {
-		return nil, fmt.Errorf("no samples with domain labels")
+		return nil, errors.New("no samples with domain labels")
 	}
 
 	rs := &ReferenceSet{Domains: make(map[string]*ReferenceDistribution)}
