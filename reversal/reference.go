@@ -3,6 +3,7 @@ package reversal
 import (
 	"errors"
 	"math"
+	"slices"
 	"sort"
 )
 
@@ -105,7 +106,15 @@ func (rs *ReferenceSet) Classify(imprint GrammarImprint) ImprintClassification {
 	for d, m := range distances {
 		ranked = append(ranked, scored{d, m.CosineSimilarity})
 	}
-	sort.Slice(ranked, func(i, j int) bool { return ranked[i].sim > ranked[j].sim })
+	slices.SortFunc(ranked, func(a, b scored) int {
+		if a.sim > b.sim {
+			return -1
+		}
+		if a.sim < b.sim {
+			return 1
+		}
+		return 0
+	})
 
 	result := ImprintClassification{Distances: distances}
 	if len(ranked) > 0 {
