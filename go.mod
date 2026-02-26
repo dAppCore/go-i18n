@@ -4,7 +4,7 @@ go 1.26.0
 
 require golang.org/x/text v0.34.0
 
-require forge.lthn.ai/core/go-inference v0.0.2
+require forge.lthn.ai/core/go-inference v0.1.0
 
 require github.com/kr/text v0.2.0 // indirect
 
