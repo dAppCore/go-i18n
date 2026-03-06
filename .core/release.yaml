@@ -1,0 +1,20 @@
+version: 1
+
+project:
+  name: go-i18n
+  repository: core/go-i18n
+
+publishers: []
+
+changelog:
+  include:
+    - feat
+    - fix
+    - perf
+    - refactor
+  exclude:
+    - chore
+    - docs
+    - style
+    - test
+    - ci
