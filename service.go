@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io/fs"
+	"log"
 	"maps"
 	"path"
 	"slices"
@@ -98,6 +99,12 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 
 	langs := loader.Languages()
 	if len(langs) == 0 {
+		// Check if the loader exposes a scan error (e.g. FSLoader).
+		if el, ok := loader.(interface{ LanguagesErr() error }); ok {
+			if langErr := el.LanguagesErr(); langErr != nil {
+				return nil, fmt.Errorf("no languages available: %w", langErr)
+			}
+		}
 		return nil, errors.New("no languages available from loader")
 	}
 
@@ -137,16 +144,17 @@ func Init() error {
 }
 
 // Default returns the global i18n service, initialising if needed.
+// Returns nil if initialisation fails (error is logged).
 func Default() *Service {
-	_ = Init()
+	if err := Init(); err != nil {
+		log.Printf("i18n: failed to initialise default service: %v", err)
+	}
 	return defaultService.Load()
 }
 
 // SetDefault sets the global i18n service.
+// Passing nil clears the default service.
 func SetDefault(s *Service) {
-	if s == nil {
-		panic("i18n: SetDefault called with nil service")
-	}
 	defaultService.Store(s)
 }
 

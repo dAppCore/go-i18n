@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"io/fs"
+	"log"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -35,7 +36,9 @@ func RegisterLocales(fsys fs.FS, dir string) {
 	registeredLocales = append(registeredLocales, localeRegistration{fsys: fsys, dir: dir})
 	if localesLoaded {
 		if svc := Default(); svc != nil {
-			_ = svc.LoadFS(fsys, dir)
+			if err := svc.LoadFS(fsys, dir); err != nil {
+				log.Printf("i18n: RegisterLocales failed to load %q: %v", dir, err)
+			}
 		}
 	}
 }
@@ -44,7 +47,9 @@ func loadRegisteredLocales(svc *Service) {
 	registeredLocalesMu.Lock()
 	defer registeredLocalesMu.Unlock()
 	for _, reg := range registeredLocales {
-		_ = svc.LoadFS(reg.fsys, reg.dir)
+		if err := svc.LoadFS(reg.fsys, reg.dir); err != nil {
+			log.Printf("i18n: loadRegisteredLocales failed to load %q: %v", reg.dir, err)
+		}
 	}
 	localesLoaded = true
 }
