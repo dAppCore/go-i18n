@@ -252,8 +252,12 @@ func TestApplyTemplate_Bad_ExecuteError(t *testing.T) {
 	assert.Equal(t, "{{.Missing}}", got)
 }
 
-// --- ErrServiceNotInitialized ---
+// --- ErrServiceNotInitialised ---
 
-func TestErrServiceNotInitialized_Good(t *testing.T) {
-	assert.Equal(t, "i18n: service not initialized", ErrServiceNotInitialized.Error())
+func TestErrServiceNotInitialised_Good(t *testing.T) {
+	assert.Equal(t, "i18n: service not initialised", ErrServiceNotInitialised.Error())
+}
+
+func TestErrServiceNotInitialized_DeprecatedAlias(t *testing.T) {
+	assert.Equal(t, ErrServiceNotInitialised, ErrServiceNotInitialized, "deprecated alias must point to the same error")
 }

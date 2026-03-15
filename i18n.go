@@ -23,14 +23,17 @@ func Raw(messageID string, args ...any) string {
 	return messageID
 }
 
-// ErrServiceNotInitialized is returned when the service is not initialised.
-var ErrServiceNotInitialized = errors.New("i18n: service not initialized")
+// ErrServiceNotInitialised is returned when the service is not initialised.
+var ErrServiceNotInitialised = errors.New("i18n: service not initialised")
+
+// ErrServiceNotInitialized is deprecated: use ErrServiceNotInitialised.
+var ErrServiceNotInitialized = ErrServiceNotInitialised
 
 // SetLanguage sets the language for the default service.
 func SetLanguage(lang string) error {
 	svc := Default()
 	if svc == nil {
-		return ErrServiceNotInitialized
+		return ErrServiceNotInitialised
 	}
 	return svc.SetLanguage(lang)
 }
