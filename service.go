@@ -139,7 +139,9 @@ func Init() error {
 		}
 		svc, err := New()
 		if err == nil {
-			defaultService.Store(svc)
+			// CAS prevents overwriting a concurrent SetDefault call that
+			// raced between the Load check above and this store.
+			defaultService.CompareAndSwap(nil, svc)
 		}
 		defaultErr = err
 	})
@@ -170,6 +172,10 @@ func SetDefault(s *Service) {
 //	//go:embed *.json
 //	var localeFS embed.FS
 //	func init() { i18n.AddLoader(i18n.NewFSLoader(localeFS, ".")) }
+//
+// Note: When using the Core framework, NewCoreService creates a fresh Service
+// and calls SetDefault, so init-time AddLoader calls are superseded. In that
+// context, packages should implement LocaleProvider instead.
 func AddLoader(loader Loader) {
 	svc := Default()
 	if svc == nil {
@@ -196,7 +202,7 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 		s.messages[lang] = messages
 	}
 	if len(grammarData.Verbs) > 0 || len(grammarData.Nouns) > 0 || len(grammarData.Words) > 0 {
-		SetGrammarData(lang, grammarData)
+		MergeGrammarData(lang, grammarData)
 	}
 	return nil
 }
@@ -476,9 +482,10 @@ func (s *Service) AddLoader(loader Loader) error {
 			s.messages[lang][k] = v
 		}
 
-		// Merge grammar data into the global grammar store
+		// Merge grammar data into the global grammar store (merge, not replace,
+		// so that multiple loaders contribute entries for the same language).
 		if grammar != nil && (len(grammar.Verbs) > 0 || len(grammar.Nouns) > 0 || len(grammar.Words) > 0) {
-			SetGrammarData(lang, grammar)
+			MergeGrammarData(lang, grammar)
 		}
 
 		tag := language.Make(lang)

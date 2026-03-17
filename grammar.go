@@ -14,11 +14,26 @@ func GetGrammarData(lang string) *GrammarData {
 	return grammarCache[lang]
 }
 
-// SetGrammarData sets the grammar data for a language.
+// SetGrammarData sets the grammar data for a language, replacing any existing data.
 func SetGrammarData(lang string, data *GrammarData) {
 	grammarCacheMu.Lock()
 	defer grammarCacheMu.Unlock()
 	grammarCache[lang] = data
+}
+
+// MergeGrammarData merges grammar data into the existing data for a language.
+// New entries are added; existing entries are overwritten per-key.
+func MergeGrammarData(lang string, data *GrammarData) {
+	grammarCacheMu.Lock()
+	defer grammarCacheMu.Unlock()
+	existing := grammarCache[lang]
+	if existing == nil {
+		grammarCache[lang] = data
+		return
+	}
+	maps.Copy(existing.Verbs, data.Verbs)
+	maps.Copy(existing.Nouns, data.Nouns)
+	maps.Copy(existing.Words, data.Words)
 }
 
 // IrregularVerbs returns a copy of the irregular verb forms map.

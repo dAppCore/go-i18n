@@ -4,6 +4,7 @@ package i18n
 
 import (
 	"context"
+	"fmt"
 	"io/fs"
 	"sync"
 
@@ -65,7 +66,9 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 		}
 
 		if opts.Language != "" {
-			_ = svc.SetLanguage(opts.Language)
+			if langErr := svc.SetLanguage(opts.Language); langErr != nil {
+				return nil, fmt.Errorf("i18n: invalid language %q: %w", opts.Language, langErr)
+			}
 		}
 
 		svc.SetMode(opts.Mode)
