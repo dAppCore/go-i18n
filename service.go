@@ -158,6 +158,20 @@ func SetDefault(s *Service) {
 	defaultService.Store(s)
 }
 
+// LoadFS loads additional translations from an fs.FS into the default service.
+// Call this from init() in packages that ship their own locale files.
+//
+//	//go:embed locales/*.json
+//	var localeFS embed.FS
+//	func init() { i18n.LoadFS(localeFS, "locales") }
+func LoadFS(fsys fs.FS, dir string) {
+	svc := Default()
+	if svc == nil {
+		return
+	}
+	_ = svc.LoadFS(fsys, dir)
+}
+
 func (s *Service) loadJSON(lang string, data []byte) error {
 	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
