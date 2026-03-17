@@ -1,10 +1,11 @@
 package reversal
 
 import (
-	"errors"
 	"maps"
 	"math"
 	"slices"
+
+	log "forge.lthn.ai/core/go-log"
 )
 
 // ClassifiedText is a text sample with a domain label (from 1B model or ground truth).
@@ -46,7 +47,7 @@ type ImprintClassification struct {
 // per unique domain label.
 func BuildReferences(tokeniser *Tokeniser, samples []ClassifiedText) (*ReferenceSet, error) {
 	if len(samples) == 0 {
-		return nil, errors.New("empty sample set")
+		return nil, log.E("BuildReferences", "empty sample set", nil)
 	}
 
 	// Group imprints by domain.
@@ -61,7 +62,7 @@ func BuildReferences(tokeniser *Tokeniser, samples []ClassifiedText) (*Reference
 	}
 
 	if len(grouped) == 0 {
-		return nil, errors.New("no samples with domain labels")
+		return nil, log.E("BuildReferences", "no samples with domain labels", nil)
 	}
 
 	rs := &ReferenceSet{Domains: make(map[string]*ReferenceDistribution)}

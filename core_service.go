@@ -41,7 +41,6 @@ type FSSource struct {
 // Automatically loads locale filesystems from:
 // 1. Embedded go-i18n base translations (grammar, verbs, nouns)
 // 2. ExtraFS sources passed via ServiceOptions
-// 3. Locales collected from Core services implementing LocaleProvider
 func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 	return func(c *core.Core) (any, error) {
 		svc, err := New()
@@ -49,14 +48,7 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 			return nil, err
 		}
 
-		// Load additional translation sources from options + Core services
-		var allSources []FSSource
-		allSources = append(allSources, opts.ExtraFS...)
-		for _, lfs := range c.Locales() {
-			allSources = append(allSources, FSSource{FS: lfs, Dir: "."})
-		}
-
-		for _, src := range allSources {
+		for _, src := range opts.ExtraFS {
 			loader := NewFSLoader(src.FS, src.Dir)
 			if addErr := svc.AddLoader(loader); addErr != nil {
 				// Non-fatal — skip sources that fail (e.g. missing language files)

@@ -290,6 +290,116 @@ func TestNewWithFS(t *testing.T) {
 	}
 }
 
+func TestServiceAddLoader_Good(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	extra := fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{"extra.key": "extra value"}`),
+		},
+	}
+	if err := svc.AddLoader(NewFSLoader(extra, ".")); err != nil {
+		t.Fatalf("AddLoader() failed: %v", err)
+	}
+
+	got := svc.T("extra.key")
+	if got != "extra value" {
+		t.Errorf("T(extra.key) = %q, want 'extra value'", got)
+	}
+}
+
+func TestServiceAddLoader_Bad(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Loader with a valid dir listing but broken JSON
+	broken := fstest.MapFS{
+		"broken.json": &fstest.MapFile{
+			Data: []byte(`{invalid json}`),
+		},
+	}
+	if err := svc.AddLoader(NewFSLoader(broken, ".")); err == nil {
+		t.Error("AddLoader() should fail with invalid JSON")
+	}
+}
+
+func TestPackageLevelAddLoader(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	extra := fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{"pkg.hello": "from package"}`),
+		},
+	}
+	AddLoader(NewFSLoader(extra, "."))
+
+	got := T("pkg.hello")
+	if got != "from package" {
+		t.Errorf("T(pkg.hello) = %q, want 'from package'", got)
+	}
+}
+
+func TestServiceLoadFS_Good(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	extra := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"loaded": "yes"}`),
+		},
+	}
+	if err := svc.LoadFS(extra, "locales"); err != nil {
+		t.Fatalf("LoadFS() failed: %v", err)
+	}
+
+	got := svc.T("loaded")
+	if got != "yes" {
+		t.Errorf("T(loaded) = %q, want 'yes'", got)
+	}
+}
+
+func TestServiceLoadFS_Bad(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	empty := fstest.MapFS{}
+	if err := svc.LoadFS(empty, "nonexistent"); err == nil {
+		t.Error("LoadFS() should fail with bad directory")
+	}
+}
+
+func TestNewWithLoaderNoLanguages(t *testing.T) {
+	empty := fstest.MapFS{}
+	_, err := NewWithFS(empty, "empty")
+	if err == nil {
+		t.Error("NewWithFS with empty dir should fail")
+	}
+}
+
+func TestServiceIsRTL(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if svc.IsRTL() {
+		t.Error("IsRTL() should be false for English")
+	}
+}
+
 func TestServicePluralCategory(t *testing.T) {
 	svc, err := New()
 	if err != nil {

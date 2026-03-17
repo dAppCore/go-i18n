@@ -2,11 +2,11 @@ package i18n
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"time"
 
 	"forge.lthn.ai/core/go-inference"
+	log "forge.lthn.ai/core/go-log"
 )
 
 // CalibrationSample is a single text entry for model comparison.
@@ -49,7 +49,7 @@ func CalibrateDomains(ctx context.Context, modelA, modelB inference.TextModel,
 	samples []CalibrationSample, opts ...ClassifyOption) (*CalibrationStats, error) {
 
 	if len(samples) == 0 {
-		return nil, errors.New("calibrate: empty sample set")
+		return nil, log.E("CalibrateDomains", "empty sample set", nil)
 	}
 
 	cfg := defaultClassifyConfig()
@@ -72,14 +72,14 @@ func CalibrateDomains(ctx context.Context, modelA, modelB inference.TextModel,
 	// Classify with model A.
 	domainsA, durA, err := classifyAll(ctx, modelA, prompts, cfg.batchSize)
 	if err != nil {
-		return nil, fmt.Errorf("model A: %w", err)
+		return nil, log.E("CalibrateDomains", "classify with model A", err)
 	}
 	stats.DurationA = durA
 
 	// Classify with model B.
 	domainsB, durB, err := classifyAll(ctx, modelB, prompts, cfg.batchSize)
 	if err != nil {
-		return nil, fmt.Errorf("model B: %w", err)
+		return nil, log.E("CalibrateDomains", "classify with model B", err)
 	}
 	stats.DurationB = durB
 
@@ -140,7 +140,7 @@ func classifyAll(ctx context.Context, model inference.TextModel, prompts []strin
 
 		results, err := model.Classify(ctx, batch, inference.WithMaxTokens(1))
 		if err != nil {
-			return nil, 0, fmt.Errorf("classify batch [%d:%d]: %w", i, end, err)
+			return nil, 0, log.E("classifyAll", fmt.Sprintf("classify batch [%d:%d]", i, end), err)
 		}
 
 		for j, r := range results {

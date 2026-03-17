@@ -7,6 +7,7 @@ require golang.org/x/text v0.35.0
 require (
 	forge.lthn.ai/core/go v0.3.1
 	forge.lthn.ai/core/go-inference v0.1.4
+	forge.lthn.ai/core/go-log v0.0.4
 )
 
 require github.com/kr/text v0.2.0 // indirect
