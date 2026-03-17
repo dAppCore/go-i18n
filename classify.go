@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"forge.lthn.ai/core/go-inference"
+	corelog "forge.lthn.ai/core/go-log"
 )
 
 // ClassifyStats reports metrics from a ClassifyCorpus run.
@@ -110,7 +111,7 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 		}
 		results, err := model.Classify(ctx, prompts, inference.WithMaxTokens(1))
 		if err != nil {
-			return fmt.Errorf("classify batch: %w", err)
+			return corelog.E("i18n.ClassifyCorpus", "classify batch", err)
 		}
 		for i, r := range results {
 			domain := mapTokenToDomain(r.Token.Text)
@@ -120,10 +121,10 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 
 			line, err := json.Marshal(batch[i].record)
 			if err != nil {
-				return fmt.Errorf("marshal output: %w", err)
+				return corelog.E("i18n.ClassifyCorpus", "marshal output", err)
 			}
 			if _, err := fmt.Fprintf(output, "%s\n", line); err != nil {
-				return fmt.Errorf("write output: %w", err)
+				return corelog.E("i18n.ClassifyCorpus", "write output", err)
 			}
 		}
 		batch = batch[:0]
@@ -156,7 +157,7 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 	}
 
 	if err := scanner.Err(); err != nil {
-		return stats, fmt.Errorf("read input: %w", err)
+		return stats, corelog.E("i18n.ClassifyCorpus", "read input", err)
 	}
 	if err := flush(); err != nil {
 		return stats, err

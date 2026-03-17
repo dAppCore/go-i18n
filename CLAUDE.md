@@ -10,7 +10,20 @@ This is a **grammar engine** — it provides primitives for composing and revers
 
 ## Commands
 
+Build configuration lives in `.core/build.yaml`.
+
 ```bash
+# Preferred (core CLI)
+core go test                         # Run all tests
+core go cov                          # Generate test coverage
+core go cov --open                   # Opens coverage HTML report
+core go fmt                          # Format code
+core go lint                         # Lint
+core go vet                          # Static analysis
+core go qa                           # fmt + vet + lint + test
+core go qa full                      # + race, vuln, security
+
+# Standard Go (also works)
 go test ./...                        # Run all tests
 go test -v ./reversal/               # Reversal engine tests
 go test -run TestPastTense ./...     # Run a single test by name
@@ -91,3 +104,5 @@ Non-English languages must provide comprehensive JSON tables since tiers 2 and 3
 - `go test ./...` must pass before commit
 - Conventional commits: `type(scope): description`
 - Co-Author: `Co-Authored-By: Virgil <virgil@lethean.io>`
+- **Error handling**: Use `log.E(op, msg, err)` from `forge.lthn.ai/core/go-log`, never `fmt.Errorf`
+- **File I/O**: Use `go-io` abstractions, not `os.ReadFile`/`os.WriteFile`

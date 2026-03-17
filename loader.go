@@ -7,6 +7,8 @@ import (
 	"path"
 	"strings"
 	"sync"
+
+	corelog "forge.lthn.ai/core/go-log"
 )
 
 // FSLoader loads translations from a filesystem (embedded or disk).
@@ -42,12 +44,12 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 		}
 	}
 	if err != nil {
-		return nil, nil, fmt.Errorf("locale %q not found: %w", lang, err)
+		return nil, nil, corelog.E("i18n.Loader.Load", fmt.Sprintf("locale %q not found", lang), err)
 	}
 
 	var raw map[string]any
 	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, nil, fmt.Errorf("invalid JSON in locale %q: %w", lang, err)
+		return nil, nil, corelog.E("i18n.Loader.Load", fmt.Sprintf("invalid JSON in locale %q", lang), err)
 	}
 
 	messages := make(map[string]Message)
@@ -67,7 +69,7 @@ func (l *FSLoader) Languages() []string {
 	l.langOnce.Do(func() {
 		entries, err := fs.ReadDir(l.fsys, l.dir)
 		if err != nil {
-			l.langErr = fmt.Errorf("failed to read locale directory %q: %w", l.dir, err)
+			l.langErr = corelog.E("i18n.Loader.Languages", fmt.Sprintf("failed to read locale directory %q", l.dir), err)
 			return
 		}
 		for _, entry := range entries {

@@ -9,7 +9,10 @@ require (
 	forge.lthn.ai/core/go-inference v0.1.4
 )
 
-require github.com/kr/text v0.2.0 // indirect
+require (
+	forge.lthn.ai/core/go-log v0.0.1 // indirect
+	github.com/kr/text v0.2.0 // indirect
+)
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
@@ -17,3 +20,5 @@ require (
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace forge.lthn.ai/core/go => ../../../..

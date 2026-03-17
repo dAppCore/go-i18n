@@ -1,8 +1,11 @@
 package i18n
 
 import (
+	"errors"
 	"testing"
 	"testing/fstest"
+
+	corelog "forge.lthn.ai/core/go-log"
 )
 
 func TestNewService(t *testing.T) {
@@ -301,5 +304,135 @@ func TestServicePluralCategory(t *testing.T) {
 	}
 	if svc.PluralCategory(5) != PluralOther {
 		t.Errorf("PluralCategory(5) = %v, want PluralOther", svc.PluralCategory(5))
+	}
+}
+
+func TestServiceAddLoader_Good(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	extra := fstest.MapFS{
+		"extra/en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"custom.added": "from extra loader",
+				"gram": {
+					"verb": {
+						"yeet": {"past": "yeeted", "gerund": "yeeting"}
+					}
+				}
+			}`),
+		},
+	}
+	loader := NewFSLoader(extra, "extra")
+	if err := svc.AddLoader(loader); err != nil {
+		t.Fatalf("AddLoader() failed: %v", err)
+	}
+
+	got := svc.T("custom.added")
+	if got != "from extra loader" {
+		t.Errorf("T(custom.added) = %q, want 'from extra loader'", got)
+	}
+
+	// Grammar data should be merged
+	gd := GetGrammarData("en")
+	if gd == nil {
+		t.Fatal("grammar data nil after AddLoader")
+	}
+	if v, ok := gd.Verbs["yeet"]; !ok || v.Past != "yeeted" {
+		t.Errorf("verb 'yeet' not merged, got %+v", gd.Verbs["yeet"])
+	}
+}
+
+func TestServiceAddLoader_Bad(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Loader with invalid JSON
+	bad := fstest.MapFS{
+		"bad/en.json": &fstest.MapFile{
+			Data: []byte(`{invalid json`),
+		},
+	}
+	loader := NewFSLoader(bad, "bad")
+	err = svc.AddLoader(loader)
+	if err == nil {
+		t.Fatal("AddLoader() should fail with invalid JSON")
+	}
+
+	// Verify the error is a corelog.Err with correct Op
+	var logErr *corelog.Err
+	if !errors.As(err, &logErr) {
+		t.Fatalf("expected *corelog.Err, got %T", err)
+	}
+	if logErr.Op != "i18n.Service.AddLoader" {
+		t.Errorf("Op = %q, want 'i18n.Service.AddLoader'", logErr.Op)
+	}
+}
+
+func TestPackageLevelAddLoader_Good(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	extra := fstest.MapFS{
+		"pkg/en.json": &fstest.MapFile{
+			Data: []byte(`{"pkg.key": "pkg value"}`),
+		},
+	}
+	AddLoader(NewFSLoader(extra, "pkg"))
+
+	got := svc.T("pkg.key")
+	if got != "pkg value" {
+		t.Errorf("T(pkg.key) = %q, want 'pkg value'", got)
+	}
+}
+
+func TestWithDefaultHandlers_Good(t *testing.T) {
+	svc, err := New(WithHandlers(), WithDefaultHandlers())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Should have default handlers
+	if len(svc.Handlers()) == 0 {
+		t.Error("WithDefaultHandlers() should add handlers")
+	}
+
+	// Handlers should work
+	got := svc.T("i18n.label.status")
+	if got != "Status:" {
+		t.Errorf("T(i18n.label.status) = %q, want 'Status:'", got)
+	}
+}
+
+func TestServiceSetLanguage_Bad(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	// Invalid language tag
+	err = svc.SetLanguage("!!!invalid!!!")
+	if err == nil {
+		t.Fatal("SetLanguage with invalid tag should fail")
+	}
+	var logErr *corelog.Err
+	if !errors.As(err, &logErr) {
+		t.Fatalf("expected *corelog.Err, got %T", err)
+	}
+	if logErr.Op != "i18n.Service.SetLanguage" {
+		t.Errorf("Op = %q, want 'i18n.Service.SetLanguage'", logErr.Op)
+	}
+
+	// Unsupported language
+	err = svc.SetLanguage("xx")
+	if err == nil {
+		t.Fatal("SetLanguage with unsupported language should fail")
 	}
 }

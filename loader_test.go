@@ -1,9 +1,12 @@
 package i18n
 
 import (
+	"errors"
 	"slices"
 	"testing"
 	"testing/fstest"
+
+	corelog "forge.lthn.ai/core/go-log"
 )
 
 func TestFSLoaderLanguages(t *testing.T) {
@@ -254,5 +257,46 @@ func TestCustomFSLoader(t *testing.T) {
 	}
 	if v, ok := gd.Verbs["zap"]; !ok || v.Past != "zapped" {
 		t.Errorf("verb 'zap' not loaded correctly")
+	}
+}
+
+func TestFSLoaderLanguagesErr_Good(t *testing.T) {
+	// A loader pointing to a non-existent directory should report an error
+	fs := fstest.MapFS{} // empty FS, no "missing/" directory
+	loader := NewFSLoader(fs, "missing")
+	langs := loader.Languages()
+	if len(langs) != 0 {
+		t.Errorf("Languages() = %v, want empty for missing dir", langs)
+	}
+	err := loader.LanguagesErr()
+	if err == nil {
+		t.Fatal("LanguagesErr() should return error for missing directory")
+	}
+	var logErr *corelog.Err
+	if !errors.As(err, &logErr) {
+		t.Fatalf("expected *corelog.Err, got %T", err)
+	}
+	if logErr.Op != "i18n.Loader.Languages" {
+		t.Errorf("Op = %q, want 'i18n.Loader.Languages'", logErr.Op)
+	}
+}
+
+func TestFSLoaderLoad_BadJSON(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{not valid json}`),
+		},
+	}
+	loader := NewFSLoader(fs, "locales")
+	_, _, err := loader.Load("en")
+	if err == nil {
+		t.Fatal("Load() should fail for invalid JSON")
+	}
+	var logErr *corelog.Err
+	if !errors.As(err, &logErr) {
+		t.Fatalf("expected *corelog.Err, got %T", err)
+	}
+	if logErr.Op != "i18n.Loader.Load" {
+		t.Errorf("Op = %q, want 'i18n.Loader.Load'", logErr.Op)
 	}
 }
