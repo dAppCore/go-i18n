@@ -49,19 +49,17 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 			return nil, err
 		}
 
-		// Load additional translation sources from options
-		for _, src := range opts.ExtraFS {
-			if loadErr := svc.LoadFS(src.FS, src.Dir); loadErr != nil {
-				return nil, loadErr
-			}
+		// Load additional translation sources from options + Core services
+		var allSources []FSSource
+		allSources = append(allSources, opts.ExtraFS...)
+		for _, lfs := range c.Locales() {
+			allSources = append(allSources, FSSource{FS: lfs, Dir: "."})
 		}
 
-		// Load locale filesystems collected from Core services
-		// (services that implement core.LocaleProvider)
-		for _, localeFS := range c.Locales() {
-			loader := NewFSLoader(localeFS, ".")
+		for _, src := range allSources {
+			loader := NewFSLoader(src.FS, src.Dir)
 			if addErr := svc.AddLoader(loader); addErr != nil {
-				// Non-fatal — log and continue
+				// Non-fatal — skip sources that fail (e.g. missing language files)
 				continue
 			}
 		}
