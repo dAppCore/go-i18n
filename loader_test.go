@@ -220,6 +220,41 @@ func TestFlattenPluralObject(t *testing.T) {
 	}
 }
 
+func TestFSLoaderLanguagesErr_Good(t *testing.T) {
+	loader := NewFSLoader(localeFS, "locales")
+	if err := loader.LanguagesErr(); err != nil {
+		t.Errorf("LanguagesErr() = %v, want nil for valid dir", err)
+	}
+}
+
+func TestFSLoaderLanguagesErr_Bad(t *testing.T) {
+	loader := NewFSLoader(localeFS, "nonexistent")
+	langs := loader.Languages()
+	if len(langs) != 0 {
+		t.Errorf("Languages() = %v, want empty for bad dir", langs)
+	}
+	if err := loader.LanguagesErr(); err == nil {
+		t.Error("LanguagesErr() = nil, want error for bad dir")
+	}
+}
+
+func TestFlatten_Good(t *testing.T) {
+	messages := make(map[string]Message)
+	raw := map[string]any{
+		"hello": "world",
+		"nested": map[string]any{
+			"key": "value",
+		},
+	}
+	flatten("", raw, messages)
+	if msg, ok := messages["hello"]; !ok || msg.Text != "world" {
+		t.Errorf("flatten: hello = %+v, want 'world'", messages["hello"])
+	}
+	if msg, ok := messages["nested.key"]; !ok || msg.Text != "value" {
+		t.Errorf("flatten: nested.key = %+v, want 'value'", messages["nested.key"])
+	}
+}
+
 func TestCustomFSLoader(t *testing.T) {
 	fs := fstest.MapFS{
 		"locales/test.json": &fstest.MapFile{

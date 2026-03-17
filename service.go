@@ -3,10 +3,8 @@ package i18n
 import (
 	"embed"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io/fs"
-	"log"
 	"maps"
 	"path"
 	"slices"
@@ -14,6 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
+	log "forge.lthn.ai/core/go-log"
 	"golang.org/x/text/language"
 )
 
@@ -102,16 +101,16 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 		// Check if the loader exposes a scan error (e.g. FSLoader).
 		if el, ok := loader.(interface{ LanguagesErr() error }); ok {
 			if langErr := el.LanguagesErr(); langErr != nil {
-				return nil, fmt.Errorf("no languages available: %w", langErr)
+				return nil, log.E("NewWithLoader", "no languages available", langErr)
 			}
 		}
-		return nil, errors.New("no languages available from loader")
+		return nil, log.E("NewWithLoader", "no languages available from loader", nil)
 	}
 
 	for _, lang := range langs {
 		messages, grammar, err := loader.Load(lang)
 		if err != nil {
-			return nil, fmt.Errorf("failed to load locale %q: %w", lang, err)
+			return nil, log.E("NewWithLoader", "load locale: "+lang, err)
 		}
 		s.messages[lang] = messages
 		if grammar != nil && (len(grammar.Verbs) > 0 || len(grammar.Nouns) > 0 || len(grammar.Words) > 0) {
@@ -153,7 +152,7 @@ func Default() *Service {
 		return svc
 	}
 	if err := Init(); err != nil {
-		log.Printf("i18n: failed to initialise default service: %v", err)
+		log.Error("failed to initialise default service", "err", err)
 	}
 	return defaultService.Load()
 }
@@ -207,15 +206,15 @@ func (s *Service) SetLanguage(lang string) error {
 	defer s.mu.Unlock()
 	requestedLang, err := language.Parse(lang)
 	if err != nil {
-		return fmt.Errorf("invalid language tag %q: %w", lang, err)
+		return log.E("Service.SetLanguage", "invalid language tag: "+lang, err)
 	}
 	if len(s.availableLangs) == 0 {
-		return errors.New("no languages available")
+		return log.E("Service.SetLanguage", "no languages available", nil)
 	}
 	matcher := language.NewMatcher(s.availableLangs)
 	bestMatch, _, confidence := matcher.Match(requestedLang)
 	if confidence == language.No {
-		return fmt.Errorf("unsupported language: %q", lang)
+		return log.E("Service.SetLanguage", "unsupported language: "+lang, nil)
 	}
 	s.currentLang = bestMatch.String()
 	return nil
@@ -465,7 +464,7 @@ func (s *Service) AddLoader(loader Loader) error {
 	for _, lang := range langs {
 		messages, grammar, err := loader.Load(lang)
 		if err != nil {
-			return fmt.Errorf("failed to load locale %q: %w", lang, err)
+			return log.E("Service.AddLoader", "load locale: "+lang, err)
 		}
 
 		s.mu.Lock()
@@ -497,7 +496,7 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 	defer s.mu.Unlock()
 	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
-		return fmt.Errorf("failed to read locales directory: %w", err)
+		return log.E("Service.LoadFS", "read locales directory", err)
 	}
 	for _, entry := range entries {
 		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
@@ -506,12 +505,12 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 		filePath := path.Join(dir, entry.Name())
 		data, err := fs.ReadFile(fsys, filePath)
 		if err != nil {
-			return fmt.Errorf("failed to read locale %q: %w", entry.Name(), err)
+			return log.E("Service.LoadFS", "read locale: "+entry.Name(), err)
 		}
 		lang := strings.TrimSuffix(entry.Name(), ".json")
 		lang = strings.ReplaceAll(lang, "_", "-")
 		if err := s.loadJSON(lang, data); err != nil {
-			return fmt.Errorf("failed to parse locale %q: %w", entry.Name(), err)
+			return log.E("Service.LoadFS", "parse locale: "+entry.Name(), err)
 		}
 		tag := language.Make(lang)
 		found := slices.Contains(s.availableLangs, tag)

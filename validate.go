@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"forge.lthn.ai/core/go-inference"
+	log "forge.lthn.ai/core/go-log"
 )
 
 // ArticlePair holds a noun and its proposed article for validation.
@@ -77,7 +78,7 @@ func ValidateArticle(ctx context.Context, m inference.TextModel, noun string, ar
 	prompt := articlePrompt(noun)
 	predicted, err := collectGenerated(ctx, m, prompt)
 	if err != nil {
-		return ArticleResult{}, fmt.Errorf("validate article %q: %w", noun, err)
+		return ArticleResult{}, log.E("ValidateArticle", "validate: "+noun, err)
 	}
 	given := strings.TrimSpace(strings.ToLower(article))
 	return ArticleResult{
@@ -96,7 +97,7 @@ func ValidateIrregular(ctx context.Context, m inference.TextModel, verb string, 
 	prompt := irregularPrompt(verb, tense)
 	predicted, err := collectGenerated(ctx, m, prompt)
 	if err != nil {
-		return IrregularResult{}, fmt.Errorf("validate irregular %q (%s): %w", verb, tense, err)
+		return IrregularResult{}, log.E("ValidateIrregular", "validate: "+verb+" ("+tense+")", err)
 	}
 	given := strings.TrimSpace(strings.ToLower(form))
 	return IrregularResult{

@@ -89,5 +89,6 @@ Non-English languages must provide comprehensive JSON tables since tiers 2 and 3
 
 - UK English (colour, organisation, centre)
 - `go test ./...` must pass before commit
+- Errors use `log.E(op, msg, err)` from `forge.lthn.ai/core/go-log`, not `fmt.Errorf`
 - Conventional commits: `type(scope): description`
 - Co-Author: `Co-Authored-By: Virgil <virgil@lethean.io>`
