@@ -158,18 +158,18 @@ func SetDefault(s *Service) {
 	defaultService.Store(s)
 }
 
-// LoadFS loads additional translations from an fs.FS into the default service.
-// Call this from init() in packages that ship their own locale files.
+// AddLoader loads translations from a Loader into the default service.
+// Call this from init() in packages that ship their own locale files:
 //
-//	//go:embed locales/*.json
+//	//go:embed *.json
 //	var localeFS embed.FS
-//	func init() { i18n.LoadFS(localeFS, "locales") }
-func LoadFS(fsys fs.FS, dir string) {
+//	func init() { i18n.AddLoader(i18n.NewFSLoader(localeFS, ".")) }
+func AddLoader(loader Loader) {
 	svc := Default()
 	if svc == nil {
 		return
 	}
-	_ = svc.LoadFS(fsys, dir)
+	_ = svc.AddLoader(loader)
 }
 
 func (s *Service) loadJSON(lang string, data []byte) error {
@@ -451,7 +451,41 @@ func (s *Service) AddMessages(lang string, messages map[string]string) {
 	}
 }
 
+// AddLoader loads translations from an additional Loader, merging messages
+// and grammar data into the existing service. This is the correct way to
+// add package-specific translations at runtime.
+func (s *Service) AddLoader(loader Loader) error {
+	langs := loader.Languages()
+	for _, lang := range langs {
+		messages, grammar, err := loader.Load(lang)
+		if err != nil {
+			return fmt.Errorf("failed to load locale %q: %w", lang, err)
+		}
+
+		s.mu.Lock()
+		if s.messages[lang] == nil {
+			s.messages[lang] = make(map[string]Message)
+		}
+		for k, v := range messages {
+			s.messages[lang][k] = v
+		}
+
+		// Merge grammar data into the global grammar store
+		if grammar != nil && (len(grammar.Verbs) > 0 || len(grammar.Nouns) > 0 || len(grammar.Words) > 0) {
+			SetGrammarData(lang, grammar)
+		}
+
+		tag := language.Make(lang)
+		if !slices.Contains(s.availableLangs, tag) {
+			s.availableLangs = append(s.availableLangs, tag)
+		}
+		s.mu.Unlock()
+	}
+	return nil
+}
+
 // LoadFS loads additional locale files from a filesystem.
+// Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
 func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
