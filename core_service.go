@@ -4,6 +4,7 @@ package i18n
 
 import (
 	"context"
+	"io/fs"
 	"sync"
 
 	"forge.lthn.ai/core/go/pkg/core"
@@ -25,6 +26,15 @@ type ServiceOptions struct {
 	Language string
 	// Mode sets the translation mode (Normal, Strict, Collect)
 	Mode Mode
+	// ExtraFS loads additional translation files on top of the embedded defaults.
+	// Each entry is an fs.FS + directory path within it.
+	ExtraFS []FSSource
+}
+
+// FSSource pairs a filesystem with a directory path for loading translations.
+type FSSource struct {
+	FS  fs.FS
+	Dir string
 }
 
 // NewCoreService creates an i18n Core service factory.
@@ -33,6 +43,13 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 		svc, err := New()
 		if err != nil {
 			return nil, err
+		}
+
+		// Load additional translation sources
+		for _, src := range opts.ExtraFS {
+			if loadErr := svc.LoadFS(src.FS, src.Dir); loadErr != nil {
+				return nil, loadErr
+			}
 		}
 
 		if opts.Language != "" {
