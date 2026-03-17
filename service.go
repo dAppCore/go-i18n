@@ -130,13 +130,16 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	return s, nil
 }
 
-// Init initialises the default global service.
+// Init initialises the default global service if none has been set via SetDefault.
 func Init() error {
 	defaultOnce.Do(func() {
+		// If SetDefault was already called, don't overwrite
+		if defaultService.Load() != nil {
+			return
+		}
 		svc, err := New()
 		if err == nil {
 			defaultService.Store(svc)
-			loadRegisteredLocales(svc)
 		}
 		defaultErr = err
 	})
@@ -146,6 +149,9 @@ func Init() error {
 // Default returns the global i18n service, initialising if needed.
 // Returns nil if initialisation fails (error is logged).
 func Default() *Service {
+	if svc := defaultService.Load(); svc != nil {
+		return svc
+	}
 	if err := Init(); err != nil {
 		log.Printf("i18n: failed to initialise default service: %v", err)
 	}
