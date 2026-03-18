@@ -52,8 +52,8 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 		// Load additional translation sources from options + Core services
 		var allSources []FSSource
 		allSources = append(allSources, opts.ExtraFS...)
-		for _, lfs := range c.Locales() {
-			allSources = append(allSources, FSSource{FS: lfs, Dir: "."})
+		for _, lfs := range c.I18n().Locales() {
+			allSources = append(allSources, FSSource{FS: lfs.FS(), Dir: lfs.BaseDir()})
 		}
 
 		for _, src := range allSources {
