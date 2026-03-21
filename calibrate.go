@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
+	log "dappco.re/go/core/log"
 	"forge.lthn.ai/core/go-inference"
-	log "forge.lthn.ai/core/go-log"
 )
 
 // CalibrationSample is a single text entry for model comparison.

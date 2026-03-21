@@ -18,7 +18,7 @@ package reversal
 import (
 	"strings"
 
-	i18n "forge.lthn.ai/core/go-i18n"
+	i18n "dappco.re/go/core/i18n"
 )
 
 // VerbMatch holds the result of a reverse verb lookup.

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	log "forge.lthn.ai/core/go-log"
+	log "dappco.re/go/core/log"
 	"golang.org/x/text/language"
 )
 
