@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"sync"
 
-	"forge.lthn.ai/core/go/pkg/core"
+	"dappco.re/go/core"
 )
 
 // CoreService wraps the i18n Service as a Core framework service.

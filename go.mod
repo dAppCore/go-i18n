@@ -5,7 +5,7 @@ go 1.26.0
 require golang.org/x/text v0.35.0
 
 require (
-	forge.lthn.ai/core/go v0.3.1
+	dappco.re/go/core v0.4.7
 	forge.lthn.ai/core/go-inference v0.1.4
 	forge.lthn.ai/core/go-log v0.0.4
 )
