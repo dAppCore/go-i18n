@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What This Is
 
-Grammar-aware internationalisation engine for Go. Module: `forge.lthn.ai/core/go-i18n`
+Grammar-aware internationalisation engine for Go. Module: `dappco.re/go/core/i18n`
 
 This is a **grammar engine** — it provides primitives for composing and reversing grammatically correct text. It is NOT a translation file manager. Consumers bring their own translations.
 
@@ -89,6 +89,6 @@ Non-English languages must provide comprehensive JSON tables since tiers 2 and 3
 
 - UK English (colour, organisation, centre)
 - `go test ./...` must pass before commit
-- Errors use `log.E(op, msg, err)` from `forge.lthn.ai/core/go-log`, not `fmt.Errorf`
+- Errors use `log.E(op, msg, err)` from `dappco.re/go/core/log`, not `fmt.Errorf`
 - Conventional commits: `type(scope): description`
 - Co-Author: `Co-Authored-By: Virgil <virgil@lethean.io>`

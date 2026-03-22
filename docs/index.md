@@ -5,7 +5,7 @@ description: Grammar-aware internationalisation for Go with forward composition 
 
 # go-i18n Grammar Engine
 
-`forge.lthn.ai/core/go-i18n` is a **grammar engine** for Go. Unlike flat key-value translation systems, it composes grammatically correct output from verbs, nouns, and articles -- and can reverse the process, decomposing inflected text back into base forms with grammatical metadata.
+`dappco.re/go/core/i18n` is a **grammar engine** for Go. Unlike flat key-value translation systems, it composes grammatically correct output from verbs, nouns, and articles -- and can reverse the process, decomposing inflected text back into base forms with grammatical metadata.
 
 This is the foundation for the Poindexter classification pipeline and the LEM scoring system.
 
@@ -23,7 +23,7 @@ This is the foundation for the Poindexter classification pipeline and the LEM sc
 ## Quick Start
 
 ```go
-import i18n "forge.lthn.ai/core/go-i18n"
+import i18n "dappco.re/go/core/i18n"
 
 // Initialise the default service (uses embedded en.json)
 svc, err := i18n.New()
@@ -38,7 +38,7 @@ i18n.Article("SSH")                     // "an"
 ```
 
 ```go
-import "forge.lthn.ai/core/go-i18n/reversal"
+import "dappco.re/go/core/i18n/reversal"
 
 // Reverse decomposition
 tok := reversal.NewTokeniser()

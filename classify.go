@@ -9,8 +9,8 @@ import (
 	"strings"
 	"time"
 
+	log "dappco.re/go/core/log"
 	"forge.lthn.ai/core/go-inference"
-	log "forge.lthn.ai/core/go-log"
 )
 
 // ClassifyStats reports metrics from a ClassifyCorpus run.

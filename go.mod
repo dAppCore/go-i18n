@@ -1,4 +1,4 @@
-module forge.lthn.ai/core/go-i18n
+module dappco.re/go/core/i18n
 
 go 1.26.0
 
@@ -6,8 +6,8 @@ require golang.org/x/text v0.35.0
 
 require (
 	dappco.re/go/core v0.4.7
+	dappco.re/go/core/log v0.0.4
 	forge.lthn.ai/core/go-inference v0.1.4
-	forge.lthn.ai/core/go-log v0.0.4
 )
 
 require (
@@ -21,3 +21,5 @@ require (
 	github.com/stretchr/testify v1.11.1
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace dappco.re/go/core/log => ../go-log

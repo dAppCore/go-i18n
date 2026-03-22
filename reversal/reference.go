@@ -5,7 +5,7 @@ import (
 	"math"
 	"slices"
 
-	log "forge.lthn.ai/core/go-log"
+	log "dappco.re/go/core/log"
 )
 
 // ClassifiedText is a text sample with a domain label (from 1B model or ground truth).

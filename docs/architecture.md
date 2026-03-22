@@ -2,7 +2,7 @@
 
 go-i18n is a grammar engine for Go. It is not a translation file manager. Consumers bring their own translation keys; the library provides grammatical primitives for composing and reversing grammatically correct text across multiple languages.
 
-Module: `forge.lthn.ai/core/go-i18n`
+Module: `dappco.re/go/core/i18n`
 
 ---
 

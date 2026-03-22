@@ -1,4 +1,4 @@
-[![Go Reference](https://pkg.go.dev/badge/forge.lthn.ai/core/go-i18n.svg)](https://pkg.go.dev/forge.lthn.ai/core/go-i18n)
+[![Go Reference](https://pkg.go.dev/badge/dappco.re/go/core/i18n.svg)](https://pkg.go.dev/dappco.re/go/core/i18n)
 [![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](LICENSE.md)
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go)](go.mod)
 
@@ -6,14 +6,14 @@
 
 Grammar engine for Go. Provides forward composition primitives (PastTense, Gerund, Pluralize, Article, composite progress and label functions), a `T()` translation entry point with namespace key handlers, and a reversal engine that recovers base forms and grammatical roles from inflected text. The reversal package produces `GrammarImprint` feature vectors for semantic similarity scoring, builds reference domain distributions, performs anomaly detection, and includes a 1B model pre-sort pipeline for training data classification. Consumers bring their own translation keys; this library provides the grammatical machinery.
 
-**Module**: `forge.lthn.ai/core/go-i18n`
+**Module**: `dappco.re/go/core/i18n`
 **Licence**: EUPL-1.2
 **Language**: Go 1.25
 
 ## Quick Start
 
 ```go
-import "forge.lthn.ai/core/go-i18n"
+import "dappco.re/go/core/i18n"
 
 // Grammar primitives
 fmt.Println(i18n.PastTense("delete"))   // "deleted"

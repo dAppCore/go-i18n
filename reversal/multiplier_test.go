@@ -3,7 +3,7 @@ package reversal
 import (
 	"testing"
 
-	i18n "forge.lthn.ai/core/go-i18n"
+	i18n "dappco.re/go/core/i18n"
 )
 
 func TestMultiplier_Expand(t *testing.T) {

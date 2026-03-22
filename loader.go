@@ -7,7 +7,7 @@ import (
 	"strings"
 	"sync"
 
-	log "forge.lthn.ai/core/go-log"
+	log "dappco.re/go/core/log"
 )
 
 // FSLoader loads translations from a filesystem (embedded or disk).
