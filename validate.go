@@ -4,9 +4,8 @@ package i18n
 
 import (
 	"context"
-	"fmt"
-	"strings"
 
+	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
 	"forge.lthn.ai/core/go-inference"
 )
@@ -45,7 +44,7 @@ type IrregularResult struct {
 
 // articlePrompt builds a fill-in-the-blank prompt for article prediction.
 func articlePrompt(noun string) string {
-	return fmt.Sprintf(
+	return core.Sprintf(
 		"Complete with the correct article (a/an/the): ___ %s. Answer with just the article:",
 		noun,
 	)
@@ -53,7 +52,7 @@ func articlePrompt(noun string) string {
 
 // irregularPrompt builds a fill-in-the-blank prompt for irregular verb prediction.
 func irregularPrompt(verb, tense string) string {
-	return fmt.Sprintf(
+	return core.Sprintf(
 		"What is the %s form of the verb '%s'? Answer with just the word:",
 		tense, verb,
 	)
@@ -61,14 +60,14 @@ func irregularPrompt(verb, tense string) string {
 
 // collectGenerated runs a single-token generation and returns the trimmed, lowercased output.
 func collectGenerated(ctx context.Context, m inference.TextModel, prompt string) (string, error) {
-	var sb strings.Builder
+	sb := core.NewBuilder()
 	for tok := range m.Generate(ctx, prompt, inference.WithMaxTokens(1), inference.WithTemperature(0.05)) {
 		sb.WriteString(tok.Text)
 	}
 	if err := m.Err(); err != nil {
 		return "", err
 	}
-	return strings.TrimSpace(strings.ToLower(sb.String())), nil
+	return core.Trim(core.Lower(sb.String())), nil
 }
 
 // ValidateArticle checks whether a given article usage is grammatically correct
@@ -80,7 +79,7 @@ func ValidateArticle(ctx context.Context, m inference.TextModel, noun string, ar
 	if err != nil {
 		return ArticleResult{}, log.E("ValidateArticle", "validate: "+noun, err)
 	}
-	given := strings.TrimSpace(strings.ToLower(article))
+	given := core.Trim(core.Lower(article))
 	return ArticleResult{
 		Noun:      noun,
 		Given:     given,
@@ -99,7 +98,7 @@ func ValidateIrregular(ctx context.Context, m inference.TextModel, verb string, 
 	if err != nil {
 		return IrregularResult{}, log.E("ValidateIrregular", "validate: "+verb+" ("+tense+")", err)
 	}
-	given := strings.TrimSpace(strings.ToLower(form))
+	given := core.Trim(core.Lower(form))
 	return IrregularResult{
 		Verb:      verb,
 		Tense:     tense,

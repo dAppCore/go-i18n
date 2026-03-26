@@ -1,12 +1,12 @@
 package i18n
 
 import (
-	"encoding/json"
 	"io/fs"
 	"path"
 	"strings"
 	"sync"
 
+	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
 )
 
@@ -29,8 +29,8 @@ func NewFSLoader(fsys fs.FS, dir string) *FSLoader {
 func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 	variants := []string{
 		lang + ".json",
-		strings.ReplaceAll(lang, "-", "_") + ".json",
-		strings.ReplaceAll(lang, "_", "-") + ".json",
+		core.Replace(lang, "-", "_") + ".json",
+		core.Replace(lang, "_", "-") + ".json",
 	}
 
 	var data []byte
@@ -47,8 +47,8 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 	}
 
 	var raw map[string]any
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return nil, nil, log.E("FSLoader.Load", "invalid JSON in locale: "+lang, err)
+	if r := core.JSONUnmarshal(data, &raw); !r.OK {
+		return nil, nil, log.E("FSLoader.Load", "invalid JSON in locale: "+lang, r.Value.(error))
 	}
 
 	messages := make(map[string]Message)
@@ -72,11 +72,11 @@ func (l *FSLoader) Languages() []string {
 			return
 		}
 		for _, entry := range entries {
-			if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+			if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") {
 				continue
 			}
-			lang := strings.TrimSuffix(entry.Name(), ".json")
-			lang = strings.ReplaceAll(lang, "_", "-")
+			lang := core.TrimSuffix(entry.Name(), ".json")
+			lang = core.Replace(lang, "_", "-")
 			l.languages = append(l.languages, lang)
 		}
 	})
@@ -106,9 +106,9 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 
 		switch v := value.(type) {
 		case string:
-			if grammar != nil && strings.HasPrefix(fullKey, "gram.word.") {
-				wordKey := strings.TrimPrefix(fullKey, "gram.word.")
-				grammar.Words[strings.ToLower(wordKey)] = v
+			if grammar != nil && core.HasPrefix(fullKey, "gram.word.") {
+				wordKey := core.TrimPrefix(fullKey, "gram.word.")
+				grammar.Words[core.Lower(wordKey)] = v
 				continue
 			}
 			out[fullKey] = Message{Text: v}
@@ -127,12 +127,12 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				if gerund, ok := v["gerund"].(string); ok {
 					forms.Gerund = gerund
 				}
-				grammar.Verbs[strings.ToLower(verbName)] = forms
+				grammar.Verbs[core.Lower(verbName)] = forms
 				continue
 			}
 
 			// Noun form object (under gram.noun.* or has gender field)
-			if grammar != nil && (strings.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
+			if grammar != nil && (core.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
 				nounName := key
 				if after, ok := strings.CutPrefix(fullKey, "gram.noun."); ok {
 					nounName = after
@@ -150,7 +150,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if gender, ok := v["gender"].(string); ok {
 						forms.Gender = gender
 					}
-					grammar.Nouns[strings.ToLower(nounName)] = forms
+					grammar.Nouns[core.Lower(nounName)] = forms
 					continue
 				}
 			}
@@ -161,7 +161,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if arr, ok := nd.([]any); ok {
 						for _, item := range arr {
 							if s, ok := item.(string); ok {
-								grammar.Signals.NounDeterminers = append(grammar.Signals.NounDeterminers, strings.ToLower(s))
+								grammar.Signals.NounDeterminers = append(grammar.Signals.NounDeterminers, core.Lower(s))
 							}
 						}
 					}
@@ -170,7 +170,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if arr, ok := va.([]any); ok {
 						for _, item := range arr {
 							if s, ok := item.(string); ok {
-								grammar.Signals.VerbAuxiliaries = append(grammar.Signals.VerbAuxiliaries, strings.ToLower(s))
+								grammar.Signals.VerbAuxiliaries = append(grammar.Signals.VerbAuxiliaries, core.Lower(s))
 							}
 						}
 					}
@@ -179,7 +179,7 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 					if arr, ok := vi.([]any); ok {
 						for _, item := range arr {
 							if s, ok := item.(string); ok {
-								grammar.Signals.VerbInfinitive = append(grammar.Signals.VerbInfinitive, strings.ToLower(s))
+								grammar.Signals.VerbInfinitive = append(grammar.Signals.VerbInfinitive, core.Lower(s))
 							}
 						}
 					}

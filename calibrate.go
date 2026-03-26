@@ -2,9 +2,9 @@ package i18n
 
 import (
 	"context"
-	"fmt"
 	"time"
 
+	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
 	"forge.lthn.ai/core/go-inference"
 )
@@ -66,7 +66,7 @@ func CalibrateDomains(ctx context.Context, modelA, modelB inference.TextModel,
 	// Build classification prompts from sample texts.
 	prompts := make([]string, len(samples))
 	for i, s := range samples {
-		prompts[i] = fmt.Sprintf(cfg.promptTemplate, s.Text)
+		prompts[i] = core.Sprintf(cfg.promptTemplate, s.Text)
 	}
 
 	// Classify with model A.
@@ -93,7 +93,7 @@ func CalibrateDomains(ctx context.Context, modelA, modelB inference.TextModel,
 		if agree {
 			stats.Agreed++
 		} else {
-			key := fmt.Sprintf("%s->%s", a, b)
+			key := core.Sprintf("%s->%s", a, b)
 			stats.ConfusionPairs[key]++
 		}
 		stats.ByDomainA[a]++
@@ -140,7 +140,7 @@ func classifyAll(ctx context.Context, model inference.TextModel, prompts []strin
 
 		results, err := model.Classify(ctx, batch, inference.WithMaxTokens(1))
 		if err != nil {
-			return nil, 0, log.E("classifyAll", fmt.Sprintf("classify batch [%d:%d]", i, end), err)
+			return nil, 0, log.E("classifyAll", core.Sprintf("classify batch [%d:%d]", i, end), err)
 		}
 
 		for j, r := range results {

@@ -18,6 +18,7 @@ package reversal
 import (
 	"strings"
 
+	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
 )
 
@@ -209,7 +210,7 @@ func (t *Tokeniser) buildNounIndex() {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward function PluralForm().
 func (t *Tokeniser) MatchNoun(word string) (NounMatch, bool) {
-	word = strings.ToLower(strings.TrimSpace(word))
+	word = core.Lower(core.Trim(word))
 	if word == "" {
 		return NounMatch{}, false
 	}
@@ -250,27 +251,27 @@ func (t *Tokeniser) reverseRegularPlural(word string) []string {
 	var candidates []string
 
 	// Rule: consonant + "ies" → consonant + "y" (e.g., "entries" → "entry")
-	if strings.HasSuffix(word, "ies") && len(word) > 3 {
+	if core.HasSuffix(word, "ies") && len(word) > 3 {
 		base := word[:len(word)-3] + "y"
 		candidates = append(candidates, base)
 	}
 
 	// Rule: "ves" → "f" or "fe" (e.g., "wolves" → "wolf", "knives" → "knife")
-	if strings.HasSuffix(word, "ves") && len(word) > 3 {
+	if core.HasSuffix(word, "ves") && len(word) > 3 {
 		candidates = append(candidates, word[:len(word)-3]+"f")
 		candidates = append(candidates, word[:len(word)-3]+"fe")
 	}
 
 	// Rule: sibilant + "es" (e.g., "processes" → "process", "branches" → "branch")
-	if strings.HasSuffix(word, "ses") || strings.HasSuffix(word, "xes") ||
-		strings.HasSuffix(word, "zes") || strings.HasSuffix(word, "ches") ||
-		strings.HasSuffix(word, "shes") {
+	if core.HasSuffix(word, "ses") || core.HasSuffix(word, "xes") ||
+		core.HasSuffix(word, "zes") || core.HasSuffix(word, "ches") ||
+		core.HasSuffix(word, "shes") {
 		base := word[:len(word)-2] // strip "es"
 		candidates = append(candidates, base)
 	}
 
 	// Rule: drop "s" (e.g., "servers" → "server")
-	if strings.HasSuffix(word, "s") && len(word) > 1 {
+	if core.HasSuffix(word, "s") && len(word) > 1 {
 		base := word[:len(word)-1]
 		candidates = append(candidates, base)
 	}
@@ -285,7 +286,7 @@ func (t *Tokeniser) reverseRegularPlural(word string) []string {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward functions PastTense() and Gerund().
 func (t *Tokeniser) MatchVerb(word string) (VerbMatch, bool) {
-	word = strings.ToLower(strings.TrimSpace(word))
+	word = core.Lower(core.Trim(word))
 	if word == "" {
 		return VerbMatch{}, false
 	}
@@ -358,7 +359,7 @@ func (t *Tokeniser) bestRoundTrip(target string, candidates []string, forward fu
 	// Priority 3: prefer candidate not ending in "e" (avoids phantom verbs
 	// with CCe endings like "walke", "processe")
 	for _, m := range matches {
-		if !strings.HasSuffix(m, "e") {
+		if !core.HasSuffix(m, "e") {
 			return m
 		}
 	}
@@ -402,12 +403,12 @@ func isVowelByte(b byte) bool {
 func (t *Tokeniser) reverseRegularPast(word string) []string {
 	var candidates []string
 
-	if !strings.HasSuffix(word, "ed") {
+	if !core.HasSuffix(word, "ed") {
 		return candidates
 	}
 
 	// Rule: consonant + "ied" → consonant + "y" (e.g., "copied" → "copy")
-	if strings.HasSuffix(word, "ied") && len(word) > 3 {
+	if core.HasSuffix(word, "ied") && len(word) > 3 {
 		base := word[:len(word)-3] + "y"
 		candidates = append(candidates, base)
 	}
@@ -448,14 +449,14 @@ func (t *Tokeniser) reverseRegularPast(word string) []string {
 func (t *Tokeniser) reverseRegularGerund(word string) []string {
 	var candidates []string
 
-	if !strings.HasSuffix(word, "ing") || len(word) < 4 {
+	if !core.HasSuffix(word, "ing") || len(word) < 4 {
 		return candidates
 	}
 
 	stem := word[:len(word)-3] // strip "ing"
 
 	// Rule: "ying" → "ie" (e.g., "dying" → "die")
-	if strings.HasSuffix(word, "ying") && len(word) > 4 {
+	if core.HasSuffix(word, "ying") && len(word) > 4 {
 		base := word[:len(word)-4] + "ie"
 		candidates = append(candidates, base)
 	}
@@ -488,15 +489,15 @@ func (t *Tokeniser) buildWordIndex() {
 	}
 	for key, display := range data.Words {
 		// Map the key itself (already lowercase)
-		t.words[strings.ToLower(key)] = key
+		t.words[core.Lower(key)] = key
 		// Map the display form (e.g., "URL" → "url", "SSH" → "ssh")
-		t.words[strings.ToLower(display)] = key
+		t.words[core.Lower(display)] = key
 	}
 }
 
 // IsDualClass returns true if the word exists in both verb and noun tables.
 func (t *Tokeniser) IsDualClass(word string) bool {
-	return t.dualClass[strings.ToLower(word)]
+	return t.dualClass[core.Lower(word)]
 }
 
 func (t *Tokeniser) buildDualClassIndex() {
@@ -519,7 +520,7 @@ func (t *Tokeniser) buildSignalIndex() {
 	// falls back per-field rather than silently disabling signals.
 	if data != nil && len(data.Signals.NounDeterminers) > 0 {
 		for _, w := range data.Signals.NounDeterminers {
-			t.nounDet[strings.ToLower(w)] = true
+			t.nounDet[core.Lower(w)] = true
 		}
 	} else {
 		for _, w := range []string{
@@ -534,7 +535,7 @@ func (t *Tokeniser) buildSignalIndex() {
 
 	if data != nil && len(data.Signals.VerbAuxiliaries) > 0 {
 		for _, w := range data.Signals.VerbAuxiliaries {
-			t.verbAux[strings.ToLower(w)] = true
+			t.verbAux[core.Lower(w)] = true
 		}
 	} else {
 		for _, w := range []string{
@@ -548,7 +549,7 @@ func (t *Tokeniser) buildSignalIndex() {
 
 	if data != nil && len(data.Signals.VerbInfinitive) > 0 {
 		for _, w := range data.Signals.VerbInfinitive {
-			t.verbInf[strings.ToLower(w)] = true
+			t.verbInf[core.Lower(w)] = true
 		}
 	} else {
 		t.verbInf["to"] = true
@@ -570,7 +571,7 @@ func defaultWeights() map[string]float64 {
 // MatchWord performs a case-insensitive lookup in the words map.
 // Returns the category key and true if found, or ("", false) otherwise.
 func (t *Tokeniser) MatchWord(word string) (string, bool) {
-	cat, ok := t.words[strings.ToLower(word)]
+	cat, ok := t.words[core.Lower(word)]
 	return cat, ok
 }
 
@@ -583,13 +584,13 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		return "", false
 	}
 
-	lower := strings.ToLower(word)
+	lower := core.Lower(word)
 
-	if lower == strings.ToLower(data.Articles.IndefiniteDefault) ||
-		lower == strings.ToLower(data.Articles.IndefiniteVowel) {
+	if lower == core.Lower(data.Articles.IndefiniteDefault) ||
+		lower == core.Lower(data.Articles.IndefiniteVowel) {
 		return "indefinite", true
 	}
-	if lower == strings.ToLower(data.Articles.Definite) {
+	if lower == core.Lower(data.Articles.Definite) {
 		return "definite", true
 	}
 
@@ -613,7 +614,7 @@ var clauseBoundaries = map[string]bool{
 // Pass 1 classifies unambiguous tokens and marks dual-class base forms.
 // Pass 2 resolves ambiguous tokens using weighted disambiguation signals.
 func (t *Tokeniser) Tokenise(text string) []Token {
-	text = strings.TrimSpace(text)
+	text = core.Trim(text)
 	if text == "" {
 		return nil
 	}
@@ -628,7 +629,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 
 		// Classify the word portion (if any).
 		if word != "" {
-			tok := Token{Raw: raw, Lower: strings.ToLower(word)}
+			tok := Token{Raw: raw, Lower: core.Lower(word)}
 
 			if artType, ok := t.MatchArticle(word); ok {
 				// Articles are unambiguous.
@@ -943,7 +944,7 @@ func splitTrailingPunct(s string) (string, string) {
 	}
 
 	// Check for "..." suffix first (3-char pattern).
-	if strings.HasSuffix(s, "...") {
+	if core.HasSuffix(s, "...") {
 		return s[:len(s)-3], "..."
 	}
 	// Check single-char trailing punctuation.

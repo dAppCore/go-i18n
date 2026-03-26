@@ -1,9 +1,9 @@
 package i18n
 
 import (
-	"fmt"
 	"testing"
 
+	"dappco.re/go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -123,7 +123,7 @@ func TestSubject_String_Good(t *testing.T) {
 
 func TestSubject_String_Good_Stringer(t *testing.T) {
 	// Use a type that implements fmt.Stringer
-	subj := S("error", fmt.Errorf("something broke"))
+	subj := S("error", core.NewError("something broke"))
 	assert.Equal(t, "something broke", subj.String())
 }
 

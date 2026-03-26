@@ -2,9 +2,9 @@ package i18n
 
 import (
 	"bytes"
-	"errors"
-	"strings"
 	"text/template"
+
+	"dappco.re/go/core"
 )
 
 // T translates a message using the default service.
@@ -24,7 +24,7 @@ func Raw(messageID string, args ...any) string {
 }
 
 // ErrServiceNotInitialised is returned when the service is not initialised.
-var ErrServiceNotInitialised = errors.New("i18n: service not initialised")
+var ErrServiceNotInitialised = core.NewError("i18n: service not initialised")
 
 // ErrServiceNotInitialized is deprecated: use ErrServiceNotInitialised.
 var ErrServiceNotInitialized = ErrServiceNotInitialised
@@ -109,7 +109,7 @@ func executeIntentTemplate(tmplStr string, data templateData) string {
 }
 
 func applyTemplate(text string, data any) string {
-	if !strings.Contains(text, "{{") {
+	if !core.Contains(text, "{{") {
 		return text
 	}
 	if cached, ok := templateCache.Load(text); ok {

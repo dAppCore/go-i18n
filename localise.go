@@ -2,8 +2,8 @@ package i18n
 
 import (
 	"os"
-	"strings"
 
+	"dappco.re/go/core"
 	"golang.org/x/text/language"
 )
 
@@ -95,8 +95,8 @@ func detectLanguage(supported []language.Tag) string {
 	if langEnv == "" {
 		return ""
 	}
-	baseLang := strings.Split(langEnv, ".")[0]
-	baseLang = strings.ReplaceAll(baseLang, "_", "-")
+	baseLang := core.Split(langEnv, ".")[0]
+	baseLang = core.Replace(baseLang, "_", "-")
 	parsedLang, err := language.Parse(baseLang)
 	if err != nil {
 		return ""

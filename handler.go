@@ -1,19 +1,18 @@
 package i18n
 
 import (
-	"fmt"
-	"strings"
+	"dappco.re/go/core"
 )
 
 // LabelHandler handles i18n.label.{word} -> "Status:" patterns.
 type LabelHandler struct{}
 
 func (h LabelHandler) Match(key string) bool {
-	return strings.HasPrefix(key, "i18n.label.")
+	return core.HasPrefix(key, "i18n.label.")
 }
 
 func (h LabelHandler) Handle(key string, args []any, next func() string) string {
-	word := strings.TrimPrefix(key, "i18n.label.")
+	word := core.TrimPrefix(key, "i18n.label.")
 	return Label(word)
 }
 
@@ -21,11 +20,11 @@ func (h LabelHandler) Handle(key string, args []any, next func() string) string 
 type ProgressHandler struct{}
 
 func (h ProgressHandler) Match(key string) bool {
-	return strings.HasPrefix(key, "i18n.progress.")
+	return core.HasPrefix(key, "i18n.progress.")
 }
 
 func (h ProgressHandler) Handle(key string, args []any, next func() string) string {
-	verb := strings.TrimPrefix(key, "i18n.progress.")
+	verb := core.TrimPrefix(key, "i18n.progress.")
 	if len(args) > 0 {
 		if subj, ok := args[0].(string); ok {
 			return ProgressSubject(verb, subj)
@@ -38,14 +37,14 @@ func (h ProgressHandler) Handle(key string, args []any, next func() string) stri
 type CountHandler struct{}
 
 func (h CountHandler) Match(key string) bool {
-	return strings.HasPrefix(key, "i18n.count.")
+	return core.HasPrefix(key, "i18n.count.")
 }
 
 func (h CountHandler) Handle(key string, args []any, next func() string) string {
-	noun := strings.TrimPrefix(key, "i18n.count.")
+	noun := core.TrimPrefix(key, "i18n.count.")
 	if len(args) > 0 {
 		count := toInt(args[0])
-		return fmt.Sprintf("%d %s", count, Pluralize(noun, count))
+		return core.Sprintf("%d %s", count, Pluralize(noun, count))
 	}
 	return noun
 }
@@ -54,11 +53,11 @@ func (h CountHandler) Handle(key string, args []any, next func() string) string 
 type DoneHandler struct{}
 
 func (h DoneHandler) Match(key string) bool {
-	return strings.HasPrefix(key, "i18n.done.")
+	return core.HasPrefix(key, "i18n.done.")
 }
 
 func (h DoneHandler) Handle(key string, args []any, next func() string) string {
-	verb := strings.TrimPrefix(key, "i18n.done.")
+	verb := core.TrimPrefix(key, "i18n.done.")
 	if len(args) > 0 {
 		if subj, ok := args[0].(string); ok {
 			return ActionResult(verb, subj)
@@ -71,11 +70,11 @@ func (h DoneHandler) Handle(key string, args []any, next func() string) string {
 type FailHandler struct{}
 
 func (h FailHandler) Match(key string) bool {
-	return strings.HasPrefix(key, "i18n.fail.")
+	return core.HasPrefix(key, "i18n.fail.")
 }
 
 func (h FailHandler) Handle(key string, args []any, next func() string) string {
-	verb := strings.TrimPrefix(key, "i18n.fail.")
+	verb := core.TrimPrefix(key, "i18n.fail.")
 	if len(args) > 0 {
 		if subj, ok := args[0].(string); ok {
 			return ActionFailed(verb, subj)
@@ -88,14 +87,14 @@ func (h FailHandler) Handle(key string, args []any, next func() string) string {
 type NumericHandler struct{}
 
 func (h NumericHandler) Match(key string) bool {
-	return strings.HasPrefix(key, "i18n.numeric.")
+	return core.HasPrefix(key, "i18n.numeric.")
 }
 
 func (h NumericHandler) Handle(key string, args []any, next func() string) string {
 	if len(args) == 0 {
 		return next()
 	}
-	format := strings.TrimPrefix(key, "i18n.numeric.")
+	format := core.TrimPrefix(key, "i18n.numeric.")
 	switch format {
 	case "number", "int":
 		return FormatNumber(toInt64(args[0]))

@@ -5,15 +5,12 @@ go 1.26.0
 require golang.org/x/text v0.35.0
 
 require (
-	dappco.re/go/core v0.5.0
+	dappco.re/go/core v0.8.0-alpha.1
 	dappco.re/go/core/log v0.1.0
 	forge.lthn.ai/core/go-inference v0.1.4
 )
 
-require (
-	forge.lthn.ai/core/go-log v0.0.4 // indirect
-	github.com/kr/text v0.2.0 // indirect
-)
+require github.com/kr/text v0.2.0 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

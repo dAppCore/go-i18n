@@ -1,8 +1,9 @@
 package i18n
 
 import (
-	"fmt"
 	"time"
+
+	"dappco.re/go/core"
 )
 
 // TimeAgo returns a localised relative time string.
@@ -28,12 +29,12 @@ func TimeAgo(t time.Time) string {
 func FormatAgo(count int, unit string) string {
 	svc := Default()
 	if svc == nil {
-		return fmt.Sprintf("%d %ss ago", count, unit)
+		return core.Sprintf("%d %ss ago", count, unit)
 	}
 	key := "time.ago." + unit
 	result := svc.T(key, map[string]any{"Count": count})
 	if result == key {
-		return fmt.Sprintf("%d %s ago", count, Pluralize(unit, count))
+		return core.Sprintf("%d %s ago", count, Pluralize(unit, count))
 	}
 	return result
 }

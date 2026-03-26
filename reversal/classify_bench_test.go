@@ -1,10 +1,10 @@
 package reversal
 
 import (
-	"fmt"
 	"sort"
-	"strings"
 	"testing"
+
+	"dappco.re/go/core"
 )
 
 // Domain categories for classification ground truth.
@@ -418,17 +418,17 @@ func TestClassification_LeaveOneOut(t *testing.T) {
 
 	// Print confusion matrix
 	t.Log("\nConfusion matrix (rows=actual, cols=predicted):")
-	var header strings.Builder
-	header.WriteString(fmt.Sprintf("  %-10s", ""))
+	header := core.NewBuilder()
+	header.WriteString(core.Sprintf("  %-10s", ""))
 	for _, d := range domains {
-		header.WriteString(fmt.Sprintf(" %10s", d[:4]))
+		header.WriteString(core.Sprintf(" %10s", d[:4]))
 	}
 	t.Log(header.String())
 	for _, actual := range domains {
-		var row strings.Builder
-		row.WriteString(fmt.Sprintf("  %-10s", actual[:4]))
+		row := core.NewBuilder()
+		row.WriteString(core.Sprintf("  %-10s", actual[:4]))
 		for _, predicted := range domains {
-			row.WriteString(fmt.Sprintf(" %10d", confusion[actual][predicted]))
+			row.WriteString(core.Sprintf(" %10d", confusion[actual][predicted]))
 		}
 		t.Log(row.String())
 	}
@@ -506,14 +506,14 @@ func TestClassification_TenseProfile(t *testing.T) {
 			}
 		}
 
-		var parts strings.Builder
-		parts.WriteString(fmt.Sprintf("%-10s verbs=%d", d, totalVerbs))
+		parts := core.NewBuilder()
+		parts.WriteString(core.Sprintf("%-10s verbs=%d", d, totalVerbs))
 		for _, tense := range tenses {
 			pct := 0.0
 			if totalVerbs > 0 {
 				pct = float64(tenseCounts[tense]) / float64(totalVerbs) * 100
 			}
-			parts.WriteString(fmt.Sprintf("  %s=%.0f%%", tense, pct))
+			parts.WriteString(core.Sprintf("  %s=%.0f%%", tense, pct))
 		}
 		t.Log(parts.String())
 	}
@@ -550,12 +550,12 @@ func TestClassification_TopVerbs(t *testing.T) {
 		sort.Slice(sorted, func(i, j int) bool { return sorted[i].count > sorted[j].count })
 
 		top := min(len(sorted), 8)
-		var verbs strings.Builder
+		verbs := core.NewBuilder()
 		for i := 0; i < top; i++ {
 			if i > 0 {
 				verbs.WriteString(", ")
 			}
-			verbs.WriteString(fmt.Sprintf("%s(%d)", sorted[i].verb, sorted[i].count))
+			verbs.WriteString(core.Sprintf("%s(%d)", sorted[i].verb, sorted[i].count))
 		}
 		t.Logf("%-10s unique=%d top: %s", d, len(verbCounts), verbs.String())
 	}

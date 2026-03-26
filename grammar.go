@@ -2,9 +2,10 @@ package i18n
 
 import (
 	"maps"
-	"strings"
 	"text/template"
 	"unicode"
+
+	"dappco.re/go/core"
 )
 
 // GetGrammarData returns the grammar data for the specified language.
@@ -55,7 +56,7 @@ func getVerbForm(lang, verb, form string) string {
 	if data == nil || data.Verbs == nil {
 		return ""
 	}
-	verb = strings.ToLower(verb)
+	verb = core.Lower(verb)
 	if forms, ok := data.Verbs[verb]; ok {
 		switch form {
 		case "past":
@@ -72,7 +73,7 @@ func getWord(lang, word string) string {
 	if data == nil || data.Words == nil {
 		return ""
 	}
-	return data.Words[strings.ToLower(word)]
+	return data.Words[core.Lower(word)]
 }
 
 func getPunct(lang, rule, defaultVal string) string {
@@ -98,7 +99,7 @@ func getNounForm(lang, noun, form string) string {
 	if data == nil || data.Nouns == nil {
 		return ""
 	}
-	noun = strings.ToLower(noun)
+	noun = core.Lower(noun)
 	if forms, ok := data.Nouns[noun]; ok {
 		switch form {
 		case "one":
@@ -126,7 +127,7 @@ func currentLangForGrammar() string {
 //	PastTense("run")    // "ran"
 //	PastTense("copy")   // "copied"
 func PastTense(verb string) string {
-	verb = strings.ToLower(strings.TrimSpace(verb))
+	verb = core.Lower(core.Trim(verb))
 	if verb == "" {
 		return ""
 	}
@@ -140,16 +141,16 @@ func PastTense(verb string) string {
 }
 
 func applyRegularPastTense(verb string) string {
-	if strings.HasSuffix(verb, "ed") && len(verb) > 2 {
+	if core.HasSuffix(verb, "ed") && len(verb) > 2 {
 		thirdFromEnd := verb[len(verb)-3]
 		if !isVowel(rune(thirdFromEnd)) && thirdFromEnd != 'e' {
 			return verb
 		}
 	}
-	if strings.HasSuffix(verb, "e") {
+	if core.HasSuffix(verb, "e") {
 		return verb + "d"
 	}
-	if strings.HasSuffix(verb, "y") && len(verb) > 1 {
+	if core.HasSuffix(verb, "y") && len(verb) > 1 {
 		prev := rune(verb[len(verb)-2])
 		if !isVowel(prev) {
 			return verb[:len(verb)-1] + "ied"
@@ -189,7 +190,7 @@ func shouldDoubleConsonant(verb string) bool {
 //	Gerund("run")     // "running"
 //	Gerund("die")     // "dying"
 func Gerund(verb string) string {
-	verb = strings.ToLower(strings.TrimSpace(verb))
+	verb = core.Lower(core.Trim(verb))
 	if verb == "" {
 		return ""
 	}
@@ -203,10 +204,10 @@ func Gerund(verb string) string {
 }
 
 func applyRegularGerund(verb string) string {
-	if strings.HasSuffix(verb, "ie") {
+	if core.HasSuffix(verb, "ie") {
 		return verb[:len(verb)-2] + "ying"
 	}
-	if strings.HasSuffix(verb, "e") && len(verb) > 1 {
+	if core.HasSuffix(verb, "e") && len(verb) > 1 {
 		secondLast := rune(verb[len(verb)-2])
 		if secondLast != 'e' && secondLast != 'y' && secondLast != 'o' {
 			return verb[:len(verb)-1] + "ing"
@@ -232,20 +233,20 @@ func Pluralize(noun string, count int) string {
 
 // PluralForm returns the plural form of a noun.
 func PluralForm(noun string) string {
-	noun = strings.TrimSpace(noun)
+	noun = core.Trim(noun)
 	if noun == "" {
 		return ""
 	}
-	lower := strings.ToLower(noun)
+	lower := core.Lower(noun)
 	if form := getNounForm(currentLangForGrammar(), lower, "other"); form != "" {
 		if unicode.IsUpper(rune(noun[0])) && len(form) > 0 {
-			return strings.ToUpper(string(form[0])) + form[1:]
+			return core.Upper(string(form[0])) + form[1:]
 		}
 		return form
 	}
 	if plural, ok := irregularNouns[lower]; ok {
 		if unicode.IsUpper(rune(noun[0])) {
-			return strings.ToUpper(string(plural[0])) + plural[1:]
+			return core.Upper(string(plural[0])) + plural[1:]
 		}
 		return plural
 	}
@@ -253,28 +254,28 @@ func PluralForm(noun string) string {
 }
 
 func applyRegularPlural(noun string) string {
-	lower := strings.ToLower(noun)
-	if strings.HasSuffix(lower, "s") ||
-		strings.HasSuffix(lower, "ss") ||
-		strings.HasSuffix(lower, "sh") ||
-		strings.HasSuffix(lower, "ch") ||
-		strings.HasSuffix(lower, "x") ||
-		strings.HasSuffix(lower, "z") {
+	lower := core.Lower(noun)
+	if core.HasSuffix(lower, "s") ||
+		core.HasSuffix(lower, "ss") ||
+		core.HasSuffix(lower, "sh") ||
+		core.HasSuffix(lower, "ch") ||
+		core.HasSuffix(lower, "x") ||
+		core.HasSuffix(lower, "z") {
 		return noun + "es"
 	}
-	if strings.HasSuffix(lower, "y") && len(noun) > 1 {
+	if core.HasSuffix(lower, "y") && len(noun) > 1 {
 		prev := rune(lower[len(lower)-2])
 		if !isVowel(prev) {
 			return noun[:len(noun)-1] + "ies"
 		}
 	}
-	if strings.HasSuffix(lower, "f") {
+	if core.HasSuffix(lower, "f") {
 		return noun[:len(noun)-1] + "ves"
 	}
-	if strings.HasSuffix(lower, "fe") {
+	if core.HasSuffix(lower, "fe") {
 		return noun[:len(noun)-2] + "ves"
 	}
-	if strings.HasSuffix(lower, "o") && len(noun) > 1 {
+	if core.HasSuffix(lower, "o") && len(noun) > 1 {
 		prev := rune(lower[len(lower)-2])
 		if !isVowel(prev) {
 			if lower == "hero" || lower == "potato" || lower == "tomato" || lower == "echo" || lower == "veto" {
@@ -295,14 +296,14 @@ func Article(word string) string {
 	if word == "" {
 		return ""
 	}
-	lower := strings.ToLower(strings.TrimSpace(word))
+	lower := core.Lower(core.Trim(word))
 	for key := range consonantSounds {
-		if strings.HasPrefix(lower, key) {
+		if core.HasPrefix(lower, key) {
 			return "a"
 		}
 	}
 	for key := range vowelSounds {
-		if strings.HasPrefix(lower, key) {
+		if core.HasPrefix(lower, key) {
 			return "an"
 		}
 	}
@@ -322,7 +323,7 @@ func isVowel(r rune) bool {
 
 // Title capitalises the first letter of each word.
 func Title(s string) string {
-	var b strings.Builder
+	b := core.NewBuilder()
 	b.Grow(len(s))
 	prev := ' '
 	for _, r := range s {
@@ -345,8 +346,8 @@ func Quote(s string) string {
 func TemplateFuncs() template.FuncMap {
 	return template.FuncMap{
 		"title":      Title,
-		"lower":      strings.ToLower,
-		"upper":      strings.ToUpper,
+		"lower":      core.Lower,
+		"upper":      core.Upper,
 		"past":       PastTense,
 		"gerund":     Gerund,
 		"plural":     Pluralize,

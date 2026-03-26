@@ -3,11 +3,10 @@ package i18n
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"iter"
-	"strings"
 	"testing"
 
+	"dappco.re/go/core"
 	"forge.lthn.ai/core/go-inference"
 )
 
@@ -85,7 +84,7 @@ func TestClassifyCorpus_Basic(t *testing.T) {
 		},
 	}
 
-	input := strings.NewReader(
+	input := core.NewReader(
 		`{"seed_id":"1","domain":"general","prompt":"Delete the file"}` + "\n" +
 			`{"seed_id":"2","domain":"science","prompt":"Explain gravity"}` + "\n",
 	)
@@ -102,15 +101,15 @@ func TestClassifyCorpus_Basic(t *testing.T) {
 		t.Errorf("Skipped = %d, want 0", stats.Skipped)
 	}
 
-	lines := strings.Split(strings.TrimSpace(output.String()), "\n")
+	lines := core.Split(core.Trim(output.String()), "\n")
 	if len(lines) != 2 {
 		t.Fatalf("output lines = %d, want 2", len(lines))
 	}
 
 	for i, line := range lines {
 		var record map[string]any
-		if err := json.Unmarshal([]byte(line), &record); err != nil {
-			t.Fatalf("line %d: unmarshal: %v", i, err)
+		if r := core.JSONUnmarshal([]byte(line), &record); !r.OK {
+			t.Fatalf("line %d: unmarshal: %v", i, r.Value)
 		}
 		if record["domain_1b"] != "technical" {
 			t.Errorf("line %d: domain_1b = %v, want %q", i, record["domain_1b"], "technical")
@@ -133,7 +132,7 @@ func TestClassifyCorpus_SkipsMalformed(t *testing.T) {
 		},
 	}
 
-	input := strings.NewReader(
+	input := core.NewReader(
 		"not valid json\n" +
 			`{"seed_id":"1","domain":"general","prompt":"Hello world"}` + "\n" +
 			`{"seed_id":"2","domain":"general"}` + "\n",
@@ -157,7 +156,7 @@ func TestClassifyCorpus_DomainMapping(t *testing.T) {
 		classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
 			results := make([]inference.ClassifyResult, len(prompts))
 			for i, p := range prompts {
-				if strings.Contains(p, "Delete") {
+				if core.Contains(p, "Delete") {
 					results[i] = inference.ClassifyResult{Token: inference.Token{Text: "technical"}}
 				} else {
 					results[i] = inference.ClassifyResult{Token: inference.Token{Text: "ethical"}}
@@ -167,7 +166,7 @@ func TestClassifyCorpus_DomainMapping(t *testing.T) {
 		},
 	}
 
-	input := strings.NewReader(
+	input := core.NewReader(
 		`{"prompt":"Delete the file now"}` + "\n" +
 			`{"prompt":"Is it right to lie?"}` + "\n",
 	)

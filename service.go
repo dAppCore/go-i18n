@@ -2,16 +2,14 @@ package i18n
 
 import (
 	"embed"
-	"encoding/json"
-	"fmt"
 	"io/fs"
 	"maps"
 	"path"
 	"slices"
-	"strings"
 	"sync"
 	"sync/atomic"
 
+	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
 	"golang.org/x/text/language"
 )
@@ -185,8 +183,8 @@ func AddLoader(loader Loader) {
 
 func (s *Service) loadJSON(lang string, data []byte) error {
 	var raw map[string]any
-	if err := json.Unmarshal(data, &raw); err != nil {
-		return err
+	if r := core.JSONUnmarshal(data, &raw); !r.OK {
+		return r.Value.(error)
 	}
 	messages := make(map[string]Message)
 	grammarData := &GrammarData{
@@ -324,8 +322,8 @@ func (s *Service) resolveWithFallback(messageID string, data any) string {
 	if text := s.tryResolve(s.fallbackLang, messageID, data); text != "" {
 		return text
 	}
-	if strings.Contains(messageID, ".") {
-		parts := strings.Split(messageID, ".")
+	if core.Contains(messageID, ".") {
+		parts := core.Split(messageID, ".")
 		verb := parts[len(parts)-1]
 		commonKey := "common.action." + verb
 		if text := s.tryResolve(s.currentLang, commonKey, data); text != "" {
@@ -394,7 +392,7 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 				return f
 			}
 		case string:
-			switch strings.ToLower(f) {
+			switch core.Lower(f) {
 			case "formal":
 				return FormalityFormal
 			case "informal":
@@ -408,7 +406,7 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 func (s *Service) handleMissingKey(key string, args []any) string {
 	switch s.mode {
 	case ModeStrict:
-		panic(fmt.Sprintf("i18n: missing translation key %q", key))
+		panic(core.Sprintf("i18n: missing translation key %q", key))
 	case ModeCollect:
 		var argsMap map[string]any
 		if len(args) > 0 {
@@ -506,7 +504,7 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 		return log.E("Service.LoadFS", "read locales directory", err)
 	}
 	for _, entry := range entries {
-		if entry.IsDir() || !strings.HasSuffix(entry.Name(), ".json") {
+		if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") {
 			continue
 		}
 		filePath := path.Join(dir, entry.Name())
@@ -514,8 +512,8 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 		if err != nil {
 			return log.E("Service.LoadFS", "read locale: "+entry.Name(), err)
 		}
-		lang := strings.TrimSuffix(entry.Name(), ".json")
-		lang = strings.ReplaceAll(lang, "_", "-")
+		lang := core.TrimSuffix(entry.Name(), ".json")
+		lang = core.Replace(lang, "_", "-")
 		if err := s.loadJSON(lang, data); err != nil {
 			return log.E("Service.LoadFS", "parse locale: "+entry.Name(), err)
 		}

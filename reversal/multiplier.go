@@ -1,9 +1,9 @@
 package reversal
 
 import (
-	"strings"
 	"unicode"
 
+	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
 )
 
@@ -26,7 +26,7 @@ func NewMultiplierForLang(lang string) *Multiplier {
 // Expand produces: original + tense flips (past, gerund) + number flips (plural toggle) + combinations.
 // All output is deterministic and grammatically correct.
 func (m *Multiplier) Expand(text string) []string {
-	text = strings.TrimSpace(text)
+	text = core.Trim(text)
 	if text == "" {
 		return nil
 	}
@@ -140,7 +140,7 @@ func (m *Multiplier) applyVerbTransform(tokens []Token, vi int, targetTense stri
 
 	result[vi] = Token{
 		Raw:        newForm,
-		Lower:      strings.ToLower(newForm),
+		Lower:      core.Lower(newForm),
 		Type:       TokenVerb,
 		Confidence: 1.0,
 		VerbInfo: VerbMatch{
@@ -191,7 +191,7 @@ func (m *Multiplier) applyNounTransformOnTokens(tokens []Token, ni int) []Token 
 
 	result[ni] = Token{
 		Raw:        newForm,
-		Lower:      strings.ToLower(newForm),
+		Lower:      core.Lower(newForm),
 		Type:       TokenNoun,
 		Confidence: 1.0,
 		NounInfo: NounMatch{
@@ -206,7 +206,7 @@ func (m *Multiplier) applyNounTransformOnTokens(tokens []Token, ni int) []Token 
 
 // reconstruct joins tokens back into a string, preserving spacing.
 func reconstruct(tokens []Token) string {
-	var b strings.Builder
+	b := core.NewBuilder()
 	for i, tok := range tokens {
 		if i > 0 {
 			// Punctuation tokens that were split from the previous word
@@ -235,7 +235,7 @@ func preserveCase(original, replacement string) string {
 
 	// If the original is all uppercase (like "DELETE"), make replacement all uppercase.
 	if isAllUpper(original) && len(original) > 1 {
-		return strings.ToUpper(replacement)
+		return core.Upper(replacement)
 	}
 
 	// If the first character of the original is uppercase, capitalise the replacement.
