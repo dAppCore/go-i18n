@@ -944,7 +944,7 @@ func splitTrailingPunct(s string) (string, string) {
 	// Check single-char trailing punctuation.
 	if len(s) > 1 {
 		last := s[len(s)-1]
-		if last == '?' || last == ':' || last == '!' || last == ';' || last == ',' {
+		if last == '?' || last == ':' || last == '!' || last == ';' || last == ',' || last == '.' || last == ')' || last == ']' || last == '}' {
 			return s[:len(s)-1], string(last)
 		}
 	}
@@ -967,6 +967,14 @@ func matchPunctuation(punct string) (string, bool) {
 		return "separator", true
 	case ",":
 		return "comma", true
+	case ".":
+		return "sentence_end", true
+	case ")":
+		return "close_paren", true
+	case "]":
+		return "close_bracket", true
+	case "}":
+		return "close_brace", true
 	}
 	return "", false
 }

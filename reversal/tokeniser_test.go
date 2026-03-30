@@ -259,6 +259,34 @@ func TestTokeniser_Tokenise_Punctuation(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Tokenise_ClauseBoundarySentence(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("run tests. commit")
+	hasSentenceEnd := false
+
+	for _, token := range tokens {
+		if token.Raw == "run" && token.Type != TokenVerb {
+			t.Errorf("'run' should remain TokenVerb, got %v", token.Type)
+		}
+		if token.Type == TokenPunctuation && token.PunctType == "sentence_end" {
+			hasSentenceEnd = true
+		}
+		if token.Lower == "commit" {
+			// Without sentence-end boundary support, this can be demoted by verb saturation.
+			// With boundary detection, it should still classify as a verb.
+			if token.Type != TokenVerb {
+				t.Errorf("'commit' after period should be TokenVerb, got %v", token.Type)
+			}
+		}
+	}
+
+	if !hasSentenceEnd {
+		t.Error("did not detect sentence-end punctuation in \"run tests. commit\"")
+	}
+}
+
 func TestTokeniser_Tokenise_Empty(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
