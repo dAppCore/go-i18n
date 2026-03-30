@@ -287,6 +287,27 @@ func TestTokeniser_Tokenise_ClauseBoundarySentence(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Tokenise_ClauseBoundaryStandalonePunctuation(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("run tests . commit")
+	hasSentenceEnd := false
+
+	for _, token := range tokens {
+		if token.Type == TokenPunctuation && token.PunctType == "sentence_end" {
+			hasSentenceEnd = true
+		}
+		if token.Lower == "commit" && token.Type != TokenVerb {
+			t.Errorf("'commit' after standalone period should be TokenVerb, got %v", token.Type)
+		}
+	}
+
+	if !hasSentenceEnd {
+		t.Error("did not detect standalone sentence-end punctuation in \"run tests . commit\"")
+	}
+}
+
 func TestTokeniser_Tokenise_Empty(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()

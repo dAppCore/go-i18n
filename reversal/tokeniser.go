@@ -934,9 +934,14 @@ func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, compo
 }
 
 // splitTrailingPunct separates a word from its trailing punctuation.
-// Returns the word and the punctuation suffix. Punctuation patterns
-// recognised: "..." (progress), "?" (question), ":" (label).
+// Returns the word and the punctuation suffix. It also recognises
+// standalone punctuation tokens such as "." and ")".
 func splitTrailingPunct(s string) (string, string) {
+	// Standalone punctuation token.
+	if _, ok := matchPunctuation(s); ok {
+		return "", s
+	}
+
 	// Check for "..." suffix first (3-char pattern).
 	if strings.HasSuffix(s, "...") {
 		return s[:len(s)-3], "..."
