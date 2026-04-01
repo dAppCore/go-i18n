@@ -879,6 +879,8 @@ func TestTemplateFuncs(t *testing.T) {
 		"progressSubject",
 		"actionResult",
 		"actionFailed",
+		"prompt",
+		"lang",
 		"timeAgo",
 		"formatAgo",
 	}
@@ -927,6 +929,30 @@ func TestTemplateFuncs_CompositeHelpers(t *testing.T) {
 	want := "Status:|Building...|Building project...|File deleted|Failed to delete file"
 	if got := buf.String(); got != want {
 		t.Fatalf("template composite helpers = %q, want %q", got, want)
+	}
+}
+
+func TestTemplateFuncs_PromptAndLang(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{prompt "confirm"}}|{{lang "de"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	if got, want := buf.String(), "Are you sure?|German"; got != want {
+		t.Fatalf("template prompt/lang = %q, want %q", got, want)
 	}
 }
 

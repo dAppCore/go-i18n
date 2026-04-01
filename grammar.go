@@ -690,6 +690,8 @@ func TemplateFuncs() template.FuncMap {
 		"progressSubject": ProgressSubject,
 		"actionResult":    ActionResult,
 		"actionFailed":    ActionFailed,
+		"prompt":          Prompt,
+		"lang":            Lang,
 		"timeAgo":         TimeAgo,
 		"formatAgo":       FormatAgo,
 	}
