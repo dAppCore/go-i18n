@@ -267,6 +267,30 @@ func TestServiceTranslationContextExtrasInTemplates(t *testing.T) {
 	}
 }
 
+func TestServiceSubjectCountPlurals(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if err := svc.loadJSON("en", []byte(`{
+		"item_count": {
+			"one": "{{.Count}} item",
+			"other": "{{.Count}} items"
+		}
+	}`)); err != nil {
+		t.Fatalf("loadJSON() failed: %v", err)
+	}
+
+	if got := svc.T("item_count", S("item", "config.yaml").Count(1)); got != "1 item" {
+		t.Errorf("T(item_count, Count(1)) = %q, want %q", got, "1 item")
+	}
+
+	if got := svc.T("item_count", S("item", "config.yaml").Count(3)); got != "3 items" {
+		t.Errorf("T(item_count, Count(3)) = %q, want %q", got, "3 items")
+	}
+}
+
 func TestServiceTemplatesSupportGrammarFuncs(t *testing.T) {
 	svc, err := New()
 	if err != nil {

@@ -5,6 +5,11 @@ func getCount(data any) int {
 		return 0
 	}
 	switch d := data.(type) {
+	case *Subject:
+		if d == nil {
+			return 0
+		}
+		return d.CountInt()
 	case map[string]any:
 		if c, ok := d["Count"]; ok {
 			return toInt(c)
