@@ -215,6 +215,7 @@ func TestServiceTranslationContext(t *testing.T) {
 		"direction.right._navigation._feminine._formal": "right, madam",
 		"direction.right._correctness":                  "correct",
 		"direction.right._correctness._formal":          "correct, sir",
+		"welcome._workspace":                            "welcome aboard",
 		"welcome._feminine":                             "welcome, ma'am",
 	})
 
@@ -244,6 +245,10 @@ func TestServiceTranslationContext(t *testing.T) {
 
 	if got := svc.T("welcome", S("user", "Alice").Gender("feminine")); got != "welcome, ma'am" {
 		t.Errorf("T(welcome, S(user, Alice).Gender(feminine)) = %q, want %q", got, "welcome, ma'am")
+	}
+
+	if got := svc.T("welcome", S("user", "Alice").In("workspace")); got != "welcome aboard" {
+		t.Errorf("T(welcome, S(user, Alice).In(workspace)) = %q, want %q", got, "welcome aboard")
 	}
 }
 

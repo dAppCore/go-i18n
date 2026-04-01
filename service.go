@@ -359,8 +359,8 @@ func (s *Service) resolveWithFallback(messageID string, data any) string {
 }
 
 func (s *Service) tryResolve(lang, key string, data any) string {
-	context, gender, formality := s.getEffectiveContextGenderAndFormality(data)
-	for _, lookupKey := range lookupVariants(key, context, gender, formality) {
+	context, gender, location, formality := s.getEffectiveContextGenderLocationAndFormality(data)
+	for _, lookupKey := range lookupVariants(key, context, gender, location, formality) {
 		if text := s.resolveMessage(lang, lookupKey, data); text != "" {
 			return text
 		}
@@ -388,30 +388,34 @@ func (s *Service) resolveMessage(lang, key string, data any) string {
 	return text
 }
 
-func (s *Service) getEffectiveContextGenderAndFormality(data any) (string, string, Formality) {
+func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (string, string, string, Formality) {
 	if ctx, ok := data.(*TranslationContext); ok && ctx != nil {
 		formality := ctx.FormalityValue()
 		if formality == FormalityNeutral {
 			formality = s.formality
 		}
-		return ctx.ContextString(), ctx.GenderString(), formality
+		return ctx.ContextString(), ctx.GenderString(), "", formality
 	}
 	if subj, ok := data.(*Subject); ok && subj != nil {
 		formality := subj.formality
 		if formality == FormalityNeutral {
 			formality = s.formality
 		}
-		return "", subj.gender, formality
+		return "", subj.gender, subj.location, formality
 	}
 	if m, ok := data.(map[string]any); ok {
 		var context string
 		var gender string
+		var location string
 		formality := s.formality
 		if v, ok := m["Context"].(string); ok {
 			context = core.Trim(v)
 		}
 		if v, ok := m["Gender"].(string); ok {
 			gender = core.Trim(v)
+		}
+		if v, ok := m["Location"].(string); ok {
+			location = core.Trim(v)
 		}
 		if v, ok := m["Formality"]; ok {
 			switch f := v.(type) {
@@ -428,9 +432,9 @@ func (s *Service) getEffectiveContextGenderAndFormality(data any) (string, strin
 				}
 			}
 		}
-		return context, gender, formality
+		return context, gender, location, formality
 	}
-	return "", "", s.getEffectiveFormality(data)
+	return "", "", "", s.getEffectiveFormality(data)
 }
 
 func (s *Service) getEffectiveFormality(data any) Formality {
@@ -462,25 +466,49 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 	return s.formality
 }
 
-func lookupVariants(key, context, gender string, formality Formality) []string {
+func lookupVariants(key, context, gender, location string, formality Formality) []string {
 	var variants []string
 	if context != "" {
+		if gender != "" && location != "" && formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+location+"._"+formality.String())
+		}
+		if gender != "" && location != "" {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+location)
+		}
 		if gender != "" && formality != FormalityNeutral {
 			variants = append(variants, key+"._"+context+"._"+gender+"._"+formality.String())
 		}
 		if gender != "" {
 			variants = append(variants, key+"._"+context+"._"+gender)
 		}
+		if location != "" && formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+location+"._"+formality.String())
+		}
+		if location != "" {
+			variants = append(variants, key+"._"+context+"._"+location)
+		}
 		if formality != FormalityNeutral {
 			variants = append(variants, key+"._"+context+"._"+formality.String())
 		}
 		variants = append(variants, key+"._"+context)
 	}
+	if gender != "" && location != "" && formality != FormalityNeutral {
+		variants = append(variants, key+"._"+gender+"._"+location+"._"+formality.String())
+	}
+	if gender != "" && location != "" {
+		variants = append(variants, key+"._"+gender+"._"+location)
+	}
+	if gender != "" && formality != FormalityNeutral {
+		variants = append(variants, key+"._"+gender+"._"+formality.String())
+	}
 	if gender != "" {
-		if formality != FormalityNeutral {
-			variants = append(variants, key+"._"+gender+"._"+formality.String())
-		}
 		variants = append(variants, key+"._"+gender)
+	}
+	if location != "" && formality != FormalityNeutral {
+		variants = append(variants, key+"._"+location+"._"+formality.String())
+	}
+	if location != "" {
+		variants = append(variants, key+"._"+location)
 	}
 	if formality != FormalityNeutral {
 		variants = append(variants, key+"._"+formality.String())
