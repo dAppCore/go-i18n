@@ -32,12 +32,116 @@ func MergeGrammarData(lang string, data *GrammarData) {
 		grammarCache[lang] = data
 		return
 	}
+	if existing.Verbs == nil {
+		existing.Verbs = make(map[string]VerbForms, len(data.Verbs))
+	}
+	if existing.Nouns == nil {
+		existing.Nouns = make(map[string]NounForms, len(data.Nouns))
+	}
+	if existing.Words == nil {
+		existing.Words = make(map[string]string, len(data.Words))
+	}
 	maps.Copy(existing.Verbs, data.Verbs)
 	maps.Copy(existing.Nouns, data.Nouns)
 	maps.Copy(existing.Words, data.Words)
-	if data.Number != (NumberFormat{}) {
-		existing.Number = data.Number
+	mergeArticleForms(&existing.Articles, data.Articles)
+	mergePunctuationRules(&existing.Punct, data.Punct)
+	mergeSignalData(&existing.Signals, data.Signals)
+	if data.Number.ThousandsSep != "" {
+		existing.Number.ThousandsSep = data.Number.ThousandsSep
 	}
+	if data.Number.DecimalSep != "" {
+		existing.Number.DecimalSep = data.Number.DecimalSep
+	}
+	if data.Number.PercentFmt != "" {
+		existing.Number.PercentFmt = data.Number.PercentFmt
+	}
+}
+
+func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
+	if dst == nil {
+		return
+	}
+	if src.IndefiniteDefault != "" {
+		dst.IndefiniteDefault = src.IndefiniteDefault
+	}
+	if src.IndefiniteVowel != "" {
+		dst.IndefiniteVowel = src.IndefiniteVowel
+	}
+	if src.Definite != "" {
+		dst.Definite = src.Definite
+	}
+	if len(src.ByGender) == 0 {
+		return
+	}
+	if dst.ByGender == nil {
+		dst.ByGender = make(map[string]string, len(src.ByGender))
+	}
+	maps.Copy(dst.ByGender, src.ByGender)
+}
+
+func mergePunctuationRules(dst *PunctuationRules, src PunctuationRules) {
+	if dst == nil {
+		return
+	}
+	if src.LabelSuffix != "" {
+		dst.LabelSuffix = src.LabelSuffix
+	}
+	if src.ProgressSuffix != "" {
+		dst.ProgressSuffix = src.ProgressSuffix
+	}
+}
+
+func mergeSignalData(dst *SignalData, src SignalData) {
+	if dst == nil {
+		return
+	}
+	if len(src.NounDeterminers) > 0 {
+		dst.NounDeterminers = append(dst.NounDeterminers, src.NounDeterminers...)
+	}
+	if len(src.VerbAuxiliaries) > 0 {
+		dst.VerbAuxiliaries = append(dst.VerbAuxiliaries, src.VerbAuxiliaries...)
+	}
+	if len(src.VerbInfinitive) > 0 {
+		dst.VerbInfinitive = append(dst.VerbInfinitive, src.VerbInfinitive...)
+	}
+	if len(src.Priors) == 0 {
+		return
+	}
+	if dst.Priors == nil {
+		dst.Priors = make(map[string]map[string]float64, len(src.Priors))
+	}
+	for word, priors := range src.Priors {
+		if dst.Priors[word] == nil {
+			dst.Priors[word] = make(map[string]float64, len(priors))
+		}
+		maps.Copy(dst.Priors[word], priors)
+	}
+}
+
+func grammarDataHasContent(data *GrammarData) bool {
+	if data == nil {
+		return false
+	}
+	if len(data.Verbs) > 0 || len(data.Nouns) > 0 || len(data.Words) > 0 {
+		return true
+	}
+	if data.Articles.IndefiniteDefault != "" ||
+		data.Articles.IndefiniteVowel != "" ||
+		data.Articles.Definite != "" ||
+		len(data.Articles.ByGender) > 0 {
+		return true
+	}
+	if data.Punct.LabelSuffix != "" || data.Punct.ProgressSuffix != "" {
+		return true
+	}
+	if len(data.Signals.NounDeterminers) > 0 ||
+		len(data.Signals.VerbAuxiliaries) > 0 ||
+		len(data.Signals.VerbInfinitive) > 0 ||
+		len(data.Signals.Priors) > 0 {
+		return true
+	}
+	return data.Number != (NumberFormat{})
 }
 
 // IrregularVerbs returns a copy of the irregular verb forms map.

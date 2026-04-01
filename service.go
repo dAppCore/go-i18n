@@ -111,7 +111,7 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 			return nil, log.E("NewWithLoader", "load locale: "+lang, err)
 		}
 		s.messages[lang] = messages
-		if grammar != nil && (len(grammar.Verbs) > 0 || len(grammar.Nouns) > 0 || len(grammar.Words) > 0) {
+		if grammarDataHasContent(grammar) {
 			SetGrammarData(lang, grammar)
 		}
 		tag := language.Make(lang)
@@ -198,7 +198,7 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 	} else {
 		s.messages[lang] = messages
 	}
-	if len(grammarData.Verbs) > 0 || len(grammarData.Nouns) > 0 || len(grammarData.Words) > 0 {
+	if grammarDataHasContent(grammarData) {
 		MergeGrammarData(lang, grammarData)
 	}
 	return nil
@@ -481,7 +481,7 @@ func (s *Service) AddLoader(loader Loader) error {
 
 		// Merge grammar data into the global grammar store (merge, not replace,
 		// so that multiple loaders contribute entries for the same language).
-		if grammar != nil && (len(grammar.Verbs) > 0 || len(grammar.Nouns) > 0 || len(grammar.Words) > 0) {
+		if grammarDataHasContent(grammar) {
 			MergeGrammarData(lang, grammar)
 		}
 
