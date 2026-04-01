@@ -196,6 +196,34 @@ func TestCountHandler_UsesLocaleNumberFormat(t *testing.T) {
 	}
 }
 
+func TestCountHandler_PreservesExactWordDisplay(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.go_mod", []any{2}, nil)
+	if got != "2 go.mod" {
+		t.Fatalf("CountHandler.Handle(go_mod, 2) = %q, want %q", got, "2 go.mod")
+	}
+}
+
 func TestRunHandlerChain(t *testing.T) {
 	handlers := DefaultHandlers()
 	fallback := func() string { return "missed" }

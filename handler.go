@@ -140,10 +140,28 @@ func countWordForm(lang, noun string, count int) string {
 	if count == 1 {
 		return display
 	}
+	if !isPluralisableWordDisplay(display) {
+		return display
+	}
 	if isUpperAcronymPlural(display) {
 		return display
 	}
 	return Pluralize(display, count)
+}
+
+func isPluralisableWordDisplay(s string) bool {
+	hasLetter := false
+	for _, r := range s {
+		switch {
+		case unicode.IsLetter(r):
+			hasLetter = true
+		case unicode.IsSpace(r):
+			continue
+		default:
+			return false
+		}
+	}
+	return hasLetter
 }
 
 func isUpperAcronymPlural(s string) bool {
