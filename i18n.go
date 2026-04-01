@@ -112,6 +112,7 @@ func applyTemplate(text string, data any) string {
 	if !core.Contains(text, "{{") {
 		return text
 	}
+	data = templateDataForRendering(data)
 	if cached, ok := templateCache.Load(text); ok {
 		var buf bytes.Buffer
 		if err := cached.(*template.Template).Execute(&buf, data); err != nil {
@@ -129,4 +130,42 @@ func applyTemplate(text string, data any) string {
 		return text
 	}
 	return buf.String()
+}
+
+func templateDataForRendering(data any) any {
+	switch v := data.(type) {
+	case *TranslationContext:
+		if v == nil {
+			return nil
+		}
+		rendered := map[string]any{
+			"Context":   v.Context,
+			"Gender":    v.Gender,
+			"Formality": v.Formality,
+			"Extra":     v.Extra,
+		}
+		for key, value := range v.Extra {
+			if _, exists := rendered[key]; !exists {
+				rendered[key] = value
+			}
+		}
+		return rendered
+	case *Subject:
+		if v == nil {
+			return nil
+		}
+		return map[string]any{
+			"Subject":   v.String(),
+			"Noun":      v.Noun,
+			"Count":     v.count,
+			"Gender":    v.gender,
+			"Location":  v.location,
+			"Formality": v.formality,
+			"IsFormal":  v.formality == FormalityFormal,
+			"IsPlural":  v.count != 1,
+			"Value":     v.Value,
+		}
+	default:
+		return data
+	}
 }

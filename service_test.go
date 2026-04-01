@@ -247,6 +247,26 @@ func TestServiceTranslationContext(t *testing.T) {
 	}
 }
 
+func TestServiceTranslationContextExtrasInTemplates(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"welcome": "Hello {{.name}} from {{.Context}} in {{.city}}",
+	})
+
+	ctx := C("greeting").
+		Set("name", "World").
+		Set("city", "Paris")
+
+	got := svc.T("welcome", ctx)
+	if got != "Hello World from greeting in Paris" {
+		t.Errorf("T(welcome, ctx) = %q, want %q", got, "Hello World from greeting in Paris")
+	}
+}
+
 func TestServiceDirection(t *testing.T) {
 	svc, err := New()
 	if err != nil {
