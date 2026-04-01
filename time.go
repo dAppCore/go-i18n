@@ -34,6 +34,7 @@ func TimeAgo(t time.Time) string {
 // FormatAgo formats "N unit ago" with proper pluralisation.
 func FormatAgo(count int, unit string) string {
 	svc := Default()
+	unit = normalizeAgoUnit(unit)
 	if svc == nil {
 		return core.Sprintf("%d %ss ago", count, unit)
 	}
@@ -43,4 +44,21 @@ func FormatAgo(count int, unit string) string {
 		return core.Sprintf("%d %s ago", count, Pluralize(unit, count))
 	}
 	return result
+}
+
+func normalizeAgoUnit(unit string) string {
+	switch unit {
+	case "seconds":
+		return "second"
+	case "minutes":
+		return "minute"
+	case "hours":
+		return "hour"
+	case "days":
+		return "day"
+	case "weeks":
+		return "week"
+	default:
+		return unit
+	}
 }

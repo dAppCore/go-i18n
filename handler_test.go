@@ -150,6 +150,7 @@ func TestNumericHandler(t *testing.T) {
 		{"i18n.numeric.ordinal", []any{11}, "11th"},
 		{"i18n.numeric.percent", []any{0.85}, "85%"},
 		{"i18n.numeric.bytes", []any{int64(1536000)}, "1.5 MB"},
+		{"i18n.numeric.ago", []any{5, "minutes"}, "5 minutes ago"},
 	}
 
 	for _, tt := range tests {
