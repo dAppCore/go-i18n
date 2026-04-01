@@ -344,14 +344,13 @@ func (s *Service) resolveWithFallback(messageID string, data any) string {
 }
 
 func (s *Service) tryResolve(lang, key string, data any) string {
-	formality := s.getEffectiveFormality(data)
-	if formality != FormalityNeutral {
-		formalityKey := key + "._" + formality.String()
-		if text := s.resolveMessage(lang, formalityKey, data); text != "" {
+	context, formality := s.getEffectiveContextAndFormality(data)
+	for _, lookupKey := range lookupVariants(key, context, formality) {
+		if text := s.resolveMessage(lang, lookupKey, data); text != "" {
 			return text
 		}
 	}
-	return s.resolveMessage(lang, key, data)
+	return ""
 }
 
 func (s *Service) resolveMessage(lang, key string, data any) string {
@@ -372,6 +371,39 @@ func (s *Service) resolveMessage(lang, key string, data any) string {
 		text = applyTemplate(text, data)
 	}
 	return text
+}
+
+func (s *Service) getEffectiveContextAndFormality(data any) (string, Formality) {
+	if ctx, ok := data.(*TranslationContext); ok && ctx != nil {
+		formality := ctx.FormalityValue()
+		if formality == FormalityNeutral {
+			formality = s.formality
+		}
+		return ctx.ContextString(), formality
+	}
+	if m, ok := data.(map[string]any); ok {
+		var context string
+		if v, ok := m["Context"].(string); ok {
+			context = core.Trim(v)
+		}
+		if v, ok := m["Formality"]; ok {
+			switch f := v.(type) {
+			case Formality:
+				if f != FormalityNeutral {
+					return context, f
+				}
+			case string:
+				switch core.Lower(f) {
+				case "formal":
+					return context, FormalityFormal
+				case "informal":
+					return context, FormalityInformal
+				}
+			}
+		}
+		return context, s.formality
+	}
+	return "", s.getEffectiveFormality(data)
 }
 
 func (s *Service) getEffectiveFormality(data any) Formality {
@@ -401,6 +433,21 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 		}
 	}
 	return s.formality
+}
+
+func lookupVariants(key, context string, formality Formality) []string {
+	var variants []string
+	if context != "" {
+		if formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+formality.String())
+		}
+		variants = append(variants, key+"._"+context)
+	}
+	if formality != FormalityNeutral {
+		variants = append(variants, key+"._"+formality.String())
+	}
+	variants = append(variants, key)
+	return variants
 }
 
 func (s *Service) handleMissingKey(key string, args []any) string {

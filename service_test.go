@@ -202,6 +202,36 @@ func TestServiceFormality(t *testing.T) {
 	}
 }
 
+func TestServiceTranslationContext(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"direction.right._navigation":          "right",
+		"direction.right._navigation._formal":  "right, sir",
+		"direction.right._correctness":         "correct",
+		"direction.right._correctness._formal": "correct, sir",
+	})
+
+	if got := svc.T("direction.right", C("navigation")); got != "right" {
+		t.Errorf("T(direction.right, C(navigation)) = %q, want %q", got, "right")
+	}
+
+	if got := svc.T("direction.right", C("navigation").Formal()); got != "right, sir" {
+		t.Errorf("T(direction.right, C(navigation).Formal()) = %q, want %q", got, "right, sir")
+	}
+
+	if got := svc.T("direction.right", C("correctness")); got != "correct" {
+		t.Errorf("T(direction.right, C(correctness)) = %q, want %q", got, "correct")
+	}
+
+	if got := svc.T("direction.right", C("correctness").Formal()); got != "correct, sir" {
+		t.Errorf("T(direction.right, C(correctness).Formal()) = %q, want %q", got, "correct, sir")
+	}
+}
+
 func TestServiceDirection(t *testing.T) {
 	svc, err := New()
 	if err != nil {
