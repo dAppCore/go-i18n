@@ -454,6 +454,7 @@ func TestTitle(t *testing.T) {
 		{"", ""},
 		{"HELLO", "HELLO"},
 		{"hello-world", "Hello-World"},
+		{"config.yaml", "Config.yaml"},
 	}
 
 	for _, tt := range tests {
@@ -663,7 +664,7 @@ func TestActionResult(t *testing.T) {
 		verb, subject string
 		want          string
 	}{
-		{"delete", "config.yaml", "Config.Yaml deleted"},
+		{"delete", "config.yaml", "Config.yaml deleted"},
 		{"build", "project", "Project built"},
 		{"", "file", ""},
 		{"delete", "", ""},

@@ -104,8 +104,8 @@ func TestDoneHandler(t *testing.T) {
 
 	// With subject
 	got := h.Handle("i18n.done.delete", []any{"config.yaml"}, nil)
-	if got != "Config.Yaml deleted" {
-		t.Errorf("DoneHandler.Handle(delete, config.yaml) = %q, want %q", got, "Config.Yaml deleted")
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, config.yaml) = %q, want %q", got, "Config.yaml deleted")
 	}
 
 	// Without subject — just past tense

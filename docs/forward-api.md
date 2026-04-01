@@ -194,7 +194,7 @@ T("i18n.count.person", 3)   // "3 people"
 Produces past-tense completion messages.
 
 ```go
-T("i18n.done.delete", "config.yaml")  // "Config.Yaml deleted"
+T("i18n.done.delete", "config.yaml")  // "Config.yaml deleted"
 T("i18n.done.push", "commits")        // "Commits pushed"
 T("i18n.done.delete")                 // "Deleted"
 ```

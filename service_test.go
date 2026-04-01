@@ -54,8 +54,8 @@ func TestServiceT(t *testing.T) {
 
 	// Done handler
 	got = svc.T("i18n.done.delete", "config.yaml")
-	if got != "Config.Yaml deleted" {
-		t.Errorf("T(i18n.done.delete, config.yaml) = %q, want 'Config.Yaml deleted'", got)
+	if got != "Config.yaml deleted" {
+		t.Errorf("T(i18n.done.delete, config.yaml) = %q, want 'Config.yaml deleted'", got)
 	}
 
 	// Fail handler

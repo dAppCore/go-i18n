@@ -621,18 +621,26 @@ func isVowel(r rune) bool {
 	return false
 }
 
-// Title capitalises the first letter of each word.
+// Title capitalises the first letter of each word-like segment.
+//
+// Hyphens and whitespace start a new segment; punctuation inside identifiers
+// such as dots and underscores is preserved so filenames stay readable.
 func Title(s string) string {
 	b := core.NewBuilder()
 	b.Grow(len(s))
-	prev := ' '
+	capNext := true
 	for _, r := range s {
-		if !unicode.IsLetter(prev) && unicode.IsLetter(r) {
+		if unicode.IsLetter(r) && capNext {
 			b.WriteRune(unicode.ToUpper(r))
 		} else {
 			b.WriteRune(r)
 		}
-		prev = r
+		switch r {
+		case ' ', '\t', '\n', '\r', '-':
+			capNext = true
+		default:
+			capNext = false
+		}
 	}
 	return b.String()
 }

@@ -8,7 +8,7 @@
 //	T("i18n.label.status")              // "Status:"
 //	T("i18n.progress.build")            // "Building..."
 //	T("i18n.count.file", 5)             // "5 files"
-//	T("i18n.done.delete", "config.yaml") // "Config.Yaml deleted"
+//	T("i18n.done.delete", "config.yaml") // "Config.yaml deleted"
 //	T("i18n.fail.push", "commits")      // "Failed to push commits"
 package i18n
 
