@@ -120,7 +120,7 @@ func applyTemplate(text string, data any) string {
 		}
 		return buf.String()
 	}
-	tmpl, err := template.New("").Parse(text)
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(text)
 	if err != nil {
 		return text
 	}

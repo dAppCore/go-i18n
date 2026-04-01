@@ -267,6 +267,22 @@ func TestServiceTranslationContextExtrasInTemplates(t *testing.T) {
 	}
 }
 
+func TestServiceTemplatesSupportGrammarFuncs(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"build.status": "{{past .Verb}} complete",
+	})
+
+	got := svc.T("build.status", map[string]any{"Verb": "build"})
+	if got != "built complete" {
+		t.Errorf("T(build.status) = %q, want %q", got, "built complete")
+	}
+}
+
 func TestServiceDirection(t *testing.T) {
 	svc, err := New()
 	if err != nil {
