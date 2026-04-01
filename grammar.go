@@ -393,7 +393,9 @@ func applyRegularPlural(noun string) string {
 	return noun + "s"
 }
 
-// Article returns the appropriate indefinite article ("a" or "an").
+// Article returns the appropriate article for the current language.
+// English falls back to phonetic "a"/"an" heuristics. Locale grammar data
+// can override this with language-specific article forms.
 //
 //	Article("file")     // "a"
 //	Article("error")    // "an"
@@ -404,6 +406,9 @@ func Article(word string) string {
 		return ""
 	}
 	lower := core.Lower(core.Trim(word))
+	if article, ok := articleForCurrentLanguage(lower, word); ok {
+		return article
+	}
 	for key := range consonantSounds {
 		if core.HasPrefix(lower, key) {
 			return "a"
@@ -418,6 +423,107 @@ func Article(word string) string {
 		return "an"
 	}
 	return "a"
+}
+
+func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
+	lang := currentLangForGrammar()
+	data := GetGrammarData(lang)
+	if data == nil {
+		return "", false
+	}
+
+	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
+		return article, true
+	}
+	if article, ok := articleFromGrammarForms(data, originalWord); ok {
+		return article, true
+	}
+	return "", false
+}
+
+func articleByGender(data *GrammarData, lowerWord, originalWord, lang string) (string, bool) {
+	if len(data.Articles.ByGender) == 0 {
+		return "", false
+	}
+	forms, ok := data.Nouns[lowerWord]
+	if !ok || forms.Gender == "" {
+		return "", false
+	}
+	article, ok := data.Articles.ByGender[forms.Gender]
+	if !ok || article == "" {
+		return "", false
+	}
+	return maybeElideArticle(article, originalWord, lang), true
+}
+
+func articleFromGrammarForms(data *GrammarData, word string) (string, bool) {
+	if data.Articles.IndefiniteDefault == "" && data.Articles.IndefiniteVowel == "" {
+		return "", false
+	}
+	if usesVowelSoundArticle(word) && data.Articles.IndefiniteVowel != "" {
+		return data.Articles.IndefiniteVowel, true
+	}
+	if data.Articles.IndefiniteDefault != "" {
+		return data.Articles.IndefiniteDefault, true
+	}
+	if data.Articles.IndefiniteVowel != "" {
+		return data.Articles.IndefiniteVowel, true
+	}
+	return "", false
+}
+
+func maybeElideArticle(article, word, lang string) string {
+	if !isFrenchLanguage(lang) {
+		return article
+	}
+	switch core.Lower(article) {
+	case "le", "la", "de", "je", "me", "te", "se", "ne":
+		if startsWithVowelSound(word) {
+			return "l'"
+		}
+	}
+	return article
+}
+
+func usesVowelSoundArticle(word string) bool {
+	lower := core.Lower(core.Trim(word))
+	if lower == "" {
+		return false
+	}
+	for key := range consonantSounds {
+		if core.HasPrefix(lower, key) {
+			return false
+		}
+	}
+	for key := range vowelSounds {
+		if core.HasPrefix(lower, key) {
+			return true
+		}
+	}
+	for _, r := range lower {
+		return isVowel(r)
+	}
+	return false
+}
+
+func startsWithVowelSound(word string) bool {
+	lower := core.Lower(core.Trim(word))
+	if lower == "" {
+		return false
+	}
+	r := []rune(lower)
+	switch r[0] {
+	case 'a', 'e', 'i', 'o', 'u', 'y',
+		'à', 'â', 'ä', 'æ', 'é', 'è', 'ê', 'ë',
+		'î', 'ï', 'ô', 'ö', 'ù', 'û', 'ü', 'œ', 'h':
+		return true
+	}
+	return false
+}
+
+func isFrenchLanguage(lang string) bool {
+	lang = core.Lower(lang)
+	return lang == "fr" || core.HasPrefix(lang, "fr-")
 }
 
 func isVowel(r rune) bool {
