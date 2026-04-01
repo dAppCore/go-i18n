@@ -406,9 +406,16 @@ func Article(word string) string {
 	if word == "" {
 		return ""
 	}
-	lower := core.Lower(core.Trim(word))
+	trimmed := core.Trim(word)
+	lower := core.Lower(trimmed)
 	if article, ok := articleForCurrentLanguage(lower, word); ok {
 		return article
+	}
+	if isInitialism(trimmed) {
+		if initialismUsesVowelSound(trimmed) {
+			return "an"
+		}
+		return "a"
 	}
 	for key := range consonantSounds {
 		if core.HasPrefix(lower, key) {
@@ -487,10 +494,14 @@ func maybeElideArticle(article, word, lang string) string {
 }
 
 func usesVowelSoundArticle(word string) bool {
-	lower := core.Lower(core.Trim(word))
-	if lower == "" {
+	trimmed := core.Trim(word)
+	if trimmed == "" {
 		return false
 	}
+	if isInitialism(trimmed) {
+		return initialismUsesVowelSound(trimmed)
+	}
+	lower := core.Lower(trimmed)
 	for key := range consonantSounds {
 		if core.HasPrefix(lower, key) {
 			return false
@@ -525,6 +536,35 @@ func startsWithVowelSound(word string) bool {
 func isFrenchLanguage(lang string) bool {
 	lang = core.Lower(lang)
 	return lang == "fr" || core.HasPrefix(lang, "fr-")
+}
+
+func isInitialism(word string) bool {
+	if len(word) < 2 {
+		return false
+	}
+	hasLetter := false
+	for _, r := range word {
+		if !unicode.IsLetter(r) {
+			return false
+		}
+		hasLetter = true
+		if unicode.IsLower(r) {
+			return false
+		}
+	}
+	return hasLetter
+}
+
+func initialismUsesVowelSound(word string) bool {
+	if word == "" {
+		return false
+	}
+	switch unicode.ToUpper([]rune(word)[0]) {
+	case 'A', 'E', 'F', 'H', 'I', 'L', 'M', 'N', 'O', 'R', 'S', 'X':
+		return true
+	default:
+		return false
+	}
 }
 
 func isVowel(r rune) bool {

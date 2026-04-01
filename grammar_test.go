@@ -270,6 +270,8 @@ func TestArticle(t *testing.T) {
 		{"honest", "an"},    // Vowel sound
 		{"university", "a"}, // Consonant sound
 		{"one", "a"},        // Consonant sound
+		{"SSH", "an"},       // Initialism: "ess-ess-aitch"
+		{"URL", "a"},        // Initialism: "you-are-ell"
 		{"", ""},
 	}
 
