@@ -321,6 +321,7 @@ var pluralRules = map[string]PluralRule{
 	"ru": pluralRuleRussian, "ru-RU": pluralRuleRussian,
 	"pl": pluralRulePolish, "pl-PL": pluralRulePolish,
 	"ar": pluralRuleArabic, "ar-SA": pluralRuleArabic,
+	"cy": pluralRuleWelsh, "cy-GB": pluralRuleWelsh,
 	"zh": pluralRuleChinese, "zh-CN": pluralRuleChinese, "zh-TW": pluralRuleChinese,
 	"ja": pluralRuleJapanese, "ja-JP": pluralRuleJapanese,
 	"ko": pluralRuleKorean, "ko-KR": pluralRuleKorean,

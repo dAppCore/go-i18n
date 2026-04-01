@@ -83,3 +83,20 @@ func pluralRuleArabic(n int) PluralCategory {
 func pluralRuleChinese(n int) PluralCategory  { return PluralOther }
 func pluralRuleJapanese(n int) PluralCategory { return PluralOther }
 func pluralRuleKorean(n int) PluralCategory   { return PluralOther }
+
+func pluralRuleWelsh(n int) PluralCategory {
+	switch n {
+	case 0:
+		return PluralZero
+	case 1:
+		return PluralOne
+	case 2:
+		return PluralTwo
+	case 3:
+		return PluralFew
+	case 6:
+		return PluralMany
+	default:
+		return PluralOther
+	}
+}
