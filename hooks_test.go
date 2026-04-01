@@ -110,6 +110,43 @@ func TestInit_LoadsRegisteredLocales(t *testing.T) {
 	assert.Equal(t, "loaded on init", got)
 }
 
+func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
+	t.Setenv("LANG", "de_DE.UTF-8")
+
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+
+	defaultOnce = sync.Once{}
+	defaultService.Store(nil)
+
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+		defaultService.Store(nil)
+		defaultOnce = sync.Once{}
+	}()
+
+	fs := fstest.MapFS{
+		"locales/de.json": &fstest.MapFile{
+			Data: []byte(`{"hello": "hallo"}`),
+		},
+	}
+	RegisterLocales(fs, "locales")
+
+	require.NoError(t, Init())
+
+	svc := Default()
+	require.NotNil(t, svc)
+	assert.Contains(t, svc.Language(), "de")
+	assert.Equal(t, "hallo", svc.T("hello"))
+}
+
 func TestLoadRegisteredLocales_Good(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)

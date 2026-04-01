@@ -16,16 +16,17 @@ import (
 
 // Service provides grammar-aware internationalisation.
 type Service struct {
-	loader         Loader
-	messages       map[string]map[string]Message // lang -> key -> message
-	currentLang    string
-	fallbackLang   string
-	availableLangs []language.Tag
-	mode           Mode
-	debug          bool
-	formality      Formality
-	handlers       []KeyHandler
-	mu             sync.RWMutex
+	loader           Loader
+	messages         map[string]map[string]Message // lang -> key -> message
+	currentLang      string
+	fallbackLang     string
+	languageExplicit bool
+	availableLangs   []language.Tag
+	mode             Mode
+	debug            bool
+	formality        Formality
+	handlers         []KeyHandler
+	mu               sync.RWMutex
 }
 
 // Option configures a Service during construction.
@@ -222,11 +223,16 @@ func (s *Service) SetLanguage(lang string) error {
 		return log.E("Service.SetLanguage", "no languages available", nil)
 	}
 	matcher := language.NewMatcher(s.availableLangs)
-	bestMatch, _, confidence := matcher.Match(requestedLang)
+	bestMatch, bestIndex, confidence := matcher.Match(requestedLang)
 	if confidence == language.No {
 		return log.E("Service.SetLanguage", "unsupported language: "+lang, nil)
 	}
-	s.currentLang = bestMatch.String()
+	if bestIndex >= 0 && bestIndex < len(s.availableLangs) {
+		s.currentLang = s.availableLangs[bestIndex].String()
+	} else {
+		s.currentLang = bestMatch.String()
+	}
+	s.languageExplicit = true
 	return nil
 }
 
@@ -571,6 +577,7 @@ func (s *Service) AddLoader(loader Loader) error {
 		}
 		s.mu.Unlock()
 	}
+	s.autoDetectLanguage()
 	return nil
 }
 
@@ -578,7 +585,17 @@ func (s *Service) AddLoader(loader Loader) error {
 // Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
 func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 	s.mu.Lock()
-	defer s.mu.Unlock()
+	defer func() {
+		s.mu.Unlock()
+		if s.languageExplicit {
+			return
+		}
+		if detected := detectLanguage(s.availableLangs); detected != "" {
+			s.mu.Lock()
+			s.currentLang = detected
+			s.mu.Unlock()
+		}
+	}()
 	entries, err := fs.ReadDir(fsys, dir)
 	if err != nil {
 		return log.E("Service.LoadFS", "read locales directory", err)
@@ -604,4 +621,15 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 		}
 	}
 	return nil
+}
+
+func (s *Service) autoDetectLanguage() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.languageExplicit {
+		return
+	}
+	if detected := detectLanguage(s.availableLangs); detected != "" {
+		s.currentLang = detected
+	}
 }

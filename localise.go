@@ -105,8 +105,11 @@ func detectLanguage(supported []language.Tag) string {
 		return ""
 	}
 	matcher := language.NewMatcher(supported)
-	bestMatch, _, confidence := matcher.Match(parsedLang)
+	bestMatch, bestIndex, confidence := matcher.Match(parsedLang)
 	if confidence >= language.Low {
+		if bestIndex >= 0 && bestIndex < len(supported) {
+			return supported[bestIndex].String()
+		}
 		return bestMatch.String()
 	}
 	return ""
