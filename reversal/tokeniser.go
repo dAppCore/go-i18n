@@ -546,11 +546,7 @@ func (t *Tokeniser) buildSignalIndex() {
 			t.verbAux[core.Lower(w)] = true
 		}
 	} else {
-		for _, w := range []string{
-			"is", "are", "was", "were", "has", "had", "have",
-			"do", "does", "did", "will", "would", "could", "should",
-			"can", "may", "might", "shall", "must",
-		} {
+		for _, w := range defaultVerbAuxiliaries() {
 			t.verbAux[w] = true
 		}
 	}
@@ -561,6 +557,19 @@ func (t *Tokeniser) buildSignalIndex() {
 		}
 	} else {
 		t.verbInf["to"] = true
+	}
+}
+
+func defaultVerbAuxiliaries() []string {
+	return []string{
+		"am", "is", "are", "was", "were",
+		"has", "had", "have",
+		"do", "does", "did",
+		"will", "would", "could", "should",
+		"can", "may", "might", "shall", "must",
+		"don't", "can't", "won't", "shouldn't", "couldn't", "wouldn't",
+		"doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't",
+		"hasn't", "hadn't", "haven't",
 	}
 }
 

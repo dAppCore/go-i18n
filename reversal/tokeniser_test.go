@@ -694,6 +694,18 @@ func TestTokeniser_Disambiguate_ContractionAux(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Disambiguate_ContractionAux_FallbackDefaults(t *testing.T) {
+	tok := NewTokeniserForLang("zz")
+	tokens := tok.Tokenise("don't run the tests")
+	// The hardcoded fallback auxiliaries should still recognise contractions
+	// even when no locale grammar data is loaded.
+	for _, token := range tokens {
+		if token.Lower == "run" && token.Type != TokenVerb {
+			t.Errorf("'run' after \"don't\": Type = %v, want TokenVerb", token.Type)
+		}
+	}
+}
+
 func TestTokeniser_WithSignals_Breakdown(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser(WithSignals())
