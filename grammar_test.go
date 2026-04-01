@@ -1,6 +1,10 @@
 package i18n
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"text/template"
+)
 
 func TestPastTense(t *testing.T) {
 	// Ensure grammar data is loaded from embedded JSON
@@ -342,6 +346,26 @@ func TestQuote(t *testing.T) {
 	}
 }
 
+func TestArticlePhrase(t *testing.T) {
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"file", "a file"},
+		{"error", "an error"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := ArticlePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("ArticlePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLabel(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -624,6 +648,22 @@ func TestTemplateFuncs(t *testing.T) {
 		if _, ok := funcs[name]; !ok {
 			t.Errorf("TemplateFuncs() missing %q", name)
 		}
+	}
+}
+
+func TestTemplateFuncs_Article(t *testing.T) {
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(`{{article "apple"}}`)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	if got, want := buf.String(), "an apple"; got != want {
+		t.Fatalf("template article = %q, want %q", got, want)
 	}
 }
 

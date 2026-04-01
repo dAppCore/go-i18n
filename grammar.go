@@ -555,6 +555,15 @@ func Quote(s string) string {
 	return `"` + s + `"`
 }
 
+// ArticlePhrase prefixes a noun phrase with the correct article.
+func ArticlePhrase(word string) string {
+	article := Article(word)
+	if article == "" || word == "" {
+		return ""
+	}
+	return article + " " + word
+}
+
 // TemplateFuncs returns the template.FuncMap with all grammar functions.
 func TemplateFuncs() template.FuncMap {
 	return template.FuncMap{
@@ -565,7 +574,7 @@ func TemplateFuncs() template.FuncMap {
 		"gerund":     Gerund,
 		"plural":     Pluralize,
 		"pluralForm": PluralForm,
-		"article":    Article,
+		"article":    ArticlePhrase,
 		"quote":      Quote,
 	}
 }
