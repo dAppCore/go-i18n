@@ -58,6 +58,10 @@ func normalizeAgoUnit(unit string) string {
 		return "day"
 	case "weeks":
 		return "week"
+	case "months":
+		return "month"
+	case "years":
+		return "year"
 	default:
 		return unit
 	}

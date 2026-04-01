@@ -122,6 +122,28 @@ func TestFormatAgo_Good_PluralUnitAlias(t *testing.T) {
 	assert.Equal(t, "5 minutes ago", got)
 }
 
+func TestFormatAgo_Good_MorePluralUnitAliases(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	tests := []struct {
+		name  string
+		count int
+		unit  string
+		want  string
+	}{
+		{"months", 3, "months", "3 months ago"},
+		{"year", 1, "years", "1 year ago"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatAgo(tt.count, tt.unit)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestFormatAgo_Bad_UnknownUnit(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
