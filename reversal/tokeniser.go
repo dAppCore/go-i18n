@@ -89,6 +89,7 @@ type Tokeniser struct {
 	pluralToBase map[string]string // "files" → "file"
 	baseNouns    map[string]bool   // "file" → true
 	words        map[string]string // word translations
+	phraseLen    int               // longest multi-word gram.word entry
 	lang         string
 
 	dualClass   map[string]bool    // words in both verb AND noun tables
@@ -491,7 +492,11 @@ func (t *Tokeniser) buildWordIndex() {
 		// Map the key itself (already lowercase)
 		t.words[core.Lower(key)] = key
 		// Map the display form (e.g., "URL" → "url", "SSH" → "ssh")
-		t.words[core.Lower(display)] = key
+		lowerDisplay := core.Lower(display)
+		t.words[lowerDisplay] = key
+		if words := strings.Fields(lowerDisplay); len(words) > 1 && len(words) > t.phraseLen {
+			t.phraseLen = len(words)
+		}
 	}
 }
 
@@ -636,7 +641,17 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	var tokens []Token
 
 	// --- Pass 1: Classify & Mark ---
-	for _, raw := range parts {
+	for i := 0; i < len(parts); i++ {
+		if consumed, tok, punctTok := t.matchWordPhrase(parts, i); consumed > 0 {
+			tokens = append(tokens, tok)
+			if punctTok != nil {
+				tokens = append(tokens, *punctTok)
+			}
+			i += consumed - 1
+			continue
+		}
+
+		raw := parts[i]
 		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
@@ -727,6 +742,83 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	t.resolveAmbiguous(tokens)
 
 	return tokens
+}
+
+func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Token) {
+	if t.phraseLen < 2 || start >= len(parts) {
+		return 0, Token{}, nil
+	}
+
+	maxLen := t.phraseLen
+	if remaining := len(parts) - start; remaining < maxLen {
+		maxLen = remaining
+	}
+
+	for n := maxLen; n >= 2; n-- {
+		phraseWords := make([]string, 0, n)
+		rawParts := make([]string, 0, n)
+		var punct string
+		valid := true
+
+		for j := 0; j < n; j++ {
+			part := parts[start+j]
+			if prefix, _, ok := t.splitFrenchElision(part); ok && prefix != part {
+				valid = false
+				break
+			}
+
+			word, partPunct := splitTrailingPunct(part)
+			if word == "" {
+				valid = false
+				break
+			}
+			if partPunct != "" && j != n-1 {
+				valid = false
+				break
+			}
+
+			rawParts = append(rawParts, word)
+			phraseWords = append(phraseWords, core.Lower(word))
+			if j == n-1 {
+				punct = partPunct
+			}
+		}
+
+		if !valid {
+			continue
+		}
+
+		phrase := strings.Join(phraseWords, " ")
+		cat, ok := t.words[phrase]
+		if !ok {
+			continue
+		}
+
+		tok := Token{
+			Raw:        strings.Join(rawParts, " "),
+			Lower:      phrase,
+			Type:       TokenWord,
+			WordCat:    cat,
+			Confidence: 1.0,
+		}
+
+		if punct != "" {
+			if punctType, ok := matchPunctuation(punct); ok {
+				punctTok := Token{
+					Raw:        punct,
+					Lower:      punct,
+					Type:       TokenPunctuation,
+					PunctType:  punctType,
+					Confidence: 1.0,
+				}
+				return n, tok, &punctTok
+			}
+		}
+
+		return n, tok, nil
+	}
+
+	return 0, Token{}, nil
 }
 
 // resolveAmbiguous iterates all tokens and resolves any marked as

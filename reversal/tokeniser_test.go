@@ -159,6 +159,7 @@ func TestTokeniser_MatchWord(t *testing.T) {
 		{"url", "url", true},
 		{"ID", "id", true},
 		{"SSH", "ssh", true},
+		{"up to date", "up_to_date", true},
 		{"PHP", "php", true},
 		{"xyzzy", "", false},
 	}
@@ -246,6 +247,38 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 	}
 	if tokens[0].ArtType != "indefinite" {
 		t.Fatalf("Tokenise(%q)[0].ArtType = %q, want %q", "une branche", tokens[0].ArtType, "indefinite")
+	}
+}
+
+func TestTokeniser_Tokenise_WordPhrase(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("up to date")
+	if len(tokens) != 1 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 1", "up to date", len(tokens))
+	}
+	if tokens[0].Type != TokenWord {
+		t.Fatalf("Tokenise(%q)[0].Type = %v, want TokenWord", "up to date", tokens[0].Type)
+	}
+	if tokens[0].WordCat != "up_to_date" {
+		t.Fatalf("Tokenise(%q)[0].WordCat = %q, want %q", "up to date", tokens[0].WordCat, "up_to_date")
+	}
+}
+
+func TestTokeniser_Tokenise_WordPhraseWithPunctuation(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("up to date.")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "up to date.", len(tokens))
+	}
+	if tokens[0].Type != TokenWord {
+		t.Fatalf("Tokenise(%q)[0].Type = %v, want TokenWord", "up to date.", tokens[0].Type)
+	}
+	if tokens[1].Type != TokenPunctuation {
+		t.Fatalf("Tokenise(%q)[1].Type = %v, want TokenPunctuation", "up to date.", tokens[1].Type)
 	}
 }
 
