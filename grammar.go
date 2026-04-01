@@ -658,12 +658,15 @@ func Quote(s string) string {
 
 // ArticlePhrase prefixes a noun phrase with the correct article.
 func ArticlePhrase(word string) string {
-	article := Article(word)
-	if article == "" || word == "" {
+	if word == "" {
 		return ""
 	}
 	lang := currentLangForGrammar()
 	word = renderWord(lang, word)
+	article := Article(word)
+	if article == "" {
+		return ""
+	}
 	if strings.HasSuffix(article, "'") {
 		return article + word
 	}

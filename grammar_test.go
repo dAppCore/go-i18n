@@ -521,6 +521,36 @@ func TestArticlePhrase_RespectsWordMap(t *testing.T) {
 	}
 }
 
+func TestArticlePhrase_UsesRenderedWordForArticleSelection(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["ssh"]
+	data.Words["ssh"] = "SSH"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["ssh"] = original
+			return
+		}
+		delete(data.Words, "ssh")
+	})
+
+	if got, want := ArticlePhrase("ssh"), "an SSH"; got != want {
+		t.Fatalf("ArticlePhrase(%q) = %q, want %q", "ssh", got, want)
+	}
+}
+
 func TestArticlePhraseFrenchLocale(t *testing.T) {
 	prev := Default()
 	svc, err := New()
