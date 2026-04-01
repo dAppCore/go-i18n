@@ -223,6 +223,35 @@ func TestPluralize(t *testing.T) {
 	}
 }
 
+func TestPluralize_UsesLocaleSingularOverride(t *testing.T) {
+	const lang = "en-x-singular"
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+		SetGrammarData(lang, nil)
+	})
+
+	svc, err := NewWithLoader(pluralizeOverrideLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if err := SetLanguage(lang); err != nil {
+		t.Fatalf("SetLanguage(%s) failed: %v", lang, err)
+	}
+
+	if got, want := Pluralize("person", 1), "human"; got != want {
+		t.Fatalf("Pluralize(%q, 1) = %q, want %q", "person", got, want)
+	}
+	if got, want := Pluralize("Person", 1), "Human"; got != want {
+		t.Fatalf("Pluralize(%q, 1) = %q, want %q", "Person", got, want)
+	}
+	if got, want := Pluralize("person", 2), "people"; got != want {
+		t.Fatalf("Pluralize(%q, 2) = %q, want %q", "person", got, want)
+	}
+}
+
 func TestPluralForm(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -318,6 +347,22 @@ func TestArticleFrenchLocale(t *testing.T) {
 			}
 		})
 	}
+}
+
+type pluralizeOverrideLoader struct{}
+
+func (pluralizeOverrideLoader) Languages() []string {
+	return []string{"en-x-singular"}
+}
+
+func (pluralizeOverrideLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	grammar := &GrammarData{
+		Nouns: map[string]NounForms{
+			"person": {One: "human", Other: "people"},
+		},
+	}
+	SetGrammarData(lang, grammar)
+	return map[string]Message{}, grammar, nil
 }
 
 func TestTitle(t *testing.T) {

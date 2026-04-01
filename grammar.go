@@ -334,6 +334,18 @@ func applyRegularGerund(verb string) string {
 //	Pluralize("child", 3)   // "children"
 func Pluralize(noun string, count int) string {
 	if count == 1 {
+		// Honour locale-provided singular forms before falling back to the input.
+		noun = core.Trim(noun)
+		if noun == "" {
+			return ""
+		}
+		lower := core.Lower(noun)
+		if form := getNounForm(currentLangForGrammar(), lower, "one"); form != "" {
+			if unicode.IsUpper(rune(noun[0])) && len(form) > 0 {
+				return core.Upper(string(form[0])) + form[1:]
+			}
+			return form
+		}
 		return noun
 	}
 	return PluralForm(noun)
