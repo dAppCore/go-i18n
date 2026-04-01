@@ -72,7 +72,11 @@ func TestCountHandler(t *testing.T) {
 		{"i18n.count.file", []any{5}, "5 files"},
 		{"i18n.count.file", []any{0}, "0 files"},
 		{"i18n.count.child", []any{3}, "3 children"},
+		{"i18n.count.url", []any{2}, "2 URLs"},
+		{"i18n.count.api", []any{2}, "2 APIs"},
+		{"i18n.count.cpus", []any{2}, "2 CPUs"},
 		{"i18n.count.file", nil, "file"},
+		{"i18n.count.url", nil, "URL"},
 	}
 
 	for _, tt := range tests {

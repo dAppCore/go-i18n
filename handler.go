@@ -1,6 +1,9 @@
 package i18n
 
 import (
+	"strings"
+	"unicode"
+
 	"dappco.re/go/core"
 )
 
@@ -42,11 +45,12 @@ func (h CountHandler) Match(key string) bool {
 
 func (h CountHandler) Handle(key string, args []any, next func() string) string {
 	noun := core.TrimPrefix(key, "i18n.count.")
+	lang := currentLangForGrammar()
 	if len(args) > 0 {
 		count := toInt(args[0])
-		return core.Sprintf("%s %s", FormatNumber(int64(count)), Pluralize(noun, count))
+		return core.Sprintf("%s %s", FormatNumber(int64(count)), countWordForm(lang, noun, count))
 	}
-	return noun
+	return renderWord(lang, noun)
 }
 
 // DoneHandler handles i18n.done.{verb} -> "File deleted" patterns.
@@ -126,6 +130,51 @@ func DefaultHandlers() []KeyHandler {
 		FailHandler{},
 		NumericHandler{},
 	}
+}
+
+func countWordForm(lang, noun string, count int) string {
+	display := renderWord(lang, noun)
+	if display == "" {
+		return Pluralize(noun, count)
+	}
+	if count == 1 {
+		return display
+	}
+	if isUpperAcronymPlural(display) {
+		return display
+	}
+	return Pluralize(display, count)
+}
+
+func isUpperAcronymPlural(s string) bool {
+	if len(s) < 2 || !strings.HasSuffix(s, "s") {
+		return false
+	}
+	hasLetter := false
+	for _, r := range s[:len(s)-1] {
+		if !unicode.IsLetter(r) {
+			continue
+		}
+		hasLetter = true
+		if !unicode.IsUpper(r) {
+			return false
+		}
+	}
+	return hasLetter
+}
+
+func isAllUpper(s string) bool {
+	hasLetter := false
+	for _, r := range s {
+		if !unicode.IsLetter(r) {
+			continue
+		}
+		hasLetter = true
+		if !unicode.IsUpper(r) {
+			return false
+		}
+	}
+	return hasLetter
 }
 
 // RunHandlerChain executes a chain of handlers for a key.
