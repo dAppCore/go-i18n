@@ -262,16 +262,19 @@ func (s *Service) PluralCategory(n int) PluralCategory {
 	return GetPluralCategory(s.currentLang, n)
 }
 
-func (s *Service) AddHandler(h KeyHandler) {
+func (s *Service) AddHandler(handlers ...KeyHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.handlers = append(s.handlers, h)
+	s.handlers = append(s.handlers, handlers...)
 }
 
-func (s *Service) PrependHandler(h KeyHandler) {
+func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.handlers = append([]KeyHandler{h}, s.handlers...)
+	if len(handlers) == 0 {
+		return
+	}
+	s.handlers = append(append([]KeyHandler(nil), handlers...), s.handlers...)
 }
 
 func (s *Service) ClearHandlers() {

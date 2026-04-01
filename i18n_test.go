@@ -159,6 +159,19 @@ func TestAddHandler_Good(t *testing.T) {
 	assert.Equal(t, initialCount+1, len(svc.Handlers()))
 }
 
+func TestAddHandler_Good_Variadic(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	AddHandler(LabelHandler{}, ProgressHandler{})
+	handlers := svc.Handlers()
+	assert.Equal(t, 2, len(handlers))
+	assert.IsType(t, LabelHandler{}, handlers[0])
+	assert.IsType(t, ProgressHandler{}, handlers[1])
+}
+
 func TestPrependHandler_Good(t *testing.T) {
 	svc, err := New(WithHandlers()) // start with no handlers
 	require.NoError(t, err)
@@ -172,6 +185,19 @@ func TestPrependHandler_Good(t *testing.T) {
 	PrependHandler(ProgressHandler{})
 	handlers := svc.Handlers()
 	assert.Equal(t, 2, len(handlers))
+}
+
+func TestPrependHandler_Good_Variadic(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	PrependHandler(LabelHandler{}, ProgressHandler{})
+	handlers := svc.Handlers()
+	assert.Equal(t, 2, len(handlers))
+	assert.IsType(t, LabelHandler{}, handlers[0])
+	assert.IsType(t, ProgressHandler{}, handlers[1])
 }
 
 // --- executeIntentTemplate ---

@@ -71,17 +71,17 @@ func N(format string, value any) string {
 	return T("i18n.numeric."+format, value)
 }
 
-// AddHandler appends a handler to the default service's handler chain.
-func AddHandler(h KeyHandler) {
+// AddHandler appends one or more handlers to the default service's handler chain.
+func AddHandler(handlers ...KeyHandler) {
 	if svc := Default(); svc != nil {
-		svc.AddHandler(h)
+		svc.AddHandler(handlers...)
 	}
 }
 
-// PrependHandler inserts a handler at the start of the default service's handler chain.
-func PrependHandler(h KeyHandler) {
+// PrependHandler inserts one or more handlers at the start of the default service's handler chain.
+func PrependHandler(handlers ...KeyHandler) {
 	if svc := Default(); svc != nil {
-		svc.PrependHandler(h)
+		svc.PrependHandler(handlers...)
 	}
 }
 
