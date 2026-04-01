@@ -20,7 +20,8 @@ func TestTimeAgo_Good(t *testing.T) {
 		duration time.Duration
 		contains string
 	}{
-		{"just_now", 5 * time.Second, "just now"},
+		{"just_now", 4 * time.Second, "just now"},
+		{"seconds_ago", 5 * time.Second, "5 seconds ago"},
 		{"minutes_ago", 5 * time.Minute, "5 minutes ago"},
 		{"hours_ago", 3 * time.Hour, "3 hours ago"},
 		{"days_ago", 2 * 24 * time.Hour, "2 days ago"},
@@ -41,7 +42,7 @@ func TestTimeAgo_Good_EdgeCases(t *testing.T) {
 
 	// Just under 1 minute
 	got := TimeAgo(time.Now().Add(-59 * time.Second))
-	assert.Contains(t, got, "just now")
+	assert.Contains(t, got, "seconds ago")
 
 	// Exactly 1 minute
 	got = TimeAgo(time.Now().Add(-60 * time.Second))

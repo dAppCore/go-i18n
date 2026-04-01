@@ -8,12 +8,18 @@ import (
 
 // TimeAgo returns a localised relative time string.
 //
+//	TimeAgo(time.Now().Add(-4 * time.Second)) // "just now"
 //	TimeAgo(time.Now().Add(-5 * time.Minute)) // "5 minutes ago"
 func TimeAgo(t time.Time) string {
 	duration := time.Since(t)
+	if duration < 0 {
+		duration = 0
+	}
 	switch {
-	case duration < time.Minute:
+	case duration < 5*time.Second:
 		return T("time.just_now")
+	case duration < time.Minute:
+		return FormatAgo(int(duration/time.Second), "second")
 	case duration < time.Hour:
 		return FormatAgo(int(duration.Minutes()), "minute")
 	case duration < 24*time.Hour:
