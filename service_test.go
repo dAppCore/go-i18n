@@ -257,6 +257,10 @@ func TestServiceTranslationContext(t *testing.T) {
 		t.Errorf("T(direction.right, C(navigation).WithGender(feminine).Formal()) = %q, want %q", got, "right, madam")
 	}
 
+	if got := svc.T("welcome", C("greeting").In("workspace")); got != "welcome aboard" {
+		t.Errorf("T(welcome, C(greeting).In(workspace)) = %q, want %q", got, "welcome aboard")
+	}
+
 	if got := svc.T("welcome", S("user", "Alice").Gender("feminine")); got != "welcome, ma'am" {
 		t.Errorf("T(welcome, S(user, Alice).Gender(feminine)) = %q, want %q", got, "welcome, ma'am")
 	}

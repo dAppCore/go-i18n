@@ -399,7 +399,7 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		if formality == FormalityNeutral {
 			formality = s.formality
 		}
-		return ctx.ContextString(), ctx.GenderString(), "", formality
+		return ctx.ContextString(), ctx.GenderString(), ctx.LocationString(), formality
 	}
 	if subj, ok := data.(*Subject); ok && subj != nil {
 		formality := subj.formality

@@ -162,6 +162,7 @@ func templateDataForRendering(data any) any {
 		rendered := map[string]any{
 			"Context":   v.Context,
 			"Gender":    v.Gender,
+			"Location":  v.Location,
 			"Formality": v.Formality,
 			"Extra":     v.Extra,
 		}

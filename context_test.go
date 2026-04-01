@@ -28,6 +28,7 @@ func TestTranslationContext_NilReceiver_Good(t *testing.T) {
 	var ctx *TranslationContext
 
 	assert.Nil(t, ctx.WithGender("masculine"))
+	assert.Nil(t, ctx.In("workspace"))
 	assert.Nil(t, ctx.Formal())
 	assert.Nil(t, ctx.Informal())
 	assert.Nil(t, ctx.WithFormality(FormalityFormal))
@@ -35,6 +36,7 @@ func TestTranslationContext_NilReceiver_Good(t *testing.T) {
 	assert.Nil(t, ctx.Get("key"))
 	assert.Equal(t, "", ctx.ContextString())
 	assert.Equal(t, "", ctx.GenderString())
+	assert.Equal(t, "", ctx.LocationString())
 	assert.Equal(t, FormalityNeutral, ctx.FormalityValue())
 }
 
@@ -44,6 +46,17 @@ func TestTranslationContext_WithGender_Good(t *testing.T) {
 	ctx := C("test").WithGender("feminine")
 	assert.Equal(t, "feminine", ctx.Gender)
 	assert.Equal(t, "feminine", ctx.GenderString())
+}
+
+func TestTranslationContext_In_Good(t *testing.T) {
+	ctx := C("test").In("workspace")
+	assert.Equal(t, "workspace", ctx.Location)
+	assert.Equal(t, "workspace", ctx.LocationString())
+}
+
+func TestTranslationContext_In_Bad_NilReceiver(t *testing.T) {
+	var ctx *TranslationContext
+	assert.Nil(t, ctx.In("workspace"))
 }
 
 // --- Formal / Informal ---
@@ -106,11 +119,13 @@ func TestTranslationContext_Get_Bad_NilExtra(t *testing.T) {
 func TestTranslationContext_FullChain_Good(t *testing.T) {
 	ctx := C("medical").
 		WithGender("feminine").
+		In("clinic").
 		Formal().
 		Set("speciality", "cardiology")
 
 	assert.Equal(t, "medical", ctx.ContextString())
 	assert.Equal(t, "feminine", ctx.GenderString())
+	assert.Equal(t, "clinic", ctx.LocationString())
 	assert.Equal(t, FormalityFormal, ctx.FormalityValue())
 	assert.Equal(t, "cardiology", ctx.Get("speciality"))
 }
