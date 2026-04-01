@@ -132,6 +132,11 @@ func TestFlattenWithGrammar(t *testing.T) {
 					"past":   "tested",
 					"gerund": "testing",
 				},
+				"publish_draft": map[string]any{
+					"base":   "publish",
+					"past":   "published",
+					"gerund": "publishing",
+				},
 			},
 			"noun": map[string]any{
 				"widget": map[string]any{
@@ -174,6 +179,19 @@ func TestFlattenWithGrammar(t *testing.T) {
 		if v.Past != "tested" {
 			t.Errorf("test.past = %q, want 'tested'", v.Past)
 		}
+	}
+	if v, ok := grammar.Verbs["publish"]; !ok {
+		t.Error("verb base override 'publish' not extracted")
+	} else {
+		if v.Past != "published" {
+			t.Errorf("publish.past = %q, want 'published'", v.Past)
+		}
+		if v.Gerund != "publishing" {
+			t.Errorf("publish.gerund = %q, want 'publishing'", v.Gerund)
+		}
+	}
+	if _, ok := grammar.Verbs["publish_draft"]; ok {
+		t.Error("verb should be stored under explicit base, not JSON key")
 	}
 
 	// Noun extracted
@@ -459,6 +477,7 @@ func TestCustomFSLoader(t *testing.T) {
 			Data: []byte(`{
 				"gram": {
 					"verb": {
+						"draft": { "base": "draft", "past": "drafted", "gerund": "drafting" },
 						"zap": { "base": "zap", "past": "zapped", "gerund": "zapping" }
 					},
 					"word": {
@@ -487,5 +506,8 @@ func TestCustomFSLoader(t *testing.T) {
 	}
 	if v, ok := gd.Verbs["zap"]; !ok || v.Past != "zapped" {
 		t.Errorf("verb 'zap' not loaded correctly")
+	}
+	if v, ok := gd.Verbs["draft"]; !ok || v.Past != "drafted" {
+		t.Errorf("verb base override 'draft' not loaded correctly")
 	}
 }
