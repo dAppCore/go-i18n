@@ -50,17 +50,17 @@ const (
 
 // Token represents a single classified token from a text string.
 type Token struct {
-	Raw        string          // Original text as it appeared in input
-	Lower      string          // Lowercased form
-	Type       TokenType       // Classification
-	Confidence float64         // 0.0-1.0 classification confidence
-	AltType    TokenType       // Runner-up classification (dual-class only)
-	AltConf    float64         // Runner-up confidence
-	VerbInfo   VerbMatch       // Set when Type OR AltType == TokenVerb
-	NounInfo   NounMatch       // Set when Type OR AltType == TokenNoun
-	WordCat    string          // Set when Type == TokenWord
-	ArtType    string          // Set when Type == TokenArticle
-	PunctType  string          // Set when Type == TokenPunctuation
+	Raw        string           // Original text as it appeared in input
+	Lower      string           // Lowercased form
+	Type       TokenType        // Classification
+	Confidence float64          // 0.0-1.0 classification confidence
+	AltType    TokenType        // Runner-up classification (dual-class only)
+	AltConf    float64          // Runner-up confidence
+	VerbInfo   VerbMatch        // Set when Type OR AltType == TokenVerb
+	NounInfo   NounMatch        // Set when Type OR AltType == TokenNoun
+	WordCat    string           // Set when Type == TokenWord
+	ArtType    string           // Set when Type == TokenArticle
+	PunctType  string           // Set when Type == TokenPunctuation
 	Signals    *SignalBreakdown // Non-nil only when WithSignals() option is set
 }
 
@@ -592,6 +592,11 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	}
 	if lower == core.Lower(data.Articles.Definite) {
 		return "definite", true
+	}
+	for _, article := range data.Articles.ByGender {
+		if lower == core.Lower(article) {
+			return "definite", true
+		}
 	}
 
 	return "", false

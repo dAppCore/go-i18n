@@ -20,9 +20,9 @@ func TestTokeniser_MatchVerb_Irregular(t *testing.T) {
 	tok := NewTokeniser()
 
 	tests := []struct {
-		word    string
-		wantOK  bool
-		wantBase string
+		word      string
+		wantOK    bool
+		wantBase  string
 		wantTense string
 	}{
 		// Irregular past tense
@@ -203,6 +203,41 @@ func TestTokeniser_MatchArticle(t *testing.T) {
 				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
 			}
 		})
+	}
+}
+
+func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"le", "definite", true},
+		{"la", "definite", true},
+		{"Le", "definite", true},
+		{"La", "definite", true},
+		{"un", "indefinite", true},
+		{"une", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+
+	tokens := tok.Tokenise("la branche")
+	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
+		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "la branche", tokens)
 	}
 }
 
