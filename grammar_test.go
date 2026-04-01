@@ -643,7 +643,22 @@ func TestFrenchGrammarData(t *testing.T) {
 
 func TestTemplateFuncs(t *testing.T) {
 	funcs := TemplateFuncs()
-	expected := []string{"title", "lower", "upper", "past", "gerund", "plural", "pluralForm", "article", "quote"}
+	expected := []string{
+		"title",
+		"lower",
+		"upper",
+		"past",
+		"gerund",
+		"plural",
+		"pluralForm",
+		"article",
+		"quote",
+		"label",
+		"progress",
+		"progressSubject",
+		"actionResult",
+		"actionFailed",
+	}
 	for _, name := range expected {
 		if _, ok := funcs[name]; !ok {
 			t.Errorf("TemplateFuncs() missing %q", name)
@@ -664,6 +679,31 @@ func TestTemplateFuncs_Article(t *testing.T) {
 
 	if got, want := buf.String(), "an apple"; got != want {
 		t.Fatalf("template article = %q, want %q", got, want)
+	}
+}
+
+func TestTemplateFuncs_CompositeHelpers(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{label "status"}}|{{progress "build"}}|{{progressSubject "build" "project"}}|{{actionResult "delete" "file"}}|{{actionFailed "delete" "file"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	want := "Status:|Building...|Building project...|File deleted|Failed to delete file"
+	if got := buf.String(); got != want {
+		t.Fatalf("template composite helpers = %q, want %q", got, want)
 	}
 }
 

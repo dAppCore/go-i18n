@@ -567,15 +567,20 @@ func ArticlePhrase(word string) string {
 // TemplateFuncs returns the template.FuncMap with all grammar functions.
 func TemplateFuncs() template.FuncMap {
 	return template.FuncMap{
-		"title":      Title,
-		"lower":      core.Lower,
-		"upper":      core.Upper,
-		"past":       PastTense,
-		"gerund":     Gerund,
-		"plural":     Pluralize,
-		"pluralForm": PluralForm,
-		"article":    ArticlePhrase,
-		"quote":      Quote,
+		"title":           Title,
+		"lower":           core.Lower,
+		"upper":           core.Upper,
+		"past":            PastTense,
+		"gerund":          Gerund,
+		"plural":          Pluralize,
+		"pluralForm":      PluralForm,
+		"article":         ArticlePhrase,
+		"quote":           Quote,
+		"label":           Label,
+		"progress":        Progress,
+		"progressSubject": ProgressSubject,
+		"actionResult":    ActionResult,
+		"actionFailed":    ActionFailed,
 	}
 }
 
