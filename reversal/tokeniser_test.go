@@ -220,7 +220,7 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 		{"Le", "definite", true},
 		{"La", "definite", true},
 		{"un", "indefinite", true},
-		{"une", "", false},
+		{"une", "indefinite", true},
 	}
 
 	for _, tt := range tests {
@@ -238,6 +238,14 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 	tokens := tok.Tokenise("la branche")
 	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
 		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "la branche", tokens)
+	}
+
+	tokens = tok.Tokenise("une branche")
+	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
+		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "une branche", tokens)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("Tokenise(%q)[0].ArtType = %q, want %q", "une branche", tokens[0].ArtType, "indefinite")
 	}
 }
 

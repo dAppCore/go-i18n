@@ -602,7 +602,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		switch lower {
 		case "l'", "les":
 			return "definite", true
-		case "des":
+		case "un", "une", "des":
 			return "indefinite", true
 		}
 	}
