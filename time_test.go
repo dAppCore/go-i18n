@@ -172,3 +172,34 @@ func TestFormatAgo_Good_SingularUnit(t *testing.T) {
 	got := FormatAgo(1, "fortnight")
 	assert.Equal(t, "1 fortnight ago", got)
 }
+
+func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("fr"))
+
+	tests := []struct {
+		name  string
+		count int
+		unit  string
+		want  string
+	}{
+		{"month", 1, "month", "il y a 1 mois"},
+		{"months", 3, "month", "il y a 3 mois"},
+		{"year", 1, "year", "il y a 1 an"},
+		{"years", 4, "year", "il y a 4 ans"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatAgo(tt.count, tt.unit)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
