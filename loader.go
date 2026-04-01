@@ -222,6 +222,20 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				continue
 			}
 
+			// Number formatting rules
+			if grammar != nil && fullKey == "gram.number" {
+				if thousands, ok := v["thousands"].(string); ok {
+					grammar.Number.ThousandsSep = thousands
+				}
+				if decimal, ok := v["decimal"].(string); ok {
+					grammar.Number.DecimalSep = decimal
+				}
+				if percent, ok := v["percent"].(string); ok {
+					grammar.Number.PercentFmt = percent
+				}
+				continue
+			}
+
 			// CLDR plural object
 			if isPluralObject(v) {
 				msg := Message{}

@@ -85,6 +85,17 @@ func TestFSLoaderLoad(t *testing.T) {
 		t.Errorf("punct.progress = %q, want '...'", grammar.Punct.ProgressSuffix)
 	}
 
+	// Number formatting from gram.number
+	if grammar.Number.ThousandsSep != "," {
+		t.Errorf("number.thousands = %q, want ','", grammar.Number.ThousandsSep)
+	}
+	if grammar.Number.DecimalSep != "." {
+		t.Errorf("number.decimal = %q, want '.'", grammar.Number.DecimalSep)
+	}
+	if grammar.Number.PercentFmt != "%s%%" {
+		t.Errorf("number.percent = %q, want '%%s%%%%'", grammar.Number.PercentFmt)
+	}
+
 	// Words from gram.word.*
 	if len(grammar.Words) == 0 {
 		t.Error("grammar has 0 words")
@@ -135,6 +146,11 @@ func TestFlattenWithGrammar(t *testing.T) {
 				"label":    ":",
 				"progress": "...",
 			},
+			"number": map[string]any{
+				"thousands": ",",
+				"decimal":   ".",
+				"percent":   "%s%%",
+			},
 			"article": map[string]any{
 				"indefinite": map[string]any{
 					"default": "a",
@@ -179,6 +195,11 @@ func TestFlattenWithGrammar(t *testing.T) {
 		t.Errorf("punct.label = %q, want ':'", grammar.Punct.LabelSuffix)
 	}
 
+	// Number formatting extracted
+	if grammar.Number.ThousandsSep != "," {
+		t.Errorf("number.thousands = %q, want ','", grammar.Number.ThousandsSep)
+	}
+
 	// Articles extracted
 	if grammar.Articles.IndefiniteDefault != "a" {
 		t.Errorf("article.indefinite.default = %q, want 'a'", grammar.Articles.IndefiniteDefault)
@@ -187,6 +208,9 @@ func TestFlattenWithGrammar(t *testing.T) {
 	// Regular keys flattened
 	if msg, ok := messages["prompt.yes"]; !ok || msg.Text != "y" {
 		t.Errorf("prompt.yes not flattened correctly, got %+v", messages["prompt.yes"])
+	}
+	if _, ok := messages["gram.number.thousands"]; ok {
+		t.Error("gram.number.thousands should not be flattened into messages")
 	}
 }
 

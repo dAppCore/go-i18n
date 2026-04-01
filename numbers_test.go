@@ -143,3 +143,25 @@ func TestFormatOrdinal(t *testing.T) {
 		}
 	}
 }
+
+func TestFormatNumberFromLocale(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	if got := FormatNumber(1234567); got != "1 234 567" {
+		t.Errorf("FormatNumber(fr) = %q, want %q", got, "1 234 567")
+	}
+	if got := FormatDecimal(1234.56); got != "1 234,56" {
+		t.Errorf("FormatDecimal(fr) = %q, want %q", got, "1 234,56")
+	}
+	if got := FormatPercent(0.85); got != "85 %" {
+		t.Errorf("FormatPercent(fr) = %q, want %q", got, "85 %")
+	}
+}

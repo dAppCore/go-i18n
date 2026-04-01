@@ -35,6 +35,9 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	maps.Copy(existing.Verbs, data.Verbs)
 	maps.Copy(existing.Nouns, data.Nouns)
 	maps.Copy(existing.Words, data.Words)
+	if data.Number != (NumberFormat{}) {
+		existing.Number = data.Number
+	}
 }
 
 // IrregularVerbs returns a copy of the irregular verb forms map.

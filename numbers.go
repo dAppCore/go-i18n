@@ -9,13 +9,25 @@ import (
 
 func getNumberFormat() NumberFormat {
 	lang := currentLangForGrammar()
-	if idx := indexAny(lang, "-_"); idx > 0 {
-		lang = lang[:idx]
-	}
-	if fmt, ok := numberFormats[lang]; ok {
+	if fmt, ok := getLocaleNumberFormat(lang); ok {
 		return fmt
 	}
+	if idx := indexAny(lang, "-_"); idx > 0 {
+		if fmt, ok := getLocaleNumberFormat(lang[:idx]); ok {
+			return fmt
+		}
+	}
 	return numberFormats["en"]
+}
+
+func getLocaleNumberFormat(lang string) (NumberFormat, bool) {
+	if data := GetGrammarData(lang); data != nil && data.Number != (NumberFormat{}) {
+		return data.Number, true
+	}
+	if fmt, ok := numberFormats[lang]; ok {
+		return fmt, true
+	}
+	return NumberFormat{}, false
 }
 
 // FormatNumber formats an integer with locale-specific thousands separators.
