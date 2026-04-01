@@ -26,6 +26,8 @@ func TestTimeAgo_Good(t *testing.T) {
 		{"hours_ago", 3 * time.Hour, "3 hours ago"},
 		{"days_ago", 2 * 24 * time.Hour, "2 days ago"},
 		{"weeks_ago", 3 * 7 * 24 * time.Hour, "3 weeks ago"},
+		{"months_ago", 40 * 24 * time.Hour, "1 month ago"},
+		{"years_ago", 400 * 24 * time.Hour, "1 year ago"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -59,6 +61,14 @@ func TestTimeAgo_Good_EdgeCases(t *testing.T) {
 	// Just under 1 week
 	got = TimeAgo(time.Now().Add(-6 * 24 * time.Hour))
 	assert.Contains(t, got, "days ago")
+
+	// Just over 4 weeks
+	got = TimeAgo(time.Now().Add(-31 * 24 * time.Hour))
+	assert.Contains(t, got, "month ago")
+
+	// Well over a year
+	got = TimeAgo(time.Now().Add(-800 * 24 * time.Hour))
+	assert.Contains(t, got, "years ago")
 }
 
 func TestTimeAgo_Good_SingleUnits(t *testing.T) {

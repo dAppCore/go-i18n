@@ -26,8 +26,12 @@ func TimeAgo(t time.Time) string {
 		return FormatAgo(int(duration.Hours()), "hour")
 	case duration < 7*24*time.Hour:
 		return FormatAgo(int(duration.Hours()/24), "day")
-	default:
+	case duration < 30*24*time.Hour:
 		return FormatAgo(int(duration.Hours()/(24*7)), "week")
+	case duration < 365*24*time.Hour:
+		return FormatAgo(int(duration.Hours()/(24*30)), "month")
+	default:
+		return FormatAgo(int(duration.Hours()/(24*365)), "year")
 	}
 }
 
