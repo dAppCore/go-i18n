@@ -338,4 +338,4 @@ All grammar functions are available as Go template functions via `TemplateFuncs(
 template.New("").Funcs(i18n.TemplateFuncs())
 ```
 
-Available functions: `title`, `lower`, `upper`, `past`, `gerund`, `plural`, `pluralForm`, `article`, `quote`.
+Available functions: `title`, `lower`, `upper`, `past`, `gerund`, `plural`, `pluralForm`, `article`, `quote`, `label`, `progress`, `progressSubject`, `actionResult`, `actionFailed`, `timeAgo`, `formatAgo`.
