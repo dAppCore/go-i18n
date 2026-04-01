@@ -82,6 +82,16 @@ func Prompt(key string) string {
 	return T("prompt." + key)
 }
 
+// Lang translates a language label from the lang namespace.
+//
+//	Lang("de")  // "German"
+func Lang(key string) string {
+	if key == "" {
+		return ""
+	}
+	return T("lang." + key)
+}
+
 // AddHandler appends one or more handlers to the default service's handler chain.
 func AddHandler(handlers ...KeyHandler) {
 	if svc := Default(); svc != nil {

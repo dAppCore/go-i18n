@@ -170,6 +170,31 @@ func TestPrompt_Good(t *testing.T) {
 	}
 }
 
+// --- Lang() language label shorthand ---
+
+func TestLang_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	tests := []struct {
+		name string
+		key  string
+		want string
+	}{
+		{"de", "de", "German"},
+		{"fr", "fr", "French"},
+		{"empty", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Lang(tt.key)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // --- AddHandler / PrependHandler ---
 
 func TestAddHandler_Good(t *testing.T) {
