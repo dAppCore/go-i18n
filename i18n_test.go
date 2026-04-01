@@ -145,6 +145,31 @@ func TestN_Good(t *testing.T) {
 	}
 }
 
+// --- Prompt() prompt shorthand ---
+
+func TestPrompt_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	tests := []struct {
+		name string
+		key  string
+		want string
+	}{
+		{"yes", "yes", "y"},
+		{"confirm", "confirm", "Are you sure?"},
+		{"empty", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Prompt(tt.key)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // --- AddHandler / PrependHandler ---
 
 func TestAddHandler_Good(t *testing.T) {

@@ -71,6 +71,17 @@ func N(format string, value any) string {
 	return T("i18n.numeric."+format, value)
 }
 
+// Prompt translates a prompt key from the prompt namespace.
+//
+//	Prompt("yes")      // "y"
+//	Prompt("confirm")  // "Are you sure?"
+func Prompt(key string) string {
+	if key == "" {
+		return ""
+	}
+	return T("prompt." + key)
+}
+
 // AddHandler appends one or more handlers to the default service's handler chain.
 func AddHandler(handlers ...KeyHandler) {
 	if svc := Default(); svc != nil {
