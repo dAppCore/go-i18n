@@ -44,7 +44,7 @@ func (h CountHandler) Handle(key string, args []any, next func() string) string 
 	noun := core.TrimPrefix(key, "i18n.count.")
 	if len(args) > 0 {
 		count := toInt(args[0])
-		return core.Sprintf("%d %s", count, Pluralize(noun, count))
+		return core.Sprintf("%s %s", FormatNumber(int64(count)), Pluralize(noun, count))
 	}
 	return noun
 }

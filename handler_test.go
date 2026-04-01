@@ -168,6 +168,29 @@ func TestNumericHandler(t *testing.T) {
 	}
 }
 
+func TestCountHandler_UsesLocaleNumberFormat(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.file", []any{1234}, nil)
+	want := "1 234 files"
+	if got != want {
+		t.Errorf("CountHandler.Handle(locale format) = %q, want %q", got, want)
+	}
+}
+
 func TestRunHandlerChain(t *testing.T) {
 	handlers := DefaultHandlers()
 	fallback := func() string { return "missed" }
