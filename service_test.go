@@ -126,6 +126,20 @@ func TestServiceRaw(t *testing.T) {
 	}
 }
 
+func TestServiceRaw_DoesNotUseCommonFallbacks(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.messages["en"]["common.action.status"] = Message{Text: "Common status"}
+
+	got := svc.Raw("missing.status")
+	if got != "missing.status" {
+		t.Errorf("Raw(missing.status) = %q, want key returned", got)
+	}
+}
+
 func TestServiceModes(t *testing.T) {
 	svc, err := New()
 	if err != nil {

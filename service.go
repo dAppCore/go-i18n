@@ -330,11 +330,16 @@ func (s *Service) T(messageID string, args ...any) string {
 	return result
 }
 
-func (s *Service) resolveWithFallback(messageID string, data any) string {
+// resolveDirect performs exact-key lookup in the current language and fallback language.
+func (s *Service) resolveDirect(messageID string, data any) string {
 	if text := s.tryResolve(s.currentLang, messageID, data); text != "" {
 		return text
 	}
-	if text := s.tryResolve(s.fallbackLang, messageID, data); text != "" {
+	return s.tryResolve(s.fallbackLang, messageID, data)
+}
+
+func (s *Service) resolveWithFallback(messageID string, data any) string {
+	if text := s.resolveDirect(messageID, data); text != "" {
 		return text
 	}
 	if core.Contains(messageID, ".") {
@@ -543,7 +548,7 @@ func (s *Service) Raw(messageID string, args ...any) string {
 	if len(args) > 0 {
 		data = args[0]
 	}
-	text := s.resolveWithFallback(messageID, data)
+	text := s.resolveDirect(messageID, data)
 	if text == "" {
 		return s.handleMissingKey(messageID, args)
 	}
