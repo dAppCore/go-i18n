@@ -189,6 +189,12 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 						}
 					}
 				}
+				if priors, ok := v["prior"].(map[string]any); ok {
+					loadSignalPriors(grammar, priors)
+				}
+				if priors, ok := v["priors"].(map[string]any); ok {
+					loadSignalPriors(grammar, priors)
+				}
 				continue
 			}
 
@@ -298,4 +304,28 @@ func isPluralObject(m map[string]any) bool {
 		}
 	}
 	return true
+}
+
+func loadSignalPriors(grammar *GrammarData, priors map[string]any) {
+	if grammar == nil || len(priors) == 0 {
+		return
+	}
+	if grammar.Signals.Priors == nil {
+		grammar.Signals.Priors = make(map[string]map[string]float64, len(priors))
+	}
+	for word, raw := range priors {
+		bucket, ok := raw.(map[string]any)
+		if !ok || len(bucket) == 0 {
+			continue
+		}
+		key := core.Lower(word)
+		if grammar.Signals.Priors[key] == nil {
+			grammar.Signals.Priors[key] = make(map[string]float64, len(bucket))
+		}
+		for role, value := range bucket {
+			if score := toFloat64(value); score != 0 {
+				grammar.Signals.Priors[key][core.Lower(role)] = score
+			}
+		}
+	}
 }

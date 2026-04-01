@@ -228,7 +228,7 @@ type SignalData struct {
 	NounDeterminers []string                      // Words that precede nouns: "the", "a", "this", "my", ...
 	VerbAuxiliaries []string                      // Auxiliaries/modals before verbs: "is", "was", "will", ...
 	VerbInfinitive  []string                      // Infinitive markers: "to"
-	Priors          map[string]map[string]float64 // Reserved for Phase 2: corpus-derived per-word priors. Not yet loaded.
+	Priors          map[string]map[string]float64 // Corpus-derived verb/noun priors for ambiguous words.
 }
 
 // --- Number Formatting ---

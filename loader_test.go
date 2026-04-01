@@ -156,6 +156,14 @@ func TestFlattenWithGrammar(t *testing.T) {
 				"decimal":   ".",
 				"percent":   "%s%%",
 			},
+			"signal": map[string]any{
+				"prior": map[string]any{
+					"commit": map[string]any{
+						"verb": 0.25,
+						"noun": 0.75,
+					},
+				},
+			},
 			"article": map[string]any{
 				"indefinite": map[string]any{
 					"default": "a",
@@ -480,6 +488,11 @@ func TestCustomFSLoader(t *testing.T) {
 						"draft": { "base": "draft", "past": "drafted", "gerund": "drafting" },
 						"zap": { "base": "zap", "past": "zapped", "gerund": "zapping" }
 					},
+					"signal": {
+						"priors": {
+							"draft": { "verb": 0.6, "noun": 0.4 }
+						}
+					},
 					"word": {
 						"hello": "Hello"
 					}
@@ -509,5 +522,8 @@ func TestCustomFSLoader(t *testing.T) {
 	}
 	if v, ok := gd.Verbs["draft"]; !ok || v.Past != "drafted" {
 		t.Errorf("verb base override 'draft' not loaded correctly")
+	}
+	if gd.Signals.Priors["draft"]["verb"] != 0.6 || gd.Signals.Priors["draft"]["noun"] != 0.4 {
+		t.Errorf("signal priors not loaded correctly: %+v", gd.Signals.Priors["draft"])
 	}
 }

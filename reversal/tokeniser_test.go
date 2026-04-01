@@ -491,6 +491,43 @@ func TestTokeniser_WithSignals(t *testing.T) {
 	_ = tok // verify it compiles and accepts the option
 }
 
+func TestTokeniser_Tokenise_CorpusPriorBias(t *testing.T) {
+	const lang = "zz-prior"
+	original := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, original)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Verbs: map[string]i18n.VerbForms{
+			"commit": {Past: "committed", Gerund: "committing"},
+		},
+		Nouns: map[string]i18n.NounForms{
+			"commit": {One: "commit", Other: "commits"},
+		},
+		Signals: i18n.SignalData{
+			Priors: map[string]map[string]float64{
+				"commit": {
+					"verb": 0.2,
+					"noun": 0.8,
+				},
+			},
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+	tokens := tok.Tokenise("please commit")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "please commit", len(tokens))
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("Tokenise(%q)[1].Type = %v, want TokenNoun", "please commit", tokens[1].Type)
+	}
+	if tokens[1].Confidence <= 0.5 {
+		t.Fatalf("Tokenise(%q)[1].Confidence = %f, want > 0.5", "please commit", tokens[1].Confidence)
+	}
+}
+
 func TestTokeniser_DualClassDetection(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()

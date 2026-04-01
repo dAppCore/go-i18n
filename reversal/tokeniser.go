@@ -942,8 +942,23 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 7. default_prior: always fires as verb signal
-	if w, ok := t.weights["default_prior"]; ok {
+	// 7. default_prior: corpus-derived priors take precedence; otherwise fall back to the static verb prior.
+	if priorVerb, priorNoun, ok := t.corpusPrior(tokens[idx].Lower); ok {
+		verbScore += priorVerb
+		nounScore += priorNoun
+		if t.withSignals {
+			components = append(components, SignalComponent{
+				Name: "default_prior", Weight: 1.0, Value: priorVerb, Contrib: priorVerb,
+				Reason: "corpus-derived prior",
+			})
+			if priorNoun > 0 {
+				components = append(components, SignalComponent{
+					Name: "default_prior", Weight: 1.0, Value: priorNoun, Contrib: priorNoun,
+					Reason: "corpus-derived prior",
+				})
+			}
+		}
+	} else if w, ok := t.weights["default_prior"]; ok {
 		verbScore += w * 1.0
 		if t.withSignals {
 			components = append(components, SignalComponent{
@@ -954,6 +969,24 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 	}
 
 	return verbScore, nounScore, components
+}
+
+func (t *Tokeniser) corpusPrior(word string) (float64, float64, bool) {
+	data := i18n.GetGrammarData(t.lang)
+	if data == nil || len(data.Signals.Priors) == 0 {
+		return 0, 0, false
+	}
+	bucket, ok := data.Signals.Priors[core.Lower(word)]
+	if !ok || len(bucket) == 0 {
+		return 0, 0, false
+	}
+	verb := bucket["verb"]
+	noun := bucket["noun"]
+	total := verb + noun
+	if total <= 0 {
+		return 0, 0, false
+	}
+	return verb / total, noun / total, true
 }
 
 // hasConfidentVerbInClause scans for a confident verb (Confidence >= 1.0)
