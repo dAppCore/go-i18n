@@ -349,6 +349,83 @@ func TestArticleFrenchLocale(t *testing.T) {
 	}
 }
 
+func TestArticleFrenchElisionKeepsLeadingConsonant(t *testing.T) {
+	prevData := GetGrammarData("fr")
+	t.Cleanup(func() {
+		SetGrammarData("fr", prevData)
+	})
+
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	SetGrammarData("fr", &GrammarData{
+		Nouns: map[string]NounForms{
+			"amie":   {One: "amie", Other: "amies", Gender: "f"},
+			"accord": {One: "accord", Other: "accords", Gender: "d"},
+			"homme":  {One: "homme", Other: "hommes", Gender: "m"},
+			"idole":  {One: "idole", Other: "idoles", Gender: "j"},
+		},
+		Articles: ArticleForms{
+			IndefiniteDefault: "un",
+			IndefiniteVowel:   "un",
+			Definite:          "le",
+			ByGender: map[string]string{
+				"d": "de",
+				"f": "la",
+				"j": "je",
+				"m": "le",
+			},
+		},
+	})
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"homme", "l'"},
+		{"amie", "l'"},
+		{"accord", "d'"},
+		{"idole", "j'"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := Article(tt.word)
+			if got != tt.want {
+				t.Errorf("Article(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+
+	phraseTests := []struct {
+		word string
+		want string
+	}{
+		{"accord", "d'accord"},
+		{"idole", "j'idole"},
+	}
+
+	for _, tt := range phraseTests {
+		t.Run(tt.word+"_phrase", func(t *testing.T) {
+			got := ArticlePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("ArticlePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
 type pluralizeOverrideLoader struct{}
 
 func (pluralizeOverrideLoader) Languages() []string {

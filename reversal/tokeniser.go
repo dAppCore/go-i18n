@@ -23,6 +23,8 @@ import (
 	i18n "dappco.re/go/core/i18n"
 )
 
+var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu"}
+
 // VerbMatch holds the result of a reverse verb lookup.
 type VerbMatch struct {
 	Base  string // Base form of the verb ("delete", "run")
@@ -606,7 +608,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	}
 	if t.isFrenchLanguage() {
 		switch lower {
-		case "l'", "l’", "les":
+		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "les":
 			return "definite", true
 		case "un", "une", "des":
 			return "indefinite", true
@@ -1122,14 +1124,22 @@ func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
 		return "", raw, false
 	}
 
-	if lower[0] != 'l' {
-		return "", raw, false
-	}
-
-	if idx := strings.IndexAny(raw, "'’"); idx == 1 {
-		_, size := utf8.DecodeRuneInString(raw[idx:])
-		if size > 0 {
-			return raw[:idx+size], raw[idx+size:], true
+	for _, prefix := range frenchElisionPrefixes {
+		if !strings.HasPrefix(lower, prefix) {
+			continue
+		}
+		idx := len(prefix)
+		if idx >= len(raw) {
+			continue
+		}
+		if idx < len(raw) {
+			r, size := utf8.DecodeRuneInString(raw[idx:])
+			if r != '\'' && r != '’' {
+				continue
+			}
+			if size > 0 {
+				return raw[:idx+size], raw[idx+size:], true
+			}
 		}
 	}
 

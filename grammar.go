@@ -496,11 +496,16 @@ func maybeElideArticle(article, word, lang string) string {
 	if !isFrenchLanguage(lang) {
 		return article
 	}
+	if !startsWithVowelSound(word) {
+		return article
+	}
 	switch core.Lower(article) {
-	case "le", "la", "de", "je", "me", "te", "se", "ne":
-		if startsWithVowelSound(word) {
-			return "l'"
-		}
+	case "le", "la", "de", "je", "me", "te", "se", "ne", "ce":
+		// French elision keeps the leading consonant and replaces the final
+		// vowel with an apostrophe: le/la -> l', de -> d', je -> j', etc.
+		return core.Lower(article[:1]) + "'"
+	case "que":
+		return "qu'"
 	}
 	return article
 }
