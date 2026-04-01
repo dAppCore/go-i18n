@@ -136,9 +136,15 @@ func Init() error {
 		}
 		svc, err := New()
 		if err == nil {
+			// Register and load any locales queued before initialisation.
+			loadRegisteredLocales(svc)
 			// CAS prevents overwriting a concurrent SetDefault call that
 			// raced between the Load check above and this store.
-			defaultService.CompareAndSwap(nil, svc)
+			if !defaultService.CompareAndSwap(nil, svc) {
+				// If a concurrent caller already installed a service, load
+				// registered locales into that active default service instead.
+				loadRegisteredLocales(defaultService.Load())
+			}
 		}
 		defaultErr = err
 	})

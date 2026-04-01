@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"sync"
 	"testing"
 	"testing/fstest"
 
@@ -70,6 +71,43 @@ func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
 	// Should be able to resolve the newly registered key
 	got := svc.T("late.registration")
 	assert.Equal(t, "arrived late", got)
+}
+
+func TestInit_LoadsRegisteredLocales(t *testing.T) {
+	// Save and restore global service state.
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+
+	defaultOnce = sync.Once{}
+	defaultService.Store(nil)
+
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+		defaultService.Store(nil)
+		defaultOnce = sync.Once{}
+	}()
+
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"init.registered": "loaded on init"}`),
+		},
+	}
+	RegisterLocales(fs, "locales")
+
+	require.NoError(t, Init())
+
+	svc := Default()
+	require.NotNil(t, svc)
+
+	got := svc.T("init.registered")
+	assert.Equal(t, "loaded on init", got)
 }
 
 func TestLoadRegisteredLocales_Good(t *testing.T) {
