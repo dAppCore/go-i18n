@@ -33,6 +33,20 @@ func TestSetDebug_Good_ServiceLevel(t *testing.T) {
 	assert.False(t, svc.Debug())
 }
 
+func TestCurrentDebug_Good_PackageLevel(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+
+	_ = Init()
+	SetDefault(svc)
+
+	SetDebug(true)
+	assert.True(t, CurrentDebug())
+
+	SetDebug(false)
+	assert.False(t, CurrentDebug())
+}
+
 func TestDebugFormat_Good(t *testing.T) {
 	tests := []struct {
 		name string

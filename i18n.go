@@ -69,6 +69,14 @@ func CurrentFormality() Formality {
 	return FormalityNeutral
 }
 
+// CurrentDebug reports whether debug mode is enabled on the default service.
+func CurrentDebug() bool {
+	if svc := Default(); svc != nil {
+		return svc.Debug()
+	}
+	return false
+}
+
 // N formats a number using the i18n.numeric.* namespace.
 //
 //	N("number", 1234567)   // "1,234,567"
