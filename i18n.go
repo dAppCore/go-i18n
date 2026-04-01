@@ -61,6 +61,14 @@ func CurrentMode() Mode {
 	return ModeNormal
 }
 
+// CurrentFormality returns the current default formality.
+func CurrentFormality() Formality {
+	if svc := Default(); svc != nil {
+		return svc.Formality()
+	}
+	return FormalityNeutral
+}
+
 // N formats a number using the i18n.numeric.* namespace.
 //
 //	N("number", 1234567)   // "1,234,567"

@@ -95,7 +95,7 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 		{"german", "de", false},
 		{"french", "fr", false},
 		{"unknown", "xx", false},
-		{"arabic_variant", "ar-EG-extra", true},  // len > 2 prefix check
+		{"arabic_variant", "ar-EG-extra", true},   // len > 2 prefix check
 		{"english_variant", "en-US-extra", false}, // len > 2, not RTL
 	}
 	for _, tt := range tests {
@@ -117,6 +117,19 @@ func TestSetFormality_Good(t *testing.T) {
 
 	SetFormality(FormalityNeutral)
 	assert.Equal(t, FormalityNeutral, svc.Formality())
+}
+
+// --- Package-level CurrentFormality ---
+
+func TestCurrentFormality_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, FormalityNeutral, CurrentFormality())
+
+	SetFormality(FormalityFormal)
+	assert.Equal(t, FormalityFormal, CurrentFormality())
 }
 
 // --- Package-level Direction ---
