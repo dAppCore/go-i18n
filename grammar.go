@@ -662,6 +662,8 @@ func ArticlePhrase(word string) string {
 	if article == "" || word == "" {
 		return ""
 	}
+	lang := currentLangForGrammar()
+	word = renderWord(lang, word)
 	if strings.HasSuffix(article, "'") {
 		return article + word
 	}

@@ -491,6 +491,36 @@ func TestArticlePhrase(t *testing.T) {
 	}
 }
 
+func TestArticlePhrase_RespectsWordMap(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	if got, want := ArticlePhrase("go_mod"), "a go.mod"; got != want {
+		t.Fatalf("ArticlePhrase(%q) = %q, want %q", "go_mod", got, want)
+	}
+}
+
 func TestArticlePhraseFrenchLocale(t *testing.T) {
 	prev := Default()
 	svc, err := New()
