@@ -334,6 +334,7 @@ func TestArticleFrenchLocale(t *testing.T) {
 		want string
 	}{
 		{"branche", "la"},
+		{"branches", "les"},
 		{"enfant", "l'"},
 		{"fichier", "le"},
 		{"inconnu", "un"},
@@ -510,6 +511,7 @@ func TestArticlePhraseFrenchLocale(t *testing.T) {
 		want string
 	}{
 		{"branche", "la branche"},
+		{"branches", "les branches"},
 		{"enfant", "l'enfant"},
 		{"fichier", "le fichier"},
 	}

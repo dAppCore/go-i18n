@@ -452,6 +452,9 @@ func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 		return "", false
 	}
 
+	if article, ok := articleForPluralForm(data, lowerWord, lang); ok {
+		return article, true
+	}
 	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
 		return article, true
 	}
@@ -474,6 +477,32 @@ func articleByGender(data *GrammarData, lowerWord, originalWord, lang string) (s
 		return "", false
 	}
 	return maybeElideArticle(article, originalWord, lang), true
+}
+
+func articleForPluralForm(data *GrammarData, lowerWord, lang string) (string, bool) {
+	if !isFrenchLanguage(lang) {
+		return "", false
+	}
+	if !isKnownPluralNoun(data, lowerWord) {
+		return "", false
+	}
+	return "les", true
+}
+
+func isKnownPluralNoun(data *GrammarData, lowerWord string) bool {
+	if data == nil || len(data.Nouns) == 0 {
+		return false
+	}
+	for _, forms := range data.Nouns {
+		if forms.Other == "" || core.Lower(forms.Other) != lowerWord {
+			continue
+		}
+		if forms.One != "" && core.Lower(forms.One) == lowerWord {
+			continue
+		}
+		return true
+	}
+	return false
 }
 
 func articleFromGrammarForms(data *GrammarData, word string) (string, bool) {
