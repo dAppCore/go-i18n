@@ -17,6 +17,7 @@ package reversal
 
 import (
 	"strings"
+	"unicode/utf8"
 
 	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
@@ -605,7 +606,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	}
 	if t.isFrenchLanguage() {
 		switch lower {
-		case "l'", "les":
+		case "l'", "l’", "les":
 			return "definite", true
 		case "un", "une", "des":
 			return "indefinite", true
@@ -1112,13 +1113,24 @@ func splitTrailingPunct(s string) (string, string) {
 }
 
 func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
-	if !t.isFrenchLanguage() || len(raw) <= 2 {
+	if !t.isFrenchLanguage() || len(raw) == 0 {
 		return "", raw, false
 	}
 
 	lower := core.Lower(raw)
-	if len(lower) > 2 && lower[0] == 'l' && lower[1] == '\'' {
-		return raw[:2], raw[2:], true
+	if len(lower) < 2 {
+		return "", raw, false
+	}
+
+	if lower[0] != 'l' {
+		return "", raw, false
+	}
+
+	if idx := strings.IndexAny(raw, "'’"); idx == 1 {
+		_, size := utf8.DecodeRuneInString(raw[idx:])
+		if size > 0 {
+			return raw[:idx+size], raw[idx+size:], true
+		}
 	}
 
 	return "", raw, false
