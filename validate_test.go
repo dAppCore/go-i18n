@@ -327,6 +327,30 @@ func TestArticlePrompt(t *testing.T) {
 	}
 }
 
+func TestArticlePromptFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	prompt := articlePrompt("livre")
+	if !contains(prompt, "livre") {
+		t.Errorf("prompt should contain the noun: %q", prompt)
+	}
+	if !contains(prompt, "le/la/l'/les/un/une/des") {
+		t.Errorf("prompt should mention French article options: %q", prompt)
+	}
+}
+
 func TestIrregularPrompt(t *testing.T) {
 	prompt := irregularPrompt("swim", "past participle")
 	if !contains(prompt, "'swim'") {

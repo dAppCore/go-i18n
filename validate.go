@@ -44,6 +44,17 @@ type IrregularResult struct {
 
 // articlePrompt builds a fill-in-the-blank prompt for article prediction.
 func articlePrompt(noun string) string {
+	return articlePromptForLang(currentLangForGrammar(), noun)
+}
+
+func articlePromptForLang(lang, noun string) string {
+	noun = core.Trim(noun)
+	if isFrenchLanguage(lang) {
+		return core.Sprintf(
+			"Complete with the correct article (le/la/l'/les/un/une/des): ___ %s. Answer with just the article:",
+			noun,
+		)
+	}
 	return core.Sprintf(
 		"Complete with the correct article (a/an/the): ___ %s. Answer with just the article:",
 		noun,
