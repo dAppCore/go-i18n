@@ -867,6 +867,41 @@ func TestTemplateFuncs_CompositeHelpers(t *testing.T) {
 	}
 }
 
+func TestCompositeHelpersRespectWordMap(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	if got, want := Label("go_mod"), "go.mod:"; got != want {
+		t.Fatalf("Label(%q) = %q, want %q", "go_mod", got, want)
+	}
+	if got, want := ProgressSubject("build", "go_mod"), "Building go.mod..."; got != want {
+		t.Fatalf("ProgressSubject(%q, %q) = %q, want %q", "build", "go_mod", got, want)
+	}
+	if got, want := ActionResult("delete", "go_mod"), "go.mod deleted"; got != want {
+		t.Fatalf("ActionResult(%q, %q) = %q, want %q", "delete", "go_mod", got, want)
+	}
+	if got, want := ActionFailed("delete", "go_mod"), "Failed to delete go.mod"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "delete", "go_mod", got, want)
+	}
+}
+
 // --- Benchmarks ---
 
 func BenchmarkPastTense_Irregular(b *testing.B) {

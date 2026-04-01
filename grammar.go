@@ -637,6 +637,20 @@ func Title(s string) string {
 	return b.String()
 }
 
+func renderWord(lang, word string) string {
+	if translated := getWord(lang, word); translated != "" {
+		return translated
+	}
+	return word
+}
+
+func renderWordOrTitle(lang, word string) string {
+	if translated := getWord(lang, word); translated != "" {
+		return translated
+	}
+	return Title(word)
+}
+
 // Quote wraps a string in double quotes.
 func Quote(s string) string {
 	return `"` + s + `"`
@@ -677,10 +691,7 @@ func TemplateFuncs() template.FuncMap {
 // Progress returns a progress message: "Building..."
 func Progress(verb string) string {
 	lang := currentLangForGrammar()
-	word := getWord(lang, verb)
-	if word == "" {
-		word = verb
-	}
+	word := renderWord(lang, verb)
 	g := Gerund(word)
 	if g == "" {
 		return ""
@@ -692,16 +703,13 @@ func Progress(verb string) string {
 // ProgressSubject returns a progress message with subject: "Building project..."
 func ProgressSubject(verb, subject string) string {
 	lang := currentLangForGrammar()
-	word := getWord(lang, verb)
-	if word == "" {
-		word = verb
-	}
+	word := renderWord(lang, verb)
 	g := Gerund(word)
 	if g == "" {
 		return ""
 	}
 	suffix := getPunct(lang, "progress", "...")
-	return Title(g) + " " + subject + suffix
+	return Title(g) + " " + renderWord(lang, subject) + suffix
 }
 
 // ActionResult returns a completion message: "File deleted"
@@ -710,7 +718,7 @@ func ActionResult(verb, subject string) string {
 	if p == "" || subject == "" {
 		return ""
 	}
-	return Title(subject) + " " + p
+	return renderWordOrTitle(currentLangForGrammar(), subject) + " " + p
 }
 
 // ActionFailed returns a failure message: "Failed to delete file"
@@ -721,7 +729,7 @@ func ActionFailed(verb, subject string) string {
 	if subject == "" {
 		return "Failed to " + verb
 	}
-	return "Failed to " + verb + " " + subject
+	return "Failed to " + verb + " " + renderWord(currentLangForGrammar(), subject)
 }
 
 // Label returns a label with suffix: "Status:" (EN) or "Statut :" (FR)
@@ -730,10 +738,7 @@ func Label(word string) string {
 		return ""
 	}
 	lang := currentLangForGrammar()
-	translated := getWord(lang, word)
-	if translated == "" {
-		translated = word
-	}
+	translated := renderWordOrTitle(lang, word)
 	suffix := getPunct(lang, "label", ":")
-	return Title(translated) + suffix
+	return translated + suffix
 }
