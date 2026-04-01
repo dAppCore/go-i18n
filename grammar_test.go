@@ -366,6 +366,40 @@ func TestArticlePhrase(t *testing.T) {
 	}
 }
 
+func TestArticlePhraseFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"branche", "la branche"},
+		{"enfant", "l'enfant"},
+		{"fichier", "le fichier"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := ArticlePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("ArticlePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLabel(t *testing.T) {
 	svc, err := New()
 	if err != nil {

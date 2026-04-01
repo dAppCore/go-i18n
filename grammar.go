@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"maps"
+	"strings"
 	"text/template"
 	"unicode"
 
@@ -560,6 +561,9 @@ func ArticlePhrase(word string) string {
 	article := Article(word)
 	if article == "" || word == "" {
 		return ""
+	}
+	if strings.HasSuffix(article, "'") {
+		return article + word
 	}
 	return article + " " + word
 }
