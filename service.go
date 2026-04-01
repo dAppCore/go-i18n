@@ -344,8 +344,8 @@ func (s *Service) resolveWithFallback(messageID string, data any) string {
 }
 
 func (s *Service) tryResolve(lang, key string, data any) string {
-	context, formality := s.getEffectiveContextAndFormality(data)
-	for _, lookupKey := range lookupVariants(key, context, formality) {
+	context, gender, formality := s.getEffectiveContextGenderAndFormality(data)
+	for _, lookupKey := range lookupVariants(key, context, gender, formality) {
 		if text := s.resolveMessage(lang, lookupKey, data); text != "" {
 			return text
 		}
@@ -373,37 +373,49 @@ func (s *Service) resolveMessage(lang, key string, data any) string {
 	return text
 }
 
-func (s *Service) getEffectiveContextAndFormality(data any) (string, Formality) {
+func (s *Service) getEffectiveContextGenderAndFormality(data any) (string, string, Formality) {
 	if ctx, ok := data.(*TranslationContext); ok && ctx != nil {
 		formality := ctx.FormalityValue()
 		if formality == FormalityNeutral {
 			formality = s.formality
 		}
-		return ctx.ContextString(), formality
+		return ctx.ContextString(), ctx.GenderString(), formality
+	}
+	if subj, ok := data.(*Subject); ok && subj != nil {
+		formality := subj.formality
+		if formality == FormalityNeutral {
+			formality = s.formality
+		}
+		return "", subj.gender, formality
 	}
 	if m, ok := data.(map[string]any); ok {
 		var context string
+		var gender string
+		formality := s.formality
 		if v, ok := m["Context"].(string); ok {
 			context = core.Trim(v)
+		}
+		if v, ok := m["Gender"].(string); ok {
+			gender = core.Trim(v)
 		}
 		if v, ok := m["Formality"]; ok {
 			switch f := v.(type) {
 			case Formality:
 				if f != FormalityNeutral {
-					return context, f
+					formality = f
 				}
 			case string:
 				switch core.Lower(f) {
 				case "formal":
-					return context, FormalityFormal
+					formality = FormalityFormal
 				case "informal":
-					return context, FormalityInformal
+					formality = FormalityInformal
 				}
 			}
 		}
-		return context, s.formality
+		return context, gender, formality
 	}
-	return "", s.getEffectiveFormality(data)
+	return "", "", s.getEffectiveFormality(data)
 }
 
 func (s *Service) getEffectiveFormality(data any) Formality {
@@ -435,13 +447,25 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 	return s.formality
 }
 
-func lookupVariants(key, context string, formality Formality) []string {
+func lookupVariants(key, context, gender string, formality Formality) []string {
 	var variants []string
 	if context != "" {
+		if gender != "" && formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+formality.String())
+		}
+		if gender != "" {
+			variants = append(variants, key+"._"+context+"._"+gender)
+		}
 		if formality != FormalityNeutral {
 			variants = append(variants, key+"._"+context+"._"+formality.String())
 		}
 		variants = append(variants, key+"._"+context)
+	}
+	if gender != "" {
+		if formality != FormalityNeutral {
+			variants = append(variants, key+"._"+gender+"._"+formality.String())
+		}
+		variants = append(variants, key+"._"+gender)
 	}
 	if formality != FormalityNeutral {
 		variants = append(variants, key+"._"+formality.String())

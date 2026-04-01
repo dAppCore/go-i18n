@@ -209,10 +209,13 @@ func TestServiceTranslationContext(t *testing.T) {
 	}
 
 	svc.AddMessages("en", map[string]string{
-		"direction.right._navigation":          "right",
-		"direction.right._navigation._formal":  "right, sir",
-		"direction.right._correctness":         "correct",
-		"direction.right._correctness._formal": "correct, sir",
+		"direction.right._navigation":                   "right",
+		"direction.right._navigation._formal":           "right, sir",
+		"direction.right._navigation._feminine":         "right, ma'am",
+		"direction.right._navigation._feminine._formal": "right, madam",
+		"direction.right._correctness":                  "correct",
+		"direction.right._correctness._formal":          "correct, sir",
+		"welcome._feminine":                             "welcome, ma'am",
 	})
 
 	if got := svc.T("direction.right", C("navigation")); got != "right" {
@@ -229,6 +232,18 @@ func TestServiceTranslationContext(t *testing.T) {
 
 	if got := svc.T("direction.right", C("correctness").Formal()); got != "correct, sir" {
 		t.Errorf("T(direction.right, C(correctness).Formal()) = %q, want %q", got, "correct, sir")
+	}
+
+	if got := svc.T("direction.right", C("navigation").WithGender("feminine")); got != "right, ma'am" {
+		t.Errorf("T(direction.right, C(navigation).WithGender(feminine)) = %q, want %q", got, "right, ma'am")
+	}
+
+	if got := svc.T("direction.right", C("navigation").WithGender("feminine").Formal()); got != "right, madam" {
+		t.Errorf("T(direction.right, C(navigation).WithGender(feminine).Formal()) = %q, want %q", got, "right, madam")
+	}
+
+	if got := svc.T("welcome", S("user", "Alice").Gender("feminine")); got != "welcome, ma'am" {
+		t.Errorf("T(welcome, S(user, Alice).Gender(feminine)) = %q, want %q", got, "welcome, ma'am")
 	}
 }
 
