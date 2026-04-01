@@ -598,6 +598,14 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 			return "definite", true
 		}
 	}
+	if t.isFrenchLanguage() {
+		switch lower {
+		case "l'", "les":
+			return "definite", true
+		case "des":
+			return "indefinite", true
+		}
+	}
 
 	return "", false
 }
@@ -629,6 +637,22 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 
 	// --- Pass 1: Classify & Mark ---
 	for _, raw := range parts {
+		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
+			if artType, ok := t.MatchArticle(prefix); ok {
+				tokens = append(tokens, Token{
+					Raw:        prefix,
+					Lower:      core.Lower(prefix),
+					Type:       TokenArticle,
+					ArtType:    artType,
+					Confidence: 1.0,
+				})
+			}
+			raw = rest
+			if raw == "" {
+				continue
+			}
+		}
+
 		// Strip trailing punctuation to get the clean word.
 		word, punct := splitTrailingPunct(raw)
 
@@ -960,6 +984,24 @@ func splitTrailingPunct(s string) (string, string) {
 		}
 	}
 	return s, ""
+}
+
+func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
+	if !t.isFrenchLanguage() || len(raw) <= 2 {
+		return "", raw, false
+	}
+
+	lower := core.Lower(raw)
+	if len(lower) > 2 && lower[0] == 'l' && lower[1] == '\'' {
+		return raw[:2], raw[2:], true
+	}
+
+	return "", raw, false
+}
+
+func (t *Tokeniser) isFrenchLanguage() bool {
+	lang := core.Lower(t.lang)
+	return lang == "fr" || core.HasPrefix(lang, "fr-")
 }
 
 // matchPunctuation detects known punctuation patterns.
