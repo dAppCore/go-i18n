@@ -241,6 +241,17 @@ func TestCurrentPluralCategory_Good(t *testing.T) {
 	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
 }
 
+func TestCurrentPluralCategory_NoDefaultService(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	SetDefault(nil)
+
+	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+}
+
 // --- detectLanguage ---
 
 func TestDetectLanguage_Good(t *testing.T) {

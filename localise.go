@@ -129,7 +129,7 @@ func IsRTL() bool { return Direction() == DirRTL }
 //
 //	cat := i18n.CurrentPluralCategory(2)
 func CurrentPluralCategory(n int) PluralCategory {
-	return defaultServiceValue(GetPluralCategory("en", n), func(svc *Service) PluralCategory {
+	return defaultServiceValue(PluralOther, func(svc *Service) PluralCategory {
 		return svc.PluralCategory(n)
 	})
 }
