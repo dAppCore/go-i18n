@@ -266,6 +266,12 @@ func TestNumericHandler(t *testing.T) {
 	if got != "fallback" {
 		t.Errorf("NumericHandler with no args should fallback, got %q", got)
 	}
+
+	// No args and no fallback should not panic.
+	got = h.Handle("i18n.numeric.number", nil, nil)
+	if got != "" {
+		t.Errorf("NumericHandler with no args and no fallback = %q, want empty string", got)
+	}
 }
 
 func TestCountHandler_UsesLocaleNumberFormat(t *testing.T) {

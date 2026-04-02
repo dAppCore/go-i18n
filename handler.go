@@ -132,7 +132,10 @@ func (h NumericHandler) Match(key string) bool {
 
 func (h NumericHandler) Handle(key string, args []any, next func() string) string {
 	if len(args) == 0 {
-		return next()
+		if next != nil {
+			return next()
+		}
+		return ""
 	}
 	format := core.TrimPrefix(key, "i18n.numeric.")
 	switch format {
@@ -153,7 +156,10 @@ func (h NumericHandler) Handle(key string, args []any, next func() string) strin
 			}
 		}
 	}
-	return next()
+	if next != nil {
+		return next()
+	}
+	return ""
 }
 
 // DefaultHandlers returns the built-in i18n.* namespace handlers.
