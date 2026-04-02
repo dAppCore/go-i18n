@@ -70,49 +70,48 @@ func IsRTLLanguage(lang string) bool {
 // SetFormality sets the default formality level on the default service.
 //
 // Example:
-//   i18n.SetFormality(i18n.FormalityFormal)
+//
+//	i18n.SetFormality(i18n.FormalityFormal)
 func SetFormality(f Formality) {
-	if svc := Default(); svc != nil {
-		svc.SetFormality(f)
-	}
+	withDefaultService(func(svc *Service) { svc.SetFormality(f) })
 }
 
 // SetLocation sets the default location context on the default service.
 //
 // Example:
-//   i18n.SetLocation("workspace")
+//
+//	i18n.SetLocation("workspace")
 func SetLocation(location string) {
-	if svc := Default(); svc != nil {
-		svc.SetLocation(location)
-	}
+	withDefaultService(func(svc *Service) { svc.SetLocation(location) })
 }
 
 // CurrentLocation returns the current default location context.
 //
 // Example:
-//   location := i18n.CurrentLocation()
+//
+//	location := i18n.CurrentLocation()
 func CurrentLocation() string {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue("", func(svc *Service) string {
 		return svc.Location()
-	}
-	return ""
+	})
 }
 
 // Direction returns the text direction for the current language.
 //
 // Example:
-//   dir := i18n.Direction()
+//
+//	dir := i18n.Direction()
 func Direction() TextDirection {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(DirLTR, func(svc *Service) TextDirection {
 		return svc.Direction()
-	}
-	return DirLTR
+	})
 }
 
 // CurrentDirection returns the current default text direction.
 //
 // Example:
-//   dir := i18n.CurrentDirection()
+//
+//	dir := i18n.CurrentDirection()
 func CurrentDirection() TextDirection {
 	return Direction()
 }
@@ -120,18 +119,19 @@ func CurrentDirection() TextDirection {
 // IsRTL returns true if the current language uses right-to-left text.
 //
 // Example:
-//   rtl := i18n.IsRTL()
+//
+//	rtl := i18n.IsRTL()
 func IsRTL() bool { return Direction() == DirRTL }
 
 // CurrentPluralCategory returns the plural category for the current default language.
 //
 // Example:
-//   cat := i18n.CurrentPluralCategory(2)
+//
+//	cat := i18n.CurrentPluralCategory(2)
 func CurrentPluralCategory(n int) PluralCategory {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(GetPluralCategory("en", n), func(svc *Service) PluralCategory {
 		return svc.PluralCategory(n)
-	}
-	return GetPluralCategory("en", n)
+	})
 }
 
 func detectLanguage(supported []language.Tag) string {

@@ -12,34 +12,34 @@ import (
 // T translates a message using the default service.
 //
 // Example:
-//   i18n.T("greeting")
+//
+//	i18n.T("greeting")
 func T(messageID string, args ...any) string {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(messageID, func(svc *Service) string {
 		return svc.T(messageID, args...)
-	}
-	return messageID
+	})
 }
 
 // Translate translates a message using the default service and returns a Core result.
 //
 // Example:
-//   result := i18n.Translate("greeting")
+//
+//	result := i18n.Translate("greeting")
 func Translate(messageID string, args ...any) core.Result {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(core.Result{Value: messageID, OK: false}, func(svc *Service) core.Result {
 		return svc.Translate(messageID, args...)
-	}
-	return core.Result{Value: messageID, OK: false}
+	})
 }
 
 // Raw translates without i18n.* namespace magic.
 //
 // Example:
-//   i18n.Raw("prompt.yes")
+//
+//	i18n.Raw("prompt.yes")
 func Raw(messageID string, args ...any) string {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(messageID, func(svc *Service) string {
 		return svc.Raw(messageID, args...)
-	}
-	return messageID
+	})
 }
 
 // ErrServiceNotInitialised is returned when the service is not initialised.
@@ -51,103 +51,100 @@ var ErrServiceNotInitialized = ErrServiceNotInitialised
 // SetLanguage sets the language for the default service.
 //
 // Example:
-//   _ = i18n.SetLanguage("fr")
+//
+//	_ = i18n.SetLanguage("fr")
 func SetLanguage(lang string) error {
-	svc := Default()
-	if svc == nil {
-		return ErrServiceNotInitialised
-	}
-	return svc.SetLanguage(lang)
+	return defaultServiceValue(ErrServiceNotInitialised, func(svc *Service) error {
+		return svc.SetLanguage(lang)
+	})
 }
 
 // CurrentLanguage returns the current language code.
 //
 // Example:
-//   lang := i18n.CurrentLanguage()
+//
+//	lang := i18n.CurrentLanguage()
 func CurrentLanguage() string {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue("en", func(svc *Service) string {
 		return svc.Language()
-	}
-	return "en"
+	})
 }
 
 // AvailableLanguages returns the loaded language tags on the default service.
 //
 // Example:
-//   langs := i18n.AvailableLanguages()
+//
+//	langs := i18n.AvailableLanguages()
 func AvailableLanguages() []string {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue([]string(nil), func(svc *Service) []string {
 		langs := svc.AvailableLanguages()
 		if len(langs) == 0 {
 			return nil
 		}
 		return append([]string(nil), langs...)
-	}
-	return nil
+	})
 }
 
 // SetMode sets the translation mode for the default service.
 //
 // Example:
-//   i18n.SetMode(i18n.ModeCollect)
+//
+//	i18n.SetMode(i18n.ModeCollect)
 func SetMode(m Mode) {
-	if svc := Default(); svc != nil {
-		svc.SetMode(m)
-	}
+	withDefaultService(func(svc *Service) { svc.SetMode(m) })
 }
 
 // SetFallback sets the fallback language for the default service.
 //
 // Example:
-//   i18n.SetFallback("en")
+//
+//	i18n.SetFallback("en")
 func SetFallback(lang string) {
-	if svc := Default(); svc != nil {
-		svc.SetFallback(lang)
-	}
+	withDefaultService(func(svc *Service) { svc.SetFallback(lang) })
 }
 
 // CurrentMode returns the current translation mode.
 //
 // Example:
-//   mode := i18n.CurrentMode()
+//
+//	mode := i18n.CurrentMode()
 func CurrentMode() Mode {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(ModeNormal, func(svc *Service) Mode {
 		return svc.Mode()
-	}
-	return ModeNormal
+	})
 }
 
 // CurrentFallback returns the current fallback language.
 //
 // Example:
-//   fallback := i18n.CurrentFallback()
+//
+//	fallback := i18n.CurrentFallback()
 func CurrentFallback() string {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue("en", func(svc *Service) string {
 		return svc.Fallback()
-	}
-	return "en"
+	})
 }
 
 // CurrentFormality returns the current default formality.
 //
 // Example:
-//   formality := i18n.CurrentFormality()
+//
+//	formality := i18n.CurrentFormality()
 func CurrentFormality() Formality {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(FormalityNeutral, func(svc *Service) Formality {
 		return svc.Formality()
-	}
-	return FormalityNeutral
+	})
 }
 
 // CurrentDebug reports whether debug mode is enabled on the default service.
 //
 // Example:
-//   debug := i18n.CurrentDebug()
+//
+//	debug := i18n.CurrentDebug()
 func CurrentDebug() bool {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(false, func(svc *Service) bool {
 		return svc.Debug()
-	}
-	return false
+	})
 }
 
 // N formats a value using the i18n.numeric.* namespace.
@@ -167,10 +164,11 @@ func N(format string, value any, args ...any) string {
 // Prompt translates a prompt key from the prompt namespace.
 //
 // Example:
-//   i18n.Prompt("confirm")
 //
-//	Prompt("yes")      // "y"
-//	Prompt("confirm")  // "Are you sure?"
+//	  i18n.Prompt("confirm")
+//
+//		Prompt("yes")      // "y"
+//		Prompt("confirm")  // "Are you sure?"
 func Prompt(key string) string {
 	key = normalizeLookupKey(key)
 	if key == "" {
@@ -182,9 +180,10 @@ func Prompt(key string) string {
 // Lang translates a language label from the lang namespace.
 //
 // Example:
-//   i18n.Lang("de")
 //
-//	Lang("de")  // "German"
+//	  i18n.Lang("de")
+//
+//		Lang("de")  // "German"
 func Lang(key string) string {
 	key = normalizeLookupKey(key)
 	if key == "" {
@@ -210,27 +209,26 @@ func normalizeLookupKey(key string) string {
 // AddHandler appends one or more handlers to the default service's handler chain.
 //
 // Example:
-//   i18n.AddHandler(MyHandler{})
+//
+//	i18n.AddHandler(MyHandler{})
 func AddHandler(handlers ...KeyHandler) {
-	if svc := Default(); svc != nil {
-		svc.AddHandler(handlers...)
-	}
+	withDefaultService(func(svc *Service) { svc.AddHandler(handlers...) })
 }
 
 // SetHandlers replaces the default service's handler chain.
 //
 // Example:
-//   i18n.SetHandlers(i18n.LabelHandler{}, i18n.ProgressHandler{})
+//
+//	i18n.SetHandlers(i18n.LabelHandler{}, i18n.ProgressHandler{})
 func SetHandlers(handlers ...KeyHandler) {
-	if svc := Default(); svc != nil {
-		svc.SetHandlers(handlers...)
-	}
+	withDefaultService(func(svc *Service) { svc.SetHandlers(handlers...) })
 }
 
 // LoadFS loads additional translations from an fs.FS into the default service.
 //
 // Example:
-//   i18n.LoadFS(os.DirFS("."), "locales")
+//
+//	i18n.LoadFS(os.DirFS("."), "locales")
 //
 // Call this from init() in packages that ship their own locale files:
 //
@@ -239,42 +237,40 @@ func SetHandlers(handlers ...KeyHandler) {
 //
 //	func init() { i18n.LoadFS(localeFS, "locales") }
 func LoadFS(fsys fs.FS, dir string) {
-	if svc := Default(); svc != nil {
+	withDefaultService(func(svc *Service) {
 		if err := svc.LoadFS(fsys, dir); err != nil {
 			log.Error("i18n: LoadFS failed", "dir", dir, "err", err)
 		}
-	}
+	})
 }
 
 // PrependHandler inserts one or more handlers at the start of the default service's handler chain.
 //
 // Example:
-//   i18n.PrependHandler(MyHandler{})
+//
+//	i18n.PrependHandler(MyHandler{})
 func PrependHandler(handlers ...KeyHandler) {
-	if svc := Default(); svc != nil {
-		svc.PrependHandler(handlers...)
-	}
+	withDefaultService(func(svc *Service) { svc.PrependHandler(handlers...) })
 }
 
 // CurrentHandlers returns a copy of the default service's handler chain.
 //
 // Example:
-//   handlers := i18n.CurrentHandlers()
+//
+//	handlers := i18n.CurrentHandlers()
 func CurrentHandlers() []KeyHandler {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue([]KeyHandler(nil), func(svc *Service) []KeyHandler {
 		return svc.Handlers()
-	}
-	return nil
+	})
 }
 
 // ClearHandlers removes all handlers from the default service.
 //
 // Example:
-//   i18n.ClearHandlers()
+//
+//	i18n.ClearHandlers()
 func ClearHandlers() {
-	if svc := Default(); svc != nil {
-		svc.ClearHandlers()
-	}
+	withDefaultService(func(svc *Service) { svc.ClearHandlers() })
 }
 
 func executeIntentTemplate(tmplStr string, data templateData) string {
