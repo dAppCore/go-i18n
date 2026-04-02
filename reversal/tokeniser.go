@@ -668,6 +668,9 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		return "", false
 	}
 
+	if base, _ := splitTrailingPunct(word); base != "" {
+		word = base
+	}
 	lower := core.Lower(word)
 
 	if artType, ok := matchConfiguredArticleText(lower, data); ok {
