@@ -97,9 +97,22 @@ func New(opts ...Option) (*Service, error) {
 	return NewWithLoader(NewFSLoader(localeFS, "locales"), opts...)
 }
 
+// NewService creates a new i18n service with embedded locales.
+//
+// This is a named alias for New that keeps the constructor intent explicit
+// for callers that prefer service-oriented naming.
+func NewService(opts ...Option) (*Service, error) {
+	return New(opts...)
+}
+
 // NewWithFS creates a new i18n service loading locales from the given filesystem.
 func NewWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 	return NewWithLoader(NewFSLoader(fsys, dir), opts...)
+}
+
+// NewServiceWithFS creates a new i18n service loading locales from the given filesystem.
+func NewServiceWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
+	return NewWithFS(fsys, dir, opts...)
 }
 
 // NewWithLoader creates a new i18n service with a custom loader.
@@ -167,6 +180,11 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	}
 
 	return s, nil
+}
+
+// NewServiceWithLoader creates a new i18n service with a custom loader.
+func NewServiceWithLoader(loader Loader, opts ...Option) (*Service, error) {
+	return NewWithLoader(loader, opts...)
 }
 
 // Init initialises the default global service if none has been set via SetDefault.

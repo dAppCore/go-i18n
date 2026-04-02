@@ -67,16 +67,16 @@ func (duplicateLangLoader) Load(lang string) (map[string]Message, *GrammarData, 
 	switch lang {
 	case "en_US":
 		return map[string]Message{
-			"first.key": {Text: "first"},
-		}, &GrammarData{
-			Words: map[string]string{"pkg": "package"},
-		}, nil
+				"first.key": {Text: "first"},
+			}, &GrammarData{
+				Words: map[string]string{"pkg": "package"},
+			}, nil
 	case "en-US":
 		return map[string]Message{
-			"second.key": {Text: "second"},
-		}, &GrammarData{
-			Words: map[string]string{"api": "API"},
-		}, nil
+				"second.key": {Text: "second"},
+			}, &GrammarData{
+				Words: map[string]string{"api": "API"},
+			}, nil
 	default:
 		return map[string]Message{}, nil, nil
 	}
@@ -101,6 +101,35 @@ func TestNewService(t *testing.T) {
 	langs := svc.AvailableLanguages()
 	if len(langs) == 0 {
 		t.Error("AvailableLanguages() is empty")
+	}
+}
+
+func TestNewServiceAliases(t *testing.T) {
+	svc, err := NewService()
+	if err != nil {
+		t.Fatalf("NewService() failed: %v", err)
+	}
+	if svc == nil {
+		t.Fatal("NewService() returned nil service")
+	}
+
+	fsys := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{Data: []byte(`{}`)},
+	}
+	withFS, err := NewServiceWithFS(fsys, "locales")
+	if err != nil {
+		t.Fatalf("NewServiceWithFS() failed: %v", err)
+	}
+	if withFS == nil {
+		t.Fatal("NewServiceWithFS() returned nil service")
+	}
+
+	withLoader, err := NewServiceWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewServiceWithLoader() failed: %v", err)
+	}
+	if withLoader == nil {
+		t.Fatal("NewServiceWithLoader() returned nil service")
 	}
 }
 
