@@ -55,6 +55,18 @@ func CurrentLanguage() string {
 	return "en"
 }
 
+// AvailableLanguages returns the loaded language tags on the default service.
+func AvailableLanguages() []string {
+	if svc := Default(); svc != nil {
+		langs := svc.AvailableLanguages()
+		if len(langs) == 0 {
+			return nil
+		}
+		return append([]string(nil), langs...)
+	}
+	return nil
+}
+
 // SetMode sets the translation mode for the default service.
 func SetMode(m Mode) {
 	if svc := Default(); svc != nil {

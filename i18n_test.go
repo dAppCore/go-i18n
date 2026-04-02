@@ -119,6 +119,24 @@ func TestCurrentLanguage_Good(t *testing.T) {
 	assert.NotEmpty(t, lang)
 }
 
+func TestAvailableLanguages_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	langs := AvailableLanguages()
+	require.NotEmpty(t, langs)
+	assert.Equal(t, svc.AvailableLanguages(), langs)
+
+	langs[0] = "zz"
+	assert.NotEqual(t, "zz", svc.AvailableLanguages()[0])
+}
+
 // --- SetMode / CurrentMode ---
 
 func TestSetMode_Good(t *testing.T) {
