@@ -311,6 +311,35 @@ func TestNewCoreService_InvalidLanguagePreservesSetLanguageError(t *testing.T) {
 	assert.NotContains(t, msg, "invalid language")
 }
 
+func TestNewCoreService_AppliesOptions(t *testing.T) {
+	prev := Default()
+	SetDefault(nil)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	factory := NewCoreService(ServiceOptions{
+		Language:  "en",
+		Fallback:  "fr",
+		Formality: FormalityFormal,
+		Location:  "workspace",
+		Mode:      ModeCollect,
+		Debug:     true,
+	})
+
+	_, err := factory(nil)
+	require.NoError(t, err)
+
+	svc := Default()
+	require.NotNil(t, svc)
+	assert.Equal(t, "en", svc.Language())
+	assert.Equal(t, "fr", svc.Fallback())
+	assert.Equal(t, FormalityFormal, svc.Formality())
+	assert.Equal(t, "workspace", svc.Location())
+	assert.Equal(t, ModeCollect, svc.Mode())
+	assert.True(t, svc.Debug())
+}
+
 func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 	t.Setenv("LANG", "de_DE.UTF-8")
 
