@@ -134,7 +134,7 @@ func TestN_Good(t *testing.T) {
 	}{
 		{"number", "number", int64(1234567), "1,234,567"},
 		{"percent", "percent", 0.85, "85%"},
-		{"bytes", "bytes", int64(1536000), "1.5 MB"},
+		{"bytes", "bytes", int64(1536000), "1.46 MB"},
 		{"ordinal", "ordinal", 1, "1st"},
 	}
 	for _, tt := range tests {

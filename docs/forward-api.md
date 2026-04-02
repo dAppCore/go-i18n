@@ -216,7 +216,7 @@ Locale-aware number formatting.
 T("i18n.numeric.number", 1234567)   // "1,234,567"
 T("i18n.numeric.decimal", 3.14)     // "3.14"
 T("i18n.numeric.percent", 0.85)     // "85%"
-T("i18n.numeric.bytes", 1536000)    // "1.5 MB"
+T("i18n.numeric.bytes", 1536000)    // "1.46 MB"
 T("i18n.numeric.ordinal", 3)        // "3rd"
 T("i18n.numeric.ago", 5, "minutes") // "5 minutes ago"
 ```
@@ -226,7 +226,7 @@ The shorthand `N()` function wraps this namespace:
 ```go
 i18n.N("number", 1234567)  // "1,234,567"
 i18n.N("percent", 0.85)    // "85%"
-i18n.N("bytes", 1536000)   // "1.5 MB"
+i18n.N("bytes", 1536000)   // "1.46 MB"
 i18n.N("ordinal", 1)       // "1st"
 ```
 

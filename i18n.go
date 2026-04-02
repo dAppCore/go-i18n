@@ -81,7 +81,7 @@ func CurrentDebug() bool {
 //
 //	N("number", 1234567)   // "1,234,567"
 //	N("percent", 0.85)     // "85%"
-//	N("bytes", 1536000)    // "1.5 MB"
+//	N("bytes", 1536000)    // "1.46 MB"
 //	N("ordinal", 1)        // "1st"
 func N(format string, value any) string {
 	return T("i18n.numeric."+format, value)

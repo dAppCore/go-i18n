@@ -91,7 +91,6 @@ func FormatBytes(bytes int64) string {
 		GB = MB * 1024
 		TB = GB * 1024
 	)
-	nf := getNumberFormat()
 	var value float64
 	var unit string
 	switch {
@@ -110,16 +109,7 @@ func FormatBytes(bytes int64) string {
 	default:
 		return core.Sprintf("%d B", bytes)
 	}
-	intPart := int64(value)
-	fracPart := value - float64(intPart)
-	if fracPart < 0.05 {
-		return core.Sprintf("%d %s", intPart, unit)
-	}
-	fracDigit := int(math.Round(fracPart * 10))
-	if fracDigit == 10 {
-		return core.Sprintf("%d %s", intPart+1, unit)
-	}
-	return core.Sprintf("%d%s%d %s", intPart, nf.DecimalSep, fracDigit, unit)
+	return FormatDecimalN(value, 2) + " " + unit
 }
 
 // FormatOrdinal formats a number as an ordinal.
