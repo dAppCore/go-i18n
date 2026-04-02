@@ -811,6 +811,36 @@ func TestActionFailed(t *testing.T) {
 	}
 }
 
+func TestActionFailed_RespectsWordMap(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["push"]
+	data.Words["push"] = "submit"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["push"] = original
+			return
+		}
+		delete(data.Words, "push")
+	})
+
+	if got, want := ActionFailed("push", "commits"), "Failed to submit commits"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "push", "commits", got, want)
+	}
+}
+
 func TestGrammarData_Signals(t *testing.T) {
 	svc, err := New()
 	if err != nil {

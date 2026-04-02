@@ -915,6 +915,7 @@ func ActionFailed(verb, subject string) string {
 	if verb == "" {
 		return ""
 	}
+	verb = renderWord(currentLangForGrammar(), verb)
 	if subject == "" {
 		return "Failed to " + verb
 	}
