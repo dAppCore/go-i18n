@@ -364,19 +364,25 @@ func (s *Service) Handlers() []KeyHandler {
 //	T("i18n.fail.delete", "file")       // "Failed to delete file"
 func (s *Service) T(messageID string, args ...any) string {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
-	result := RunHandlerChain(s.handlers, messageID, args, func() string {
+	handlers := append([]KeyHandler(nil), s.handlers...)
+	debug := s.debug
+	s.mu.RUnlock()
+
+	result := RunHandlerChain(handlers, messageID, args, func() string {
 		var data any
 		if len(args) > 0 {
 			data = args[0]
 		}
-		text := s.resolveWithFallback(messageID, data)
+
+		s.mu.RLock()
+		text := s.resolveWithFallbackLocked(messageID, data)
+		s.mu.RUnlock()
 		if text == "" {
 			return s.handleMissingKey(messageID, args)
 		}
 		return text
 	})
-	if s.debug {
+	if debug {
 		return debugFormat(messageID, result)
 	}
 	return result
@@ -390,55 +396,55 @@ func (s *Service) Translate(messageID string, args ...any) core.Result {
 
 // resolveDirect performs exact-key lookup in the current language, its base
 // language tag, and then the configured fallback language.
-func (s *Service) resolveDirect(messageID string, data any) string {
-	if text := s.tryResolve(s.currentLang, messageID, data); text != "" {
+func (s *Service) resolveDirectLocked(messageID string, data any) string {
+	if text := s.tryResolveLocked(s.currentLang, messageID, data); text != "" {
 		return text
 	}
 	if base := baseLanguageTag(s.currentLang); base != "" && base != s.currentLang {
-		if text := s.tryResolve(base, messageID, data); text != "" {
+		if text := s.tryResolveLocked(base, messageID, data); text != "" {
 			return text
 		}
 	}
-	if text := s.tryResolve(s.fallbackLang, messageID, data); text != "" {
+	if text := s.tryResolveLocked(s.fallbackLang, messageID, data); text != "" {
 		return text
 	}
 	if base := baseLanguageTag(s.fallbackLang); base != "" && base != s.fallbackLang {
-		return s.tryResolve(base, messageID, data)
+		return s.tryResolveLocked(base, messageID, data)
 	}
 	return ""
 }
 
-func (s *Service) resolveWithFallback(messageID string, data any) string {
-	if text := s.resolveDirect(messageID, data); text != "" {
+func (s *Service) resolveWithFallbackLocked(messageID string, data any) string {
+	if text := s.resolveDirectLocked(messageID, data); text != "" {
 		return text
 	}
 	if core.Contains(messageID, ".") {
 		parts := core.Split(messageID, ".")
 		verb := parts[len(parts)-1]
 		commonKey := "common.action." + verb
-		if text := s.resolveDirect(commonKey, data); text != "" {
+		if text := s.resolveDirectLocked(commonKey, data); text != "" {
 			return text
 		}
 		commonKey = "common." + verb
-		if text := s.resolveDirect(commonKey, data); text != "" {
+		if text := s.resolveDirectLocked(commonKey, data); text != "" {
 			return text
 		}
 	}
 	return ""
 }
 
-func (s *Service) tryResolve(lang, key string, data any) string {
+func (s *Service) tryResolveLocked(lang, key string, data any) string {
 	context, gender, location, formality := s.getEffectiveContextGenderLocationAndFormality(data)
 	extra := s.getEffectiveContextExtra(data)
 	for _, lookupKey := range lookupVariants(key, context, gender, location, formality, extra) {
-		if text := s.resolveMessage(lang, lookupKey, data); text != "" {
+		if text := s.resolveMessageLocked(lang, lookupKey, data); text != "" {
 			return text
 		}
 	}
 	return ""
 }
 
-func (s *Service) resolveMessage(lang, key string, data any) string {
+func (s *Service) resolveMessageLocked(lang, key string, data any) string {
 	msg, ok := s.getMessage(lang, key)
 	if !ok {
 		return ""
@@ -770,7 +776,7 @@ func (s *Service) Raw(messageID string, args ...any) string {
 	if len(args) > 0 {
 		data = args[0]
 	}
-	text := s.resolveDirect(messageID, data)
+	text := s.resolveDirectLocked(messageID, data)
 	if text == "" {
 		return s.handleMissingKey(messageID, args)
 	}

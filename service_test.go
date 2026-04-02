@@ -3,6 +3,7 @@ package i18n
 import (
 	"testing"
 	"testing/fstest"
+	"time"
 
 	"dappco.re/go/core"
 )
@@ -15,6 +16,21 @@ func (messageBaseFallbackLoader) Languages() []string {
 
 func (messageBaseFallbackLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 	return map[string]Message{}, nil, nil
+}
+
+type serviceMutatingHandler struct {
+	svc *Service
+}
+
+func (h serviceMutatingHandler) Match(key string) bool {
+	return key == "custom.mutate.language"
+}
+
+func (h serviceMutatingHandler) Handle(key string, args []any, next func() string) string {
+	if h.svc != nil {
+		_ = h.svc.SetLanguage("fr")
+	}
+	return "mutated"
 }
 
 func TestNewService(t *testing.T) {
@@ -215,6 +231,33 @@ func TestServiceRaw(t *testing.T) {
 	// Should return the key since it's not in the messages map
 	if got != "i18n.label.status" {
 		t.Errorf("Raw(i18n.label.status) = %q, want key returned", got)
+	}
+}
+
+func TestServiceT_CustomHandlerCanMutateService(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.PrependHandler(serviceMutatingHandler{svc: svc})
+
+	done := make(chan string, 1)
+	go func() {
+		done <- svc.T("custom.mutate.language")
+	}()
+
+	select {
+	case got := <-done:
+		if got != "mutated" {
+			t.Fatalf("T(custom.mutate.language) = %q, want %q", got, "mutated")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("T(custom.mutate.language) timed out while handler mutated service state")
+	}
+
+	if got := svc.Language(); got != "fr" {
+		t.Fatalf("Language() = %q, want %q", got, "fr")
 	}
 }
 
