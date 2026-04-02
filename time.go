@@ -43,7 +43,7 @@ func FormatAgo(count int, unit string) string {
 	svc := Default()
 	unit = normalizeAgoUnit(unit)
 	if svc == nil {
-		return core.Sprintf("%d %ss ago", count, unit)
+		return core.Sprintf("%d %s ago", count, Pluralize(unit, count))
 	}
 	key := "time.ago." + unit
 	result := svc.T(key, map[string]any{"Count": count})

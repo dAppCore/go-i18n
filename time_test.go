@@ -192,6 +192,20 @@ func TestFormatAgo_Good_SingularUnit(t *testing.T) {
 	assert.Equal(t, "1 fortnight ago", got)
 }
 
+func TestFormatAgo_Good_NoDefaultService(t *testing.T) {
+	prev := Default()
+	SetDefault(nil)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	got := FormatAgo(1, "second")
+	assert.Equal(t, "1 second ago", got)
+
+	got = FormatAgo(5, "second")
+	assert.Equal(t, "5 seconds ago", got)
+}
+
 func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
 	prev := Default()
 	svc, err := New()
