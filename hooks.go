@@ -154,10 +154,6 @@ func AddMissingKeyHandler(h MissingKeyHandler) {
 	missingKeyHandler.Store(current)
 }
 
-func appendMissingKeyHandler(h MissingKeyHandler) {
-	AddMissingKeyHandler(h)
-}
-
 func missingKeyHandlers() missingKeyHandlersState {
 	v := missingKeyHandler.Load()
 	if v == nil {

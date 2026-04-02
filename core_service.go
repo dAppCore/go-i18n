@@ -91,7 +91,7 @@ func (s *CoreService) ensureMissingKeyCollector() {
 	if s.hookInstalled {
 		return
 	}
-	appendMissingKeyHandler(s.handleMissingKey)
+	AddMissingKeyHandler(s.handleMissingKey)
 	s.hookInstalled = true
 }
 
