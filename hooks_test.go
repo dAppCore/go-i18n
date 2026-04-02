@@ -279,14 +279,16 @@ func TestAddMissingKeyHandler_Good(t *testing.T) {
 	require.NoError(t, err)
 	prev := Default()
 	SetDefault(svc)
+	prevHandlers := missingKeyHandlers()
 	t.Cleanup(func() {
+		missingKeyHandler.Store(prevHandlers)
 		SetDefault(prev)
 	})
 	svc.SetMode(ModeCollect)
 
-	OnMissingKey(nil)
+	ClearMissingKeyHandlers()
 	t.Cleanup(func() {
-		OnMissingKey(nil)
+		ClearMissingKeyHandlers()
 	})
 
 	var first, second int
@@ -301,6 +303,30 @@ func TestAddMissingKeyHandler_Good(t *testing.T) {
 
 	assert.Equal(t, 1, first)
 	assert.Equal(t, 1, second)
+}
+
+func TestClearMissingKeyHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	prevHandlers := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prevHandlers)
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	var called int
+	AddMissingKeyHandler(func(MissingKey) {
+		called++
+	})
+
+	ClearMissingKeyHandlers()
+
+	_ = T("missing.after.clear")
+
+	assert.Equal(t, 0, called)
 }
 
 func TestOnMissingKey_Good_SubjectArgs(t *testing.T) {

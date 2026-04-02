@@ -66,6 +66,11 @@ func OnMissingKey(h MissingKeyHandler) {
 	missingKeyHandler.Store(missingKeyHandlersState{handlers: []MissingKeyHandler{h}})
 }
 
+// ClearMissingKeyHandlers removes all registered missing-key handlers.
+func ClearMissingKeyHandlers() {
+	missingKeyHandler.Store(missingKeyHandlersState{})
+}
+
 // AddMissingKeyHandler appends a missing-key handler without replacing any
 // existing handlers.
 func AddMissingKeyHandler(h MissingKeyHandler) {
