@@ -723,6 +723,27 @@ func TestLabel(t *testing.T) {
 	}
 }
 
+func TestCompositionHelpersTrimWhitespace(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if got, want := Label("  status  "), "Status:"; got != want {
+		t.Fatalf("Label(%q) = %q, want %q", "  status  ", got, want)
+	}
+	if got, want := Article("  error  "), "an"; got != want {
+		t.Fatalf("Article(%q) = %q, want %q", "  error  ", got, want)
+	}
+	if got, want := ArticlePhrase("  go_mod  "), "a go.mod"; got != want {
+		t.Fatalf("ArticlePhrase(%q) = %q, want %q", "  go_mod  ", got, want)
+	}
+	if got, want := ActionFailed("  delete  ", "  file  "), "Failed to delete file"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "  delete  ", "  file  ", got, want)
+	}
+}
+
 func TestProgress(t *testing.T) {
 	svc, err := New()
 	if err != nil {
