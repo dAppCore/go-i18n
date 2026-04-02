@@ -284,6 +284,28 @@ func TestCurrentPluralCategory_Good(t *testing.T) {
 	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
 }
 
+// --- Package-level PluralCategoryOf ---
+
+func TestPluralCategoryOf_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, PluralOther, PluralCategoryOf(0))
+	assert.Equal(t, PluralOne, PluralCategoryOf(1))
+	assert.Equal(t, PluralOther, PluralCategoryOf(2))
+
+	require.NoError(t, SetLanguage("fr"))
+	assert.Equal(t, PluralOne, PluralCategoryOf(0))
+	assert.Equal(t, PluralOne, PluralCategoryOf(1))
+	assert.Equal(t, PluralOther, PluralCategoryOf(2))
+}
+
 func TestCurrentPluralCategory_NoDefaultService(t *testing.T) {
 	prev := Default()
 	t.Cleanup(func() {

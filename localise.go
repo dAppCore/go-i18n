@@ -164,6 +164,15 @@ func CurrentRTL() bool {
 //
 //	cat := i18n.CurrentPluralCategory(2)
 func CurrentPluralCategory(n int) PluralCategory {
+	return PluralCategoryOf(n)
+}
+
+// PluralCategoryOf returns the plural category for the current default language.
+//
+// Example:
+//
+//	cat := i18n.PluralCategoryOf(2)
+func PluralCategoryOf(n int) PluralCategory {
 	return defaultServiceValue(PluralOther, func(svc *Service) PluralCategory { return svc.PluralCategory(n) })
 }
 
