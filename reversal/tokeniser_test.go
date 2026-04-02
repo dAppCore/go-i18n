@@ -896,7 +896,7 @@ func TestDisambiguationStats_NoAmbiguous(t *testing.T) {
 func TestWithWeights_Override(t *testing.T) {
 	setup(t)
 	// Override noun_determiner to 0 — "The commit" should no longer resolve as noun
-	tok := NewTokeniser(WithWeights(map[string]float64{
+	weights := map[string]float64{
 		"noun_determiner":   0.0,
 		"verb_auxiliary":    0.25,
 		"following_class":   0.15,
@@ -904,11 +904,35 @@ func TestWithWeights_Override(t *testing.T) {
 		"verb_saturation":   0.10,
 		"inflection_echo":   0.03,
 		"default_prior":     0.02,
-	}))
+	}
+	tok := NewTokeniser(WithWeights(weights))
 	tokens := tok.Tokenise("The commit")
 	// With noun_determiner zeroed, default_prior (verb) should win
 	if tokens[1].Type != TokenVerb {
 		t.Errorf("with noun_determiner=0, 'commit' Type = %v, want TokenVerb", tokens[1].Type)
+	}
+}
+
+func TestWithWeights_CopiesInputMap(t *testing.T) {
+	setup(t)
+	weights := map[string]float64{
+		"noun_determiner":   0.35,
+		"verb_auxiliary":    0.25,
+		"following_class":   0.15,
+		"sentence_position": 0.10,
+		"verb_saturation":   0.10,
+		"inflection_echo":   0.03,
+		"default_prior":     0.02,
+	}
+	tok := NewTokeniser(WithWeights(weights))
+
+	// Mutate the caller's map after construction; the tokeniser should keep
+	// using the original copied values.
+	weights["noun_determiner"] = 0
+
+	tokens := tok.Tokenise("The commit")
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("with copied weights, 'commit' Type = %v, want TokenNoun", tokens[1].Type)
 	}
 }
 

@@ -115,7 +115,19 @@ func WithSignals() TokeniserOption {
 // WithWeights overrides the default signal weights for disambiguation.
 // All signal keys must be present; omitted keys silently disable those signals.
 func WithWeights(w map[string]float64) TokeniserOption {
-	return func(t *Tokeniser) { t.weights = w }
+	return func(t *Tokeniser) {
+		if len(w) == 0 {
+			t.weights = nil
+			return
+		}
+		// Copy the map so callers can safely reuse or mutate their input after
+		// constructing the tokeniser.
+		copied := make(map[string]float64, len(w))
+		for key, value := range w {
+			copied[key] = value
+		}
+		t.weights = copied
+	}
 }
 
 // NewTokeniser creates a Tokeniser for English ("en").
