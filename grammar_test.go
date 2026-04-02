@@ -1106,10 +1106,15 @@ func TestTemplateFuncs(t *testing.T) {
 		"upper",
 		"n",
 		"number",
+		"int",
 		"decimal",
+		"float",
 		"percent",
+		"pct",
 		"bytes",
+		"size",
 		"ordinal",
+		"ord",
 		"ago",
 		"past",
 		"gerund",
@@ -1249,7 +1254,7 @@ func TestTemplateFuncs_NumericDirectAliases(t *testing.T) {
 	SetDefault(svc)
 
 	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
-		`{{number 1234567}}|{{decimal 3.14}}|{{percent 0.85}}|{{bytes 1536000}}|{{ordinal 3}}|{{ago 3 "hours"}}`,
+		`{{int 1234567}}|{{float 3.14}}|{{pct 0.85}}|{{size 1536000}}|{{ord 3}}|{{ago 3 "hours"}}`,
 	)
 	if err != nil {
 		t.Fatalf("Parse() failed: %v", err)
