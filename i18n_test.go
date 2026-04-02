@@ -176,6 +176,7 @@ func TestCurrentLanguage_Good(t *testing.T) {
 
 	lang := CurrentLanguage()
 	assert.NotEmpty(t, lang)
+	assert.Equal(t, lang, CurrentLang())
 }
 
 func TestAvailableLanguages_Good(t *testing.T) {

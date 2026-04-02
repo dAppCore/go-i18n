@@ -357,6 +357,11 @@ func (s *Service) CurrentLanguage() string {
 	return s.Language()
 }
 
+// CurrentLang is a short alias for CurrentLanguage.
+func (s *Service) CurrentLang() string {
+	return s.CurrentLanguage()
+}
+
 func (s *Service) AvailableLanguages() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

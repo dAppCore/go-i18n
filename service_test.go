@@ -148,6 +148,9 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	if got, want := svc.CurrentLanguage(), svc.Language(); got != want {
 		t.Fatalf("CurrentLanguage() = %q, want %q", got, want)
 	}
+	if got, want := svc.CurrentLang(), svc.Language(); got != want {
+		t.Fatalf("CurrentLang() = %q, want %q", got, want)
+	}
 	if got, want := svc.CurrentAvailableLanguages(), svc.AvailableLanguages(); !slices.Equal(got, want) {
 		t.Fatalf("CurrentAvailableLanguages() = %v, want %v", got, want)
 	}

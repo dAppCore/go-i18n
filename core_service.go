@@ -188,6 +188,11 @@ func (s *CoreService) CurrentLanguage() string {
 	return s.Language()
 }
 
+// CurrentLang is a short alias for CurrentLanguage.
+func (s *CoreService) CurrentLang() string {
+	return s.CurrentLanguage()
+}
+
 // SetFallback changes the wrapped service fallback language.
 func (s *CoreService) SetFallback(lang string) {
 	s.svc.SetFallback(lang)

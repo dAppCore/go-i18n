@@ -68,6 +68,15 @@ func CurrentLanguage() string {
 	return Language()
 }
 
+// CurrentLang is a short alias for CurrentLanguage.
+//
+// Example:
+//
+//	lang := i18n.CurrentLang()
+func CurrentLang() string {
+	return CurrentLanguage()
+}
+
 // Language returns the current language code.
 //
 // Example:
