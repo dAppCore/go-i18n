@@ -337,6 +337,38 @@ func TestTokeniser_MatchArticle_FrenchExtended(t *testing.T) {
 	}
 }
 
+func TestTokeniser_MatchArticle_FrenchUnderscoreTagFallback(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr_CA")
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"le", "definite", true},
+		{"l'ami", "definite", true},
+		{"de l'ami", "indefinite", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+
+	tokens := tok.Tokenise("l'ami")
+	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
+		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "l'ami", tokens)
+	}
+}
+
 func TestTokeniser_MatchArticle_ConfiguredPhrasePrefix(t *testing.T) {
 	setup(t)
 

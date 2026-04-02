@@ -165,7 +165,7 @@ func NewTokeniserForLang(lang string, opts ...TokeniserOption) *Tokeniser {
 // inverse lookup maps: inflected form → base form.
 func (t *Tokeniser) buildVerbIndex() {
 	// Tier 1: Read from JSON grammar data (via GetGrammarData).
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data != nil && data.Verbs != nil {
 		for base, forms := range data.Verbs {
 			t.baseVerbs[base] = true
@@ -212,7 +212,7 @@ func (t *Tokeniser) buildVerbIndex() {
 // inverse lookup maps: plural form → base form.
 func (t *Tokeniser) buildNounIndex() {
 	// Tier 1: Read from JSON grammar data (via GetGrammarData).
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data != nil && data.Nouns != nil {
 		for base, forms := range data.Nouns {
 			if skipDeprecatedEnglishGrammarEntry(base) {
@@ -528,7 +528,7 @@ func (t *Tokeniser) reverseRegularGerund(word string) []string {
 // Both the key (e.g., "url") and the display form (e.g., "URL") map back
 // to the key, enabling case-insensitive lookups.
 func (t *Tokeniser) buildWordIndex() {
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data == nil || data.Words == nil {
 		return
 	}
@@ -567,7 +567,7 @@ func (t *Tokeniser) buildSignalIndex() {
 	t.verbInf = make(map[string]bool)
 	t.verbNeg = make(map[string]bool)
 
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 
 	// Guard each signal list independently so partial locale data
 	// falls back per-field rather than silently disabling signals.
@@ -664,7 +664,7 @@ func (t *Tokeniser) MatchWord(word string) (string, bool) {
 // Returns the article type ("indefinite" or "definite") and true if matched,
 // or ("", false) otherwise.
 func (t *Tokeniser) MatchArticle(word string) (string, bool) {
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data == nil {
 		return "", false
 	}
@@ -1614,7 +1614,7 @@ func (t *Tokeniser) splitConfiguredElision(raw string) (string, string, bool) {
 		return "", raw, false
 	}
 
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data == nil {
 		return "", raw, false
 	}
@@ -1647,8 +1647,26 @@ func (t *Tokeniser) splitConfiguredElision(raw string) (string, string, bool) {
 }
 
 func (t *Tokeniser) isFrenchLanguage() bool {
-	lang := core.Lower(t.lang)
+	lang := tokeniserLanguageBase(t.lang)
 	return lang == "fr" || core.HasPrefix(lang, "fr-")
+}
+
+func (t *Tokeniser) grammarData() *i18n.GrammarData {
+	if data := i18n.GetGrammarData(t.lang); data != nil {
+		return data
+	}
+	if base := tokeniserLanguageBase(t.lang); base != "" {
+		return i18n.GetGrammarData(base)
+	}
+	return nil
+}
+
+func tokeniserLanguageBase(lang string) string {
+	lang = core.Lower(core.Trim(lang))
+	if idx := strings.IndexAny(lang, "-_"); idx > 0 {
+		return lang[:idx]
+	}
+	return lang
 }
 
 func normalizeFrenchApostrophes(s string) string {
