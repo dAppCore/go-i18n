@@ -2,9 +2,7 @@ package i18n
 
 // SetDebug enables or disables debug mode on the default service.
 func SetDebug(enabled bool) {
-	if svc := Default(); svc != nil {
-		svc.SetDebug(enabled)
-	}
+	withDefaultService(func(svc *Service) { svc.SetDebug(enabled) })
 }
 
 func (s *Service) SetDebug(enabled bool) {
