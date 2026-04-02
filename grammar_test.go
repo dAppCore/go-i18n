@@ -1001,6 +1001,7 @@ func TestTemplateFuncs(t *testing.T) {
 		"title",
 		"lower",
 		"upper",
+		"n",
 		"past",
 		"gerund",
 		"plural",
@@ -1086,6 +1087,31 @@ func TestTemplateFuncs_PromptAndLang(t *testing.T) {
 
 	if got, want := buf.String(), "Are you sure?|German"; got != want {
 		t.Fatalf("template prompt/lang = %q, want %q", got, want)
+	}
+}
+
+func TestTemplateFuncs_NumericAlias(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{n "number" 1234567}}|{{n "ago" 3 "hours"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.HasPrefix(got, "1,234,567|3 hours ago") {
+		t.Fatalf("template numeric alias = %q, want prefix %q", got, "1,234,567|3 hours ago")
 	}
 }
 

@@ -843,6 +843,7 @@ func TemplateFuncs() template.FuncMap {
 		"title":           Title,
 		"lower":           Lower,
 		"upper":           Upper,
+		"n":               N,
 		"past":            PastTense,
 		"gerund":          Gerund,
 		"plural":          Pluralize,
