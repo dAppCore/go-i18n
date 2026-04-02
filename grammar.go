@@ -106,6 +106,9 @@ func mergeSignalData(dst *SignalData, src SignalData) {
 	if len(src.VerbInfinitive) > 0 {
 		dst.VerbInfinitive = append(dst.VerbInfinitive, src.VerbInfinitive...)
 	}
+	if len(src.VerbNegation) > 0 {
+		dst.VerbNegation = append(dst.VerbNegation, src.VerbNegation...)
+	}
 	if len(src.Priors) == 0 {
 		return
 	}
@@ -139,6 +142,7 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if len(data.Signals.NounDeterminers) > 0 ||
 		len(data.Signals.VerbAuxiliaries) > 0 ||
 		len(data.Signals.VerbInfinitive) > 0 ||
+		len(data.Signals.VerbNegation) > 0 ||
 		len(data.Signals.Priors) > 0 {
 		return true
 	}

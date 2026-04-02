@@ -192,6 +192,15 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 						}
 					}
 				}
+				if vn, ok := v["verb_negation"]; ok {
+					if arr, ok := vn.([]any); ok {
+						for _, item := range arr {
+							if s, ok := item.(string); ok {
+								grammar.Signals.VerbNegation = append(grammar.Signals.VerbNegation, core.Lower(s))
+							}
+						}
+					}
+				}
 				if priors, ok := v["prior"].(map[string]any); ok {
 					loadSignalPriors(grammar, priors)
 				}

@@ -99,6 +99,7 @@ type Tokeniser struct {
 	nounDet     map[string]bool    // signal: noun determiners
 	verbAux     map[string]bool    // signal: verb auxiliaries
 	verbInf     map[string]bool    // signal: infinitive markers
+	verbNeg     map[string]bool    // signal: negation cues
 	withSignals bool               // allocate SignalBreakdown on ambiguous tokens
 	weights     map[string]float64 // signal weights (F3: configurable)
 }
@@ -112,7 +113,7 @@ func WithSignals() TokeniserOption {
 }
 
 // WithWeights overrides the default signal weights for disambiguation.
-// All 7 signal keys must be present; omitted keys silently disable those signals.
+// All signal keys must be present; omitted keys silently disable those signals.
 func WithWeights(w map[string]float64) TokeniserOption {
 	return func(t *Tokeniser) { t.weights = w }
 }
@@ -521,6 +522,7 @@ func (t *Tokeniser) buildSignalIndex() {
 	t.nounDet = make(map[string]bool)
 	t.verbAux = make(map[string]bool)
 	t.verbInf = make(map[string]bool)
+	t.verbNeg = make(map[string]bool)
 
 	data := i18n.GetGrammarData(t.lang)
 
@@ -558,6 +560,18 @@ func (t *Tokeniser) buildSignalIndex() {
 	} else {
 		t.verbInf["to"] = true
 	}
+
+	if data != nil && len(data.Signals.VerbNegation) > 0 {
+		for _, w := range data.Signals.VerbNegation {
+			t.verbNeg[core.Lower(w)] = true
+		}
+	} else {
+		// Keep the fallback conservative: these are weak cues, not hard
+		// negation parsing.
+		for _, w := range []string{"not", "never"} {
+			t.verbNeg[w] = true
+		}
+	}
 }
 
 func defaultVerbAuxiliaries() []string {
@@ -577,6 +591,7 @@ func defaultWeights() map[string]float64 {
 	return map[string]float64{
 		"noun_determiner":   0.35,
 		"verb_auxiliary":    0.25,
+		"verb_negation":     0.05,
 		"following_class":   0.15,
 		"sentence_position": 0.10,
 		"verb_saturation":   0.10,
@@ -976,7 +991,7 @@ func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
 	}
 }
 
-// scoreAmbiguous evaluates 7 weighted signals to determine whether an
+// scoreAmbiguous evaluates 8 weighted signals to determine whether an
 // ambiguous token should be classified as verb or noun.
 func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, []SignalComponent) {
 	var verbScore, nounScore float64
@@ -1010,7 +1025,25 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 3. following_class: next token's class informs this token's role
+	// 3. verb_negation: preceding negation weakly signals a verb
+	if w, ok := t.weights["verb_negation"]; ok && idx > 0 {
+		prev := tokens[idx-1]
+		if t.verbNeg[prev.Lower] || t.hasNoLongerBefore(tokens, idx) {
+			verbScore += w * 1.0
+			if t.withSignals {
+				reason := "preceded by '" + prev.Lower + "'"
+				if t.hasNoLongerBefore(tokens, idx) {
+					reason = "preceded by 'no longer'"
+				}
+				components = append(components, SignalComponent{
+					Name: "verb_negation", Weight: w, Value: 1.0, Contrib: w,
+					Reason: reason,
+				})
+			}
+		}
+	}
+
+	// 4. following_class: next token's class informs this token's role
 	if w, ok := t.weights["following_class"]; ok && idx+1 < len(tokens) {
 		next := tokens[idx+1]
 		if next.Type != tokenAmbiguous {
@@ -1036,7 +1069,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 4. sentence_position: first token in sentence → verb signal (imperative)
+	// 5. sentence_position: first token in sentence → verb signal (imperative)
 	if w, ok := t.weights["sentence_position"]; ok && idx == 0 {
 		verbScore += w * 1.0
 		if t.withSignals {
@@ -1047,7 +1080,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 5. verb_saturation: if a confident verb already exists in the same clause
+	// 6. verb_saturation: if a confident verb already exists in the same clause
 	if w, ok := t.weights["verb_saturation"]; ok {
 		if t.hasConfidentVerbInClause(tokens, idx) {
 			nounScore += w * 1.0
@@ -1060,7 +1093,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 6. inflection_echo: another token shares the same base in inflected form
+	// 7. inflection_echo: another token shares the same base in inflected form
 	if w, ok := t.weights["inflection_echo"]; ok {
 		echoVerb, echoNoun := t.checkInflectionEcho(tokens, idx)
 		if echoNoun {
@@ -1085,7 +1118,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 7. default_prior: corpus-derived priors take precedence; otherwise fall back to the static verb prior.
+	// 8. default_prior: corpus-derived priors take precedence; otherwise fall back to the static verb prior.
 	if priorVerb, priorNoun, ok := t.corpusPrior(tokens[idx].Lower); ok {
 		verbScore += priorVerb
 		nounScore += priorNoun
@@ -1112,6 +1145,13 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 	}
 
 	return verbScore, nounScore, components
+}
+
+func (t *Tokeniser) hasNoLongerBefore(tokens []Token, idx int) bool {
+	if idx < 2 {
+		return false
+	}
+	return tokens[idx-2].Lower == "no" && tokens[idx-1].Lower == "longer"
 }
 
 func (t *Tokeniser) corpusPrior(word string) (float64, float64, bool) {

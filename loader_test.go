@@ -169,6 +169,7 @@ func TestFlattenWithGrammar(t *testing.T) {
 						"noun": 0.75,
 					},
 				},
+				"verb_negation": []any{"not", "never"},
 			},
 			"article": map[string]any{
 				"indefinite": map[string]any{
@@ -243,6 +244,9 @@ func TestFlattenWithGrammar(t *testing.T) {
 	if grammar.Number.ThousandsSep != "," {
 		t.Errorf("number.thousands = %q, want ','", grammar.Number.ThousandsSep)
 	}
+	if len(grammar.Signals.VerbNegation) != 2 || grammar.Signals.VerbNegation[0] != "not" || grammar.Signals.VerbNegation[1] != "never" {
+		t.Errorf("verb negation not extracted: %+v", grammar.Signals.VerbNegation)
+	}
 
 	// Articles extracted
 	if grammar.Articles.IndefiniteDefault != "a" {
@@ -291,6 +295,7 @@ func TestMergeGrammarData(t *testing.T) {
 			NounDeterminers: []string{"the"},
 			VerbAuxiliaries: []string{"will"},
 			VerbInfinitive:  []string{"to"},
+			VerbNegation:    []string{"not"},
 			Priors: map[string]map[string]float64{
 				"run": {
 					"verb": 0.7,
@@ -326,6 +331,7 @@ func TestMergeGrammarData(t *testing.T) {
 			NounDeterminers: []string{"a"},
 			VerbAuxiliaries: []string{"can"},
 			VerbInfinitive:  []string{"go"},
+			VerbNegation:    []string{"never"},
 			Priors: map[string]map[string]float64{
 				"run": {
 					"noun": 0.3,
@@ -365,7 +371,7 @@ func TestMergeGrammarData(t *testing.T) {
 	if data.Punct.LabelSuffix != " !" || data.Punct.ProgressSuffix != "..." {
 		t.Errorf("punctuation not merged correctly: %+v", data.Punct)
 	}
-	if len(data.Signals.NounDeterminers) != 2 || len(data.Signals.VerbAuxiliaries) != 2 || len(data.Signals.VerbInfinitive) != 2 {
+	if len(data.Signals.NounDeterminers) != 2 || len(data.Signals.VerbAuxiliaries) != 2 || len(data.Signals.VerbInfinitive) != 2 || len(data.Signals.VerbNegation) != 2 {
 		t.Errorf("signal slices not merged correctly: %+v", data.Signals)
 	}
 	if got := data.Signals.Priors["run"]["verb"]; got != 0.7 {
@@ -373,6 +379,9 @@ func TestMergeGrammarData(t *testing.T) {
 	}
 	if got := data.Signals.Priors["run"]["noun"]; got != 0.3 {
 		t.Errorf("signal priors missing merged value: got %v", got)
+	}
+	if data.Signals.VerbNegation[0] != "not" || data.Signals.VerbNegation[1] != "never" {
+		t.Errorf("signal negation not merged correctly: %+v", data.Signals.VerbNegation)
 	}
 	if data.Number.ThousandsSep != "." || data.Number.DecimalSep != "." || data.Number.PercentFmt != "%s%%" {
 		t.Errorf("number format not merged correctly: %+v", data.Number)
@@ -393,7 +402,8 @@ func TestNewWithLoader_LoadsGrammarOnlyLocale(t *testing.T) {
 					"signal": {
 						"noun_determiner": ["el"],
 						"verb_auxiliary": ["va"],
-						"verb_infinitive": ["a"]
+						"verb_infinitive": ["a"],
+						"verb_negation": ["no", "nunca"]
 					},
 					"number": { "thousands": ".", "decimal": ",", "percent": "%s %%"}
 				}
@@ -418,6 +428,9 @@ func TestNewWithLoader_LoadsGrammarOnlyLocale(t *testing.T) {
 	}
 	if len(data.Signals.NounDeterminers) != 1 || data.Signals.NounDeterminers[0] != "el" {
 		t.Errorf("signals not loaded: %+v", data.Signals)
+	}
+	if len(data.Signals.VerbNegation) != 2 || data.Signals.VerbNegation[0] != "no" || data.Signals.VerbNegation[1] != "nunca" {
+		t.Errorf("negation signal not loaded: %+v", data.Signals.VerbNegation)
 	}
 	if data.Number.DecimalSep != "," || data.Number.ThousandsSep != "." {
 		t.Errorf("number format not loaded: %+v", data.Number)

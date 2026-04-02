@@ -764,6 +764,34 @@ func TestTokeniser_Disambiguate_ContractionAux_FallbackDefaults(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Disambiguate_NegationSignal(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithSignals())
+
+	tokens := tok.Tokenise("no longer commit the changes")
+	if len(tokens) < 3 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want at least 3", "no longer commit the changes", len(tokens))
+	}
+
+	commitTok := tokens[2]
+	if commitTok.Type != TokenVerb {
+		t.Fatalf("'commit' after 'no longer': Type = %v, want TokenVerb", commitTok.Type)
+	}
+	if commitTok.Signals == nil {
+		t.Fatal("'commit' after 'no longer' should have signal breakdown")
+	}
+	foundNegation := false
+	for _, component := range commitTok.Signals.Components {
+		if component.Name == "verb_negation" {
+			foundNegation = true
+			break
+		}
+	}
+	if !foundNegation {
+		t.Error("verb_negation signal should have fired for 'no longer commit'")
+	}
+}
+
 func TestTokeniser_WithSignals_Breakdown(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser(WithSignals())
