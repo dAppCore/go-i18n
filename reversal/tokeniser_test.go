@@ -1259,6 +1259,20 @@ func TestWithWeights_PartialOverrideKeepsDefaults(t *testing.T) {
 	}
 }
 
+func TestDefaultWeights_ReturnsCopy(t *testing.T) {
+	first := DefaultWeights()
+	second := DefaultWeights()
+
+	if first["noun_determiner"] != 0.35 {
+		t.Fatalf("DefaultWeights()[noun_determiner] = %v, want 0.35", first["noun_determiner"])
+	}
+	first["noun_determiner"] = 0
+
+	if second["noun_determiner"] != 0.35 {
+		t.Fatalf("DefaultWeights() should return a fresh copy, got %v", second["noun_determiner"])
+	}
+}
+
 // --- Benchmarks ---
 
 func benchSetup(b *testing.B) {
