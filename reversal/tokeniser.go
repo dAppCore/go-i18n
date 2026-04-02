@@ -899,6 +899,33 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 				}
 				return 2, tok, &extra, punctTok
 			}
+			// Handle spaced elision forms such as "de l' enfant" or "de l’ enfant".
+			if (second == "l'" || second == "l’") && start+2 < len(parts) {
+				third, thirdPunct := splitTrailingPunct(parts[start+2])
+				if third != "" {
+					tok := Token{
+						Raw:        first + " " + second,
+						Lower:      core.Lower(first + " " + second),
+						Type:       TokenArticle,
+						ArtType:    "definite",
+						Confidence: 1.0,
+					}
+					extra := t.classifyElidedFrenchWord(third)
+					var punctTok *Token
+					if thirdPunct != "" {
+						if punctType, ok := matchPunctuation(thirdPunct); ok {
+							punctTok = &Token{
+								Raw:        thirdPunct,
+								Lower:      thirdPunct,
+								Type:       TokenPunctuation,
+								PunctType:  punctType,
+								Confidence: 1.0,
+							}
+						}
+					}
+					return 3, tok, &extra, punctTok
+				}
+			}
 			return 0, Token{}, nil, nil
 		}
 		tok := Token{

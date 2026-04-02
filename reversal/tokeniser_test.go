@@ -356,6 +356,40 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
 	}
 
+	tokens = tok.Tokenise("de l' enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de l' enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de l'" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("de l’ enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de l’ enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de l’" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l’")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
 	tokens = tok.Tokenise("d'enfant")
 	if len(tokens) != 2 {
 		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "d'enfant", len(tokens))
