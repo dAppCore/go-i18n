@@ -907,9 +907,16 @@ var clauseBoundaries = map[string]bool{
 }
 
 const (
-	lowInformationScoreThreshold = 0.10
-	lowInformationVerbConfidence = 0.55
-	lowInformationNounConfidence = 0.45
+	// LowInformationScoreThreshold is the cutoff below which the tokeniser
+	// treats a classification as weakly supported and keeps confidence near
+	// chance rather than normalising a single prior into 100% confidence.
+	LowInformationScoreThreshold = 0.10
+	// LowInformationVerbConfidence is the confidence assigned to the verb side
+	// of a low-information ambiguous token when verb wins the tie-break.
+	LowInformationVerbConfidence = 0.55
+	// LowInformationNounConfidence is the confidence assigned to the noun side
+	// of a low-information ambiguous token when noun wins the tie-break.
+	LowInformationNounConfidence = 0.45
 )
 
 // Tokenise splits text on whitespace and classifies each word using a
@@ -1539,17 +1546,17 @@ func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, compo
 
 	// If only the default prior fired, keep confidence near chance rather than
 	// pretending the classification is strongly supported.
-	if total < lowInformationScoreThreshold {
+	if total < LowInformationScoreThreshold {
 		if verbScore >= nounScore {
 			tok.Type = TokenVerb
-			tok.Confidence = lowInformationVerbConfidence
+			tok.Confidence = LowInformationVerbConfidence
 			tok.AltType = TokenNoun
-			tok.AltConf = lowInformationNounConfidence
+			tok.AltConf = LowInformationNounConfidence
 		} else {
 			tok.Type = TokenNoun
-			tok.Confidence = lowInformationNounConfidence
+			tok.Confidence = LowInformationNounConfidence
 			tok.AltType = TokenVerb
-			tok.AltConf = lowInformationVerbConfidence
+			tok.AltConf = LowInformationVerbConfidence
 		}
 	} else {
 		if verbScore >= nounScore {
