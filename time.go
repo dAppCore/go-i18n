@@ -54,6 +54,7 @@ func FormatAgo(count int, unit string) string {
 }
 
 func normalizeAgoUnit(unit string) string {
+	unit = core.Lower(core.Trim(unit))
 	switch unit {
 	case "seconds":
 		return "second"
