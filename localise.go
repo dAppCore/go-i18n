@@ -114,33 +114,35 @@ func CurrentPluralCategory(n int) PluralCategory {
 }
 
 func detectLanguage(supported []language.Tag) string {
-	langEnv := os.Getenv("LANG")
-	if langEnv == "" {
-		langEnv = os.Getenv("LC_ALL")
+	for _, langEnv := range []string{os.Getenv("LC_ALL"), os.Getenv("LC_MESSAGES"), os.Getenv("LANG")} {
 		if langEnv == "" {
-			langEnv = os.Getenv("LC_MESSAGES")
+			continue
+		}
+		if detected := detectLanguageFromEnv(langEnv, supported); detected != "" {
+			return detected
 		}
 	}
-	if langEnv == "" {
+	return ""
+}
+
+func detectLanguageFromEnv(langEnv string, supported []language.Tag) string {
+	baseLang := normalizeLanguageTag(core.Split(langEnv, ".")[0])
+	if baseLang == "" || len(supported) == 0 {
 		return ""
 	}
-	baseLang := normalizeLanguageTag(core.Split(langEnv, ".")[0])
 	parsedLang, err := language.Parse(baseLang)
 	if err != nil {
 		return ""
 	}
-	if len(supported) == 0 {
-		return ""
-	}
 	matcher := language.NewMatcher(supported)
 	bestMatch, bestIndex, confidence := matcher.Match(parsedLang)
-	if confidence >= language.Low {
-		if bestIndex >= 0 && bestIndex < len(supported) {
-			return supported[bestIndex].String()
-		}
-		return bestMatch.String()
+	if confidence < language.Low {
+		return ""
 	}
-	return ""
+	if bestIndex >= 0 && bestIndex < len(supported) {
+		return supported[bestIndex].String()
+	}
+	return bestMatch.String()
 }
 
 func normalizeLanguageTag(lang string) string {

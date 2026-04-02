@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/text/language"
 )
 
 // --- Formality.String() ---
@@ -247,6 +248,35 @@ func TestDetectLanguage_Good(t *testing.T) {
 	// but we can test with no supported languages
 	result := detectLanguage(nil)
 	assert.Equal(t, "", result, "should return empty with no supported languages")
+}
+
+func TestDetectLanguage_PrefersLocaleOverrides(t *testing.T) {
+	t.Setenv("LANG", "en_US.UTF-8")
+	t.Setenv("LC_MESSAGES", "fr_FR.UTF-8")
+	t.Setenv("LC_ALL", "de_DE.UTF-8")
+
+	supported := []language.Tag{
+		language.AmericanEnglish,
+		language.French,
+		language.German,
+	}
+
+	result := detectLanguage(supported)
+	assert.Equal(t, "de", result, "LC_ALL should win over LANG and LC_MESSAGES")
+}
+
+func TestDetectLanguage_SkipsInvalidHigherPriorityLocale(t *testing.T) {
+	t.Setenv("LANG", "en_US.UTF-8")
+	t.Setenv("LC_MESSAGES", "fr_FR.UTF-8")
+	t.Setenv("LC_ALL", "not-a-locale")
+
+	supported := []language.Tag{
+		language.AmericanEnglish,
+		language.French,
+	}
+
+	result := detectLanguage(supported)
+	assert.Equal(t, "fr", result, "invalid LC_ALL should not block a valid lower-priority locale")
 }
 
 // --- Mode.String() ---
