@@ -101,7 +101,7 @@ type Tokeniser struct {
 	verbInf     map[string]bool    // signal: infinitive markers
 	verbNeg     map[string]bool    // signal: negation cues
 	withSignals bool               // allocate SignalBreakdown on ambiguous tokens
-	weights     map[string]float64 // signal weights (F3: configurable)
+	weights     map[string]float64 // signal weights used during disambiguation
 }
 
 // TokeniserOption configures a Tokeniser.
@@ -122,7 +122,7 @@ func WithWeights(w map[string]float64) TokeniserOption {
 		}
 		// Start from the defaults so callers can override only the weights they
 		// care about without accidentally disabling the rest of the signal set.
-		copied := defaultWeights()
+		copied := DefaultWeights()
 		for key, value := range w {
 			copied[key] = value
 		}
@@ -156,7 +156,7 @@ func NewTokeniserForLang(lang string, opts ...TokeniserOption) *Tokeniser {
 	t.buildDualClassIndex()
 	t.buildSignalIndex()
 	if t.weights == nil {
-		t.weights = defaultWeights()
+		t.weights = DefaultWeights()
 	}
 	return t
 }
@@ -630,7 +630,8 @@ func defaultVerbAuxiliaries() []string {
 	}
 }
 
-func defaultWeights() map[string]float64 {
+// DefaultWeights returns a copy of the tokeniser's built-in signal weights.
+func DefaultWeights() map[string]float64 {
 	return map[string]float64{
 		"noun_determiner":   0.35,
 		"verb_auxiliary":    0.25,
@@ -885,7 +886,7 @@ func matchFrenchAttachedArticle(lower string) (string, bool) {
 const tokenAmbiguous TokenType = -1
 
 // clauseBoundaries lists words that delimit clause boundaries for
-// the verb_saturation signal (D2 review fix).
+// the verb_saturation signal.
 var clauseBoundaries = map[string]bool{
 	"and": true, "or": true, "but": true, "because": true,
 	"when": true, "while": true, "if": true, "then": true, "so": true,
@@ -1456,7 +1457,7 @@ func (t *Tokeniser) corpusPrior(word string) (float64, float64, bool) {
 
 // hasConfidentVerbInClause scans for a confident verb (Confidence >= 1.0)
 // within the same clause as the token at idx. Clause boundaries are
-// punctuation tokens and clause-boundary conjunctions/subordinators (D2).
+// punctuation tokens and clause-boundary conjunctions/subordinators.
 func (t *Tokeniser) hasConfidentVerbInClause(tokens []Token, idx int) bool {
 	// Scan backwards from idx to find clause start.
 	start := 0
@@ -1516,8 +1517,8 @@ func (t *Tokeniser) checkInflectionEcho(tokens []Token, idx int) (bool, bool) {
 func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, components []SignalComponent) {
 	total := verbScore + nounScore
 
-	// B3 review fix: if total < 0.10 (only default prior fired),
-	// use low-information confidence floor.
+	// If only the default prior fired, keep confidence near chance rather than
+	// pretending the classification is strongly supported.
 	if total < 0.10 {
 		if verbScore >= nounScore {
 			tok.Type = TokenVerb
