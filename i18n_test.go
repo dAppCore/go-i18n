@@ -401,6 +401,33 @@ func TestClearHandlers_Good(t *testing.T) {
 	assert.Empty(t, svc.Handlers())
 }
 
+func TestResetHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	ClearHandlers()
+	require.Empty(t, svc.Handlers())
+
+	svc.ResetHandlers()
+	require.Len(t, svc.Handlers(), len(DefaultHandlers()))
+	assert.IsType(t, LabelHandler{}, svc.Handlers()[0])
+
+	ClearHandlers()
+	require.Empty(t, svc.Handlers())
+
+	ResetHandlers()
+	handlers := svc.Handlers()
+	require.Len(t, handlers, len(DefaultHandlers()))
+	assert.IsType(t, LabelHandler{}, handlers[0])
+	assert.Equal(t, "Status:", T("i18n.label.status"))
+}
+
 func TestSetHandlers_Good(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
