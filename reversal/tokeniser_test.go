@@ -1305,6 +1305,24 @@ func TestDefaultWeights_ReturnsCopy(t *testing.T) {
 	}
 }
 
+func TestTokeniserSignalWeights_ReturnsCopy(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithWeights(map[string]float64{
+		"noun_determiner": 0.5,
+		"default_prior":   0.1,
+	}))
+
+	weights := tok.SignalWeights()
+	if weights["noun_determiner"] != 0.5 {
+		t.Fatalf("SignalWeights()[noun_determiner] = %v, want 0.5", weights["noun_determiner"])
+	}
+
+	weights["noun_determiner"] = 0
+	if got := tok.SignalWeights()["noun_determiner"]; got != 0.5 {
+		t.Fatalf("SignalWeights() should return a fresh copy, got %v", got)
+	}
+}
+
 func TestTokeniser_LowInformationConfidenceFloor(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()

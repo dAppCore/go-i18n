@@ -16,6 +16,7 @@
 package reversal
 
 import (
+	"maps"
 	"strings"
 	"unicode/utf8"
 
@@ -642,6 +643,19 @@ func DefaultWeights() map[string]float64 {
 		"inflection_echo":   0.03,
 		"default_prior":     0.02,
 	}
+}
+
+// SignalWeights returns a copy of the tokeniser's configured signal weights.
+//
+// The copy keeps calibration and debugging callers from mutating the live
+// internal map by accident.
+func (t *Tokeniser) SignalWeights() map[string]float64 {
+	if t == nil || len(t.weights) == 0 {
+		return nil
+	}
+	weights := make(map[string]float64, len(t.weights))
+	maps.Copy(weights, t.weights)
+	return weights
 }
 
 func skipDeprecatedEnglishGrammarEntry(key string) bool {
