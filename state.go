@@ -1,8 +1,7 @@
 package i18n
 
 import (
-	"fmt"
-	"strings"
+	"dappco.re/go/core"
 )
 
 // ServiceState captures the current configuration of a service in one
@@ -24,9 +23,9 @@ type ServiceState struct {
 func (s ServiceState) String() string {
 	langs := "[]"
 	if len(s.AvailableLanguages) > 0 {
-		langs = "[" + strings.Join(s.AvailableLanguages, ", ") + "]"
+		langs = "[" + core.Join(", ", s.AvailableLanguages...) + "]"
 	}
-	return fmt.Sprintf(
+	return core.Sprintf(
 		"ServiceState{language=%q fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d}",
 		s.Language,
 		s.Fallback,

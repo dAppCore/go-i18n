@@ -1,5 +1,7 @@
 package i18n
 
+import "dappco.re/go/core"
+
 // SetDebug enables or disables debug mode on the default service.
 func SetDebug(enabled bool) {
 	withDefaultService(func(svc *Service) { svc.SetDebug(enabled) })
@@ -18,5 +20,5 @@ func (s *Service) Debug() bool {
 }
 
 func debugFormat(key, text string) string {
-	return "[" + key + "] " + text
+	return core.Sprintf("[%s] %s", key, text)
 }

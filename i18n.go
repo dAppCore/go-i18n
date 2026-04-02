@@ -3,7 +3,6 @@ package i18n
 import (
 	"bytes"
 	"io/fs"
-	"strings"
 	"text/template"
 
 	"dappco.re/go/core"
@@ -308,7 +307,7 @@ func namespaceLookupKey(namespace, key string) string {
 	if namespace != "" && key == namespace {
 		return key
 	}
-	if namespace != "" && strings.HasPrefix(key, namespace+".") {
+	if namespace != "" && core.HasPrefix(key, namespace+".") {
 		return key
 	}
 	if namespace == "" {
