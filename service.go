@@ -5,6 +5,7 @@ import (
 	"io/fs"
 	"maps"
 	"path"
+	"reflect"
 	"slices"
 	"sync"
 	"sync/atomic"
@@ -55,7 +56,14 @@ func WithHandlers(handlers ...KeyHandler) Option {
 
 // WithDefaultHandlers adds the default i18n.* namespace handlers.
 func WithDefaultHandlers() Option {
-	return func(s *Service) { s.handlers = append(s.handlers, DefaultHandlers()...) }
+	return func(s *Service) {
+		for _, handler := range DefaultHandlers() {
+			if hasHandlerType(s.handlers, handler) {
+				continue
+			}
+			s.handlers = append(s.handlers, handler)
+		}
+	}
 }
 
 // WithMode sets the translation mode.
@@ -712,4 +720,14 @@ func (s *Service) autoDetectLanguage() {
 	if detected := detectLanguage(s.availableLangs); detected != "" {
 		s.currentLang = detected
 	}
+}
+
+func hasHandlerType(handlers []KeyHandler, candidate KeyHandler) bool {
+	want := reflect.TypeOf(candidate)
+	for _, handler := range handlers {
+		if reflect.TypeOf(handler) == want {
+			return true
+		}
+	}
+	return false
 }

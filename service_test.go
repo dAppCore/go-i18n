@@ -412,6 +412,17 @@ func TestServiceHandlers(t *testing.T) {
 	}
 }
 
+func TestWithDefaultHandlers_Idempotent(t *testing.T) {
+	svc, err := New(WithDefaultHandlers())
+	if err != nil {
+		t.Fatalf("New() with WithDefaultHandlers() failed: %v", err)
+	}
+
+	if got := len(svc.Handlers()); got != 6 {
+		t.Fatalf("len(Handlers()) = %d, want 6", got)
+	}
+}
+
 func TestServiceWithOptions(t *testing.T) {
 	svc, err := New(
 		WithFallback("en"),
