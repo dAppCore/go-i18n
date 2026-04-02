@@ -450,6 +450,51 @@ var irregularNouns = map[string]string{
 	"calf": "calves", "loaf": "loaves", "thief": "thieves",
 }
 
+// dualClassVerbs seeds additional regular verbs that are also common nouns in
+// dev/ops text. The forms are regular, but listing them here makes the
+// reversal tokeniser treat them as known bases for dual-class disambiguation.
+var dualClassVerbs = map[string]VerbForms{
+	"change":   {Past: "changed", Gerund: "changing"},
+	"export":   {Past: "exported", Gerund: "exporting"},
+	"function": {Past: "functioned", Gerund: "functioning"},
+	"handle":   {Past: "handled", Gerund: "handling"},
+	"host":     {Past: "hosted", Gerund: "hosting"},
+	"import":   {Past: "imported", Gerund: "importing"},
+	"link":     {Past: "linked", Gerund: "linking"},
+	"log":      {Past: "logged", Gerund: "logging"},
+	"merge":    {Past: "merged", Gerund: "merging"},
+	"patch":    {Past: "patched", Gerund: "patching"},
+	"process":  {Past: "processed", Gerund: "processing"},
+	"queue":    {Past: "queued", Gerund: "queuing"},
+	"release":  {Past: "released", Gerund: "releasing"},
+	"stream":   {Past: "streamed", Gerund: "streaming"},
+	"tag":      {Past: "tagged", Gerund: "tagging"},
+	"trigger":  {Past: "triggered", Gerund: "triggering"},
+	"watch":    {Past: "watched", Gerund: "watching"},
+}
+
+// dualClassNouns mirrors the same vocabulary as nouns so the tokeniser can
+// classify the base forms as ambiguous when they appear without inflection.
+var dualClassNouns = map[string]string{
+	"change":   "changes",
+	"export":   "exports",
+	"function": "functions",
+	"handle":   "handles",
+	"host":     "hosts",
+	"import":   "imports",
+	"link":     "links",
+	"log":      "logs",
+	"merge":    "merges",
+	"patch":    "patches",
+	"process":  "processes",
+	"queue":    "queues",
+	"release":  "releases",
+	"stream":   "streams",
+	"tag":      "tags",
+	"trigger":  "triggers",
+	"watch":    "watches",
+}
+
 var vowelSounds = map[string]bool{
 	"hour": true, "honest": true, "honour": true, "honor": true, "heir": true, "herb": true,
 }

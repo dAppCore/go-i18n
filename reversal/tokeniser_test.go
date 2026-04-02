@@ -671,6 +671,12 @@ func TestTokeniser_DualClassDetection(t *testing.T) {
 		}
 	}
 
+	for _, word := range []string{"change", "export", "function", "handle", "host", "import", "link", "log", "merge", "patch", "process", "queue", "release", "stream", "tag", "trigger", "watch"} {
+		if !tok.IsDualClass(word) {
+			t.Errorf("%q should be dual-class after expansion", word)
+		}
+	}
+
 	notDual := []string{"delete", "go", "push", "branch", "repo"}
 	for _, word := range notDual {
 		if tok.IsDualClass(word) {
@@ -717,6 +723,37 @@ func TestTokeniser_IgnoresDeprecatedGrammarEntries(t *testing.T) {
 	}
 	if cat, ok := tok.MatchWord("url"); !ok || cat != "url" {
 		t.Fatalf("MatchWord(%q) = %q, %v; want %q, true", "url", cat, ok, "url")
+	}
+}
+
+func TestTokeniser_DualClassExpansion_ClassifiesCommonDevOpsWords(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		text      string
+		wantType  TokenType
+		wantLower string
+	}{
+		{"the merge", TokenNoun, "merge"},
+		{"please merge the file", TokenVerb, "merge"},
+		{"the process", TokenNoun, "process"},
+		{"please process the log", TokenVerb, "process"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.text, func(t *testing.T) {
+			tokens := tok.Tokenise(tt.text)
+			if len(tokens) < 2 {
+				t.Fatalf("Tokenise(%q) returned %d tokens, want at least 2", tt.text, len(tokens))
+			}
+			if tokens[1].Lower != tt.wantLower {
+				t.Fatalf("Tokenise(%q)[1].Lower = %q, want %q", tt.text, tokens[1].Lower, tt.wantLower)
+			}
+			if tokens[1].Type != tt.wantType {
+				t.Fatalf("Tokenise(%q)[1].Type = %v, want %v", tt.text, tokens[1].Type, tt.wantType)
+			}
+		})
 	}
 }
 

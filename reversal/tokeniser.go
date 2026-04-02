@@ -193,6 +193,19 @@ func (t *Tokeniser) buildVerbIndex() {
 			}
 		}
 	}
+
+	// Tier 2b: Seed additional regular dual-class bases that are common in
+	// dev/ops text. These are regular forms, but they need to behave like
+	// known bases so the dual-class resolver can disambiguate them.
+	for base, forms := range i18n.DualClassVerbs() {
+		t.baseVerbs[base] = true
+		if forms.Past != "" && t.pastToBase[forms.Past] == "" {
+			t.pastToBase[forms.Past] = base
+		}
+		if forms.Gerund != "" && t.gerundToBase[forms.Gerund] == "" {
+			t.gerundToBase[forms.Gerund] = base
+		}
+	}
 }
 
 // buildNounIndex reads grammar tables and irregular noun maps to build
@@ -214,6 +227,18 @@ func (t *Tokeniser) buildNounIndex() {
 
 	// Tier 2: Read from the exported irregularNouns map.
 	for base, plural := range i18n.IrregularNouns() {
+		t.baseNouns[base] = true
+		if plural != base {
+			if _, exists := t.pluralToBase[plural]; !exists {
+				t.pluralToBase[plural] = base
+			}
+		}
+	}
+
+	// Tier 2b: Seed additional regular dual-class bases that are common in
+	// dev/ops text. The plural forms are regular, but the entries need to
+	// appear in the base noun set so the ambiguous-token pass can see them.
+	for base, plural := range i18n.DualClassNouns() {
 		t.baseNouns[base] = true
 		if plural != base {
 			if _, exists := t.pluralToBase[plural]; !exists {

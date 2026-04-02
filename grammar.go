@@ -163,6 +163,22 @@ func IrregularNouns() map[string]string {
 	return result
 }
 
+// DualClassVerbs returns a copy of the additional regular verbs that also act
+// as common nouns in dev/ops text.
+func DualClassVerbs() map[string]VerbForms {
+	result := make(map[string]VerbForms, len(dualClassVerbs))
+	maps.Copy(result, dualClassVerbs)
+	return result
+}
+
+// DualClassNouns returns a copy of the additional regular nouns that also act
+// as common verbs in dev/ops text.
+func DualClassNouns() map[string]string {
+	result := make(map[string]string, len(dualClassNouns))
+	maps.Copy(result, dualClassNouns)
+	return result
+}
+
 // Lower returns the lowercase form of s.
 func Lower(s string) string {
 	return core.Lower(s)
