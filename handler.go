@@ -2,7 +2,6 @@ package i18n
 
 import (
 	"fmt"
-	"strings"
 	"unicode"
 
 	"dappco.re/go/core"
@@ -184,7 +183,7 @@ func isPluralisableWordDisplay(s string) bool {
 }
 
 func isUpperAcronymPlural(s string) bool {
-	if len(s) < 2 || !strings.HasSuffix(s, "s") {
+	if len(s) < 2 || !core.HasSuffix(s, "s") {
 		return false
 	}
 	hasLetter := false

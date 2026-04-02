@@ -1,7 +1,5 @@
 package i18n
 
-import "fmt"
-
 // TranslationContext provides disambiguation for translations.
 //
 //	T("direction.right", C("navigation")) // "rechts" (German)
@@ -88,7 +86,7 @@ func (c *TranslationContext) String() string {
 	if c == nil {
 		return ""
 	}
-	return fmt.Sprint(c.Context)
+	return c.Context
 }
 
 func (c *TranslationContext) GenderString() string {

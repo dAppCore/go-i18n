@@ -4,7 +4,6 @@ import (
 	"io/fs"
 	"path"
 	"slices"
-	"strings"
 	"sync"
 
 	"dappco.re/go/core"
@@ -136,7 +135,8 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				if base, ok := v["base"].(string); ok && base != "" {
 					verbName = base
 				}
-				if after, ok := strings.CutPrefix(fullKey, "gram.verb."); ok {
+				if core.HasPrefix(fullKey, "gram.verb.") {
+					after := core.TrimPrefix(fullKey, "gram.verb.")
 					if base, ok := v["base"].(string); !ok || base == "" {
 						verbName = after
 					}
@@ -155,7 +155,8 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 			// Noun form object (under gram.noun.* or has gender field)
 			if grammar != nil && (core.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
 				nounName := key
-				if after, ok := strings.CutPrefix(fullKey, "gram.noun."); ok {
+				if core.HasPrefix(fullKey, "gram.noun.") {
+					after := core.TrimPrefix(fullKey, "gram.noun.")
 					nounName = after
 				}
 				if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {

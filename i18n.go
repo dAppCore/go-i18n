@@ -3,7 +3,6 @@ package i18n
 import (
 	"bytes"
 	"io/fs"
-	"strings"
 	"text/template"
 
 	"dappco.re/go/core"
@@ -151,7 +150,7 @@ func Lang(key string) string {
 	if got := T("lang." + key); got != "lang."+key {
 		return got
 	}
-	if idx := strings.IndexAny(key, "-_"); idx > 0 {
+	if idx := indexAny(key, "-_"); idx > 0 {
 		if base := key[:idx]; base != "" {
 			if got := T("lang." + base); got != "lang."+base {
 				return got
