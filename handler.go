@@ -156,7 +156,9 @@ func isPluralisableWordDisplay(s string) bool {
 		case unicode.IsLetter(r):
 			hasLetter = true
 		case unicode.IsSpace(r):
-			continue
+			// Multi-word vocabulary entries should stay exact. The count handler
+			// prefixes the quantity, but does not invent a plural form for phrases.
+			return false
 		default:
 			return false
 		}

@@ -224,6 +224,34 @@ func TestCountHandler_PreservesExactWordDisplay(t *testing.T) {
 	}
 }
 
+func TestCountHandler_PreservesPhraseDisplay(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["up_to_date"]
+	data.Words["up_to_date"] = "up to date"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["up_to_date"] = original
+			return
+		}
+		delete(data.Words, "up_to_date")
+	})
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.up_to_date", []any{2}, nil)
+	if got != "2 up to date" {
+		t.Fatalf("CountHandler.Handle(up_to_date, 2) = %q, want %q", got, "2 up to date")
+	}
+}
+
 func TestRunHandlerChain(t *testing.T) {
 	handlers := DefaultHandlers()
 	fallback := func() string { return "missed" }
