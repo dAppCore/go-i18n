@@ -933,6 +933,12 @@ func TemplateFuncs() template.FuncMap {
 		"lower":           Lower,
 		"upper":           Upper,
 		"n":               N,
+		"number":          Number,
+		"decimal":         Decimal,
+		"percent":         Percent,
+		"bytes":           Bytes,
+		"ordinal":         Ordinal,
+		"ago":             Ago,
 		"past":            PastTense,
 		"gerund":          Gerund,
 		"plural":          Pluralize,
@@ -952,6 +958,36 @@ func TemplateFuncs() template.FuncMap {
 		"timeAgo":         TimeAgo,
 		"formatAgo":       FormatAgo,
 	}
+}
+
+// Number formats an integer using the current locale's number rules.
+func Number(value any) string {
+	return FormatNumber(toInt64(value))
+}
+
+// Decimal formats a decimal using the current locale's number rules.
+func Decimal(value any) string {
+	return FormatDecimal(toFloat64(value))
+}
+
+// Percent formats a percentage using the current locale's number rules.
+func Percent(value any) string {
+	return FormatPercent(toFloat64(value))
+}
+
+// Bytes formats a byte count using the current locale's number rules.
+func Bytes(value any) string {
+	return FormatBytes(toInt64(value))
+}
+
+// Ordinal formats a number as an ordinal using the current locale.
+func Ordinal(value any) string {
+	return FormatOrdinal(toInt(value))
+}
+
+// Ago formats a relative time using the current locale's ago rules.
+func Ago(count int, unit string) string {
+	return FormatAgo(count, unit)
 }
 
 func prefixWithArticle(article, word string) string {

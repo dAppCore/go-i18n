@@ -1105,6 +1105,12 @@ func TestTemplateFuncs(t *testing.T) {
 		"lower",
 		"upper",
 		"n",
+		"number",
+		"decimal",
+		"percent",
+		"bytes",
+		"ordinal",
+		"ago",
 		"past",
 		"gerund",
 		"plural",
@@ -1232,6 +1238,31 @@ func TestTemplateFuncs_NumericAlias(t *testing.T) {
 	got := buf.String()
 	if !strings.HasPrefix(got, "1,234,567|3 hours ago") {
 		t.Fatalf("template numeric alias = %q, want prefix %q", got, "1,234,567|3 hours ago")
+	}
+}
+
+func TestTemplateFuncs_NumericDirectAliases(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{number 1234567}}|{{decimal 3.14}}|{{percent 0.85}}|{{bytes 1536000}}|{{ordinal 3}}|{{ago 3 "hours"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.HasPrefix(got, "1,234,567|3.14|85%|1.46 MB|3rd|3 hours ago") {
+		t.Fatalf("template direct numeric aliases = %q, want prefix %q", got, "1,234,567|3.14|85%|1.46 MB|3rd|3 hours ago")
 	}
 }
 
