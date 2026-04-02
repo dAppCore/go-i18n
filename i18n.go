@@ -172,6 +172,13 @@ func AddHandler(handlers ...KeyHandler) {
 	}
 }
 
+// SetHandlers replaces the default service's handler chain.
+func SetHandlers(handlers ...KeyHandler) {
+	if svc := Default(); svc != nil {
+		svc.SetHandlers(handlers...)
+	}
+}
+
 // LoadFS loads additional translations from an fs.FS into the default service.
 //
 // Call this from init() in packages that ship their own locale files:
@@ -193,6 +200,14 @@ func PrependHandler(handlers ...KeyHandler) {
 	if svc := Default(); svc != nil {
 		svc.PrependHandler(handlers...)
 	}
+}
+
+// CurrentHandlers returns a copy of the default service's handler chain.
+func CurrentHandlers() []KeyHandler {
+	if svc := Default(); svc != nil {
+		return svc.Handlers()
+	}
+	return nil
 }
 
 // ClearHandlers removes all handlers from the default service.

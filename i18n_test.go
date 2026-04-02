@@ -401,6 +401,25 @@ func TestClearHandlers_Good(t *testing.T) {
 	assert.Empty(t, svc.Handlers())
 }
 
+func TestSetHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	SetHandlers(serviceStubHandler{})
+
+	handlers := CurrentHandlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, serviceStubHandler{}, handlers[0])
+	assert.Equal(t, "stub", T("custom.stub"))
+	assert.Equal(t, "i18n.label.status", T("i18n.label.status"))
+}
+
 func TestNewWithHandlers_SkipsNil(t *testing.T) {
 	svc, err := New(WithHandlers(nil, LabelHandler{}))
 	require.NoError(t, err)
