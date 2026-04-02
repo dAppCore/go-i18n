@@ -74,6 +74,36 @@ func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
 	assert.Equal(t, "arrived late", got)
 }
 
+func TestRegisterLocales_Good_WithInitializedDefaultService(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"eager.registration": "loaded immediately"}`),
+		},
+	}
+
+	RegisterLocales(fs, "locales")
+
+	got := svc.T("eager.registration")
+	assert.Equal(t, "loaded immediately", got)
+}
+
 func TestInit_LoadsRegisteredLocales(t *testing.T) {
 	// Save and restore global service state.
 	registeredLocalesMu.Lock()

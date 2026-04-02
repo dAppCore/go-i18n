@@ -35,11 +35,9 @@ func RegisterLocales(fsys fs.FS, dir string) {
 	registeredLocalesMu.Lock()
 	defer registeredLocalesMu.Unlock()
 	registeredLocales = append(registeredLocales, localeRegistration{fsys: fsys, dir: dir})
-	if localesLoaded {
-		if svc := Default(); svc != nil {
-			if err := svc.LoadFS(fsys, dir); err != nil {
-				log.Printf("i18n: RegisterLocales failed to load %q: %v", dir, err)
-			}
+	if svc := defaultService.Load(); svc != nil {
+		if err := svc.LoadFS(fsys, dir); err != nil {
+			log.Printf("i18n: RegisterLocales failed to load %q: %v", dir, err)
 		}
 	}
 }
