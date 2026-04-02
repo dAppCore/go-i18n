@@ -364,6 +364,8 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	assert.Equal(t, svc.Mode(), coreSvc.CurrentMode())
 	assert.Equal(t, svc.Language(), coreSvc.CurrentLanguage())
 	assert.Equal(t, svc.Language(), coreSvc.CurrentLang())
+	assert.Equal(t, svc.Prompt("confirm"), coreSvc.Prompt("confirm"))
+	assert.Equal(t, svc.Lang("fr"), coreSvc.Lang("fr"))
 	assert.Equal(t, svc.Fallback(), coreSvc.CurrentFallback())
 	assert.Equal(t, svc.Formality(), coreSvc.CurrentFormality())
 	assert.Equal(t, svc.Location(), coreSvc.CurrentLocation())

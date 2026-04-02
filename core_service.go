@@ -193,6 +193,16 @@ func (s *CoreService) CurrentLang() string {
 	return s.CurrentLanguage()
 }
 
+// Prompt translates a prompt key from the prompt namespace using the wrapped service.
+func (s *CoreService) Prompt(key string) string {
+	return s.svc.Prompt(key)
+}
+
+// Lang translates a language label from the lang namespace using the wrapped service.
+func (s *CoreService) Lang(key string) string {
+	return s.svc.Lang(key)
+}
+
 // SetFallback changes the wrapped service fallback language.
 func (s *CoreService) SetFallback(lang string) {
 	s.svc.SetFallback(lang)

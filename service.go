@@ -358,6 +358,34 @@ func (s *Service) CurrentLang() string {
 	return s.CurrentLanguage()
 }
 
+// Prompt translates a prompt key from the prompt namespace using this service.
+func (s *Service) Prompt(key string) string {
+	key = normalizeLookupKey(key)
+	if key == "" {
+		return ""
+	}
+	return s.T("prompt." + key)
+}
+
+// Lang translates a language label from the lang namespace using this service.
+func (s *Service) Lang(key string) string {
+	key = normalizeLookupKey(key)
+	if key == "" {
+		return ""
+	}
+	if got := s.T("lang." + key); got != "lang."+key {
+		return got
+	}
+	if idx := indexAny(key, "-_"); idx > 0 {
+		if base := key[:idx]; base != "" {
+			if got := s.T("lang." + base); got != "lang."+base {
+				return got
+			}
+		}
+	}
+	return "lang." + key
+}
+
 func (s *Service) AvailableLanguages() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

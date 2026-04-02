@@ -331,6 +331,23 @@ func TestServiceTDirectKeys(t *testing.T) {
 	}
 }
 
+func TestServicePromptAndLang(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if got, want := svc.Prompt("confirm"), "Are you sure?"; got != want {
+		t.Fatalf("Prompt(confirm) = %q, want %q", got, want)
+	}
+	if got, want := svc.Lang("fr"), "French"; got != want {
+		t.Fatalf("Lang(fr) = %q, want %q", got, want)
+	}
+	if got, want := svc.Lang("fr_CA"), "French"; got != want {
+		t.Fatalf("Lang(fr_CA) = %q, want %q", got, want)
+	}
+}
+
 func TestNewWithLoaderNormalisesLanguageTags(t *testing.T) {
 	svc, err := NewWithLoader(underscoreLangLoader{})
 	if err != nil {
