@@ -101,6 +101,21 @@ func TestTranslationContext_WithFormality_Good(t *testing.T) {
 	}
 }
 
+func TestTranslationContext_CountString_UsesLocaleFormatting(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("fr"))
+
+	ctx := C("test").Count(1234)
+	assert.Equal(t, "1 234", ctx.CountString())
+}
+
 // --- Set / Get ---
 
 func TestTranslationContext_SetGet_Good(t *testing.T) {

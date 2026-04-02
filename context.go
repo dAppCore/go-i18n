@@ -1,7 +1,5 @@
 package i18n
 
-import "dappco.re/go/core"
-
 // TranslationContext provides disambiguation for translations.
 //
 //	T("direction.right", C("navigation")) // "rechts" (German)
@@ -137,7 +135,7 @@ func (c *TranslationContext) CountString() string {
 	if c == nil {
 		return "1"
 	}
-	return core.Sprintf("%d", c.count)
+	return FormatNumber(int64(c.count))
 }
 
 // IsPlural reports whether the count is plural.

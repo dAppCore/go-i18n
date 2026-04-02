@@ -100,7 +100,7 @@ func (s *Subject) CountString() string {
 	if s == nil {
 		return "1"
 	}
-	return core.Sprintf("%d", s.count)
+	return FormatNumber(int64(s.count))
 }
 func (s *Subject) GenderString() string {
 	if s == nil {

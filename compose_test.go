@@ -41,6 +41,21 @@ func TestSubject_Count_Good(t *testing.T) {
 	assert.True(t, subj.IsPlural())
 }
 
+func TestSubject_CountString_UsesLocaleFormatting(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("fr"))
+
+	subj := S("file", "test.txt").Count(1234)
+	assert.Equal(t, "1 234", subj.CountString())
+}
+
 func TestSubject_Count_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
 	result := s.Count(5)
