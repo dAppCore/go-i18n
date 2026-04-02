@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"fmt"
 	"strings"
 	"unicode"
 
@@ -29,7 +30,7 @@ func (h ProgressHandler) Match(key string) bool {
 func (h ProgressHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.progress.")
 	if len(args) > 0 {
-		if subj, ok := args[0].(string); ok {
+		if subj := subjectArgText(args[0]); subj != "" {
 			return ProgressSubject(verb, subj)
 		}
 	}
@@ -47,7 +48,7 @@ func (h CountHandler) Handle(key string, args []any, next func() string) string 
 	noun := core.TrimPrefix(key, "i18n.count.")
 	lang := currentLangForGrammar()
 	if len(args) > 0 {
-		count := toInt(args[0])
+		count := getCount(args[0])
 		return core.Sprintf("%s %s", FormatNumber(int64(count)), countWordForm(lang, noun, count))
 	}
 	return renderWord(lang, noun)
@@ -63,7 +64,7 @@ func (h DoneHandler) Match(key string) bool {
 func (h DoneHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.done.")
 	if len(args) > 0 {
-		if subj, ok := args[0].(string); ok {
+		if subj := subjectArgText(args[0]); subj != "" {
 			return ActionResult(verb, subj)
 		}
 	}
@@ -80,7 +81,7 @@ func (h FailHandler) Match(key string) bool {
 func (h FailHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.fail.")
 	if len(args) > 0 {
-		if subj, ok := args[0].(string); ok {
+		if subj := subjectArgText(args[0]); subj != "" {
 			return ActionFailed(verb, subj)
 		}
 	}
@@ -195,6 +196,22 @@ func isAllUpper(s string) bool {
 		}
 	}
 	return hasLetter
+}
+
+func subjectArgText(arg any) string {
+	switch v := arg.(type) {
+	case string:
+		return v
+	case *Subject:
+		if v == nil {
+			return ""
+		}
+		return v.String()
+	case fmt.Stringer:
+		return v.String()
+	default:
+		return ""
+	}
 }
 
 // RunHandlerChain executes a chain of handlers for a key.

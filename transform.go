@@ -19,7 +19,7 @@ func getCount(data any) int {
 			return c
 		}
 	}
-	return 0
+	return toInt(data)
 }
 
 func toInt(v any) int {
