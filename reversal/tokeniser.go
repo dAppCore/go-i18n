@@ -202,6 +202,9 @@ func (t *Tokeniser) buildNounIndex() {
 	data := i18n.GetGrammarData(t.lang)
 	if data != nil && data.Nouns != nil {
 		for base, forms := range data.Nouns {
+			if skipDeprecatedEnglishGrammarEntry(base) {
+				continue
+			}
 			t.baseNouns[base] = true
 			if forms.Other != "" && forms.Other != base {
 				t.pluralToBase[forms.Other] = base
@@ -505,6 +508,9 @@ func (t *Tokeniser) buildWordIndex() {
 		return
 	}
 	for key, display := range data.Words {
+		if skipDeprecatedEnglishGrammarEntry(key) {
+			continue
+		}
 		// Map the key itself (already lowercase)
 		t.words[core.Lower(key)] = key
 		// Map the display form (e.g., "URL" → "url", "SSH" → "ssh")
@@ -609,6 +615,15 @@ func defaultWeights() map[string]float64 {
 		"verb_saturation":   0.10,
 		"inflection_echo":   0.03,
 		"default_prior":     0.02,
+	}
+}
+
+func skipDeprecatedEnglishGrammarEntry(key string) bool {
+	switch core.Lower(key) {
+	case "passed", "failed", "skipped":
+		return true
+	default:
+		return false
 	}
 }
 

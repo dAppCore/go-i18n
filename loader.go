@@ -108,6 +108,9 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 		case string:
 			if grammar != nil && core.HasPrefix(fullKey, "gram.word.") {
 				wordKey := core.TrimPrefix(fullKey, "gram.word.")
+				if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
+					continue
+				}
 				grammar.Words[core.Lower(wordKey)] = v
 				continue
 			}
@@ -141,6 +144,9 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				nounName := key
 				if after, ok := strings.CutPrefix(fullKey, "gram.noun."); ok {
 					nounName = after
+				}
+				if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
+					continue
 				}
 				_, hasOne := v["one"]
 				_, hasOther := v["other"]
@@ -336,5 +342,15 @@ func loadSignalPriors(grammar *GrammarData, priors map[string]any) {
 				grammar.Signals.Priors[key][core.Lower(role)] = score
 			}
 		}
+	}
+}
+
+func shouldSkipDeprecatedEnglishGrammarEntry(fullKey string) bool {
+	switch fullKey {
+	case "gram.noun.passed", "gram.noun.failed", "gram.noun.skipped",
+		"gram.word.passed", "gram.word.failed", "gram.word.skipped":
+		return true
+	default:
+		return false
 	}
 }

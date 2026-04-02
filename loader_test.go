@@ -149,9 +149,15 @@ func TestFlattenWithGrammar(t *testing.T) {
 					"one":   "widget",
 					"other": "widgets",
 				},
+				"passed": map[string]any{
+					"one":   "passed",
+					"other": "passed",
+				},
 			},
 			"word": map[string]any{
-				"api": "API",
+				"api":     "API",
+				"failed":  "failed",
+				"skipped": "skipped",
 			},
 			"punct": map[string]any{
 				"label":    ":",
@@ -233,10 +239,19 @@ func TestFlattenWithGrammar(t *testing.T) {
 			t.Errorf("widget.other = %q, want 'widgets'", n.Other)
 		}
 	}
+	if _, ok := grammar.Nouns["passed"]; ok {
+		t.Error("deprecated noun 'passed' should be ignored")
+	}
 
 	// Word extracted
 	if grammar.Words["api"] != "API" {
 		t.Errorf("word 'api' = %q, want 'API'", grammar.Words["api"])
+	}
+	if _, ok := grammar.Words["failed"]; ok {
+		t.Error("deprecated word 'failed' should be ignored")
+	}
+	if _, ok := grammar.Words["skipped"]; ok {
+		t.Error("deprecated word 'skipped' should be ignored")
 	}
 
 	// Punct extracted

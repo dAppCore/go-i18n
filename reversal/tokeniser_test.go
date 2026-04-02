@@ -667,6 +667,47 @@ func TestTokeniser_DualClassDetection(t *testing.T) {
 	}
 }
 
+func TestTokeniser_IgnoresDeprecatedGrammarEntries(t *testing.T) {
+	setup(t)
+
+	const lang = "zz-deprecated"
+	original := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, original)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Nouns: map[string]i18n.NounForms{
+			"passed":  {One: "passed", Other: "passed"},
+			"failed":  {One: "failed", Other: "failed"},
+			"skipped": {One: "skipped", Other: "skipped"},
+			"commit":  {One: "commit", Other: "commits"},
+		},
+		Words: map[string]string{
+			"passed":  "passed",
+			"failed":  "failed",
+			"skipped": "skipped",
+			"url":     "URL",
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+	for _, word := range []string{"passed", "failed", "skipped"} {
+		if tok.IsDualClass(word) {
+			t.Fatalf("%q should not be treated as dual-class", word)
+		}
+		if cat, ok := tok.MatchWord(word); ok {
+			t.Fatalf("MatchWord(%q) = %q, %v; want not found", word, cat, ok)
+		}
+		if _, ok := tok.MatchNoun(word); ok {
+			t.Fatalf("MatchNoun(%q) should be ignored", word)
+		}
+	}
+	if cat, ok := tok.MatchWord("url"); !ok || cat != "url" {
+		t.Fatalf("MatchWord(%q) = %q, %v; want %q, true", "url", cat, ok, "url")
+	}
+}
+
 func TestToken_ConfidenceField(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
