@@ -171,6 +171,7 @@ func TestPrompt_Good(t *testing.T) {
 		want string
 	}{
 		{"yes", "yes", "y"},
+		{"yes_trimmed", " yes ", "y"},
 		{"confirm", "confirm", "Are you sure?"},
 		{"empty", "", ""},
 	}
@@ -197,6 +198,7 @@ func TestLang_Good(t *testing.T) {
 	}{
 		{"de", "de", "German"},
 		{"fr", "fr", "French"},
+		{"fr_ca", "fr_CA", "French"},
 		{"empty", "", ""},
 	}
 	for _, tt := range tests {

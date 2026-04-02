@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"bytes"
+	"strings"
 	"text/template"
 
 	"dappco.re/go/core"
@@ -92,6 +93,7 @@ func N(format string, value any) string {
 //	Prompt("yes")      // "y"
 //	Prompt("confirm")  // "Are you sure?"
 func Prompt(key string) string {
+	key = normalizeLookupKey(key)
 	if key == "" {
 		return ""
 	}
@@ -102,10 +104,25 @@ func Prompt(key string) string {
 //
 //	Lang("de")  // "German"
 func Lang(key string) string {
+	key = normalizeLookupKey(key)
 	if key == "" {
 		return ""
 	}
+	if got := T("lang." + key); got != "lang."+key {
+		return got
+	}
+	if idx := strings.IndexAny(key, "-_"); idx > 0 {
+		if base := key[:idx]; base != "" {
+			if got := T("lang." + base); got != "lang."+base {
+				return got
+			}
+		}
+	}
 	return T("lang." + key)
+}
+
+func normalizeLookupKey(key string) string {
+	return core.Lower(core.Trim(key))
 }
 
 // AddHandler appends one or more handlers to the default service's handler chain.
