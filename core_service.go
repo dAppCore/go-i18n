@@ -318,6 +318,11 @@ func (s *CoreService) IsRTL() bool {
 	return s.svc.IsRTL()
 }
 
+// CurrentIsRTL reports whether the wrapped service language is right-to-left.
+func (s *CoreService) CurrentIsRTL() bool {
+	return s.IsRTL()
+}
+
 // PluralCategory returns the plural category for the wrapped service language.
 func (s *CoreService) PluralCategory(n int) PluralCategory {
 	return s.svc.PluralCategory(n)

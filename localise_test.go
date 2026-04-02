@@ -232,6 +232,16 @@ func TestIsRTL_Good(t *testing.T) {
 	assert.False(t, IsRTL(), "English should not be RTL")
 }
 
+// --- Package-level CurrentIsRTL ---
+
+func TestCurrentIsRTL_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.False(t, CurrentIsRTL(), "English should not be RTL")
+}
+
 // --- Package-level CurrentPluralCategory ---
 
 func TestCurrentPluralCategory_Good(t *testing.T) {

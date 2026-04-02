@@ -331,6 +331,17 @@ func CurrentHandlers() []KeyHandler {
 	})
 }
 
+// Handlers returns a copy of the default service's handler chain.
+//
+// Example:
+//
+//	handlers := i18n.Handlers()
+func Handlers() []KeyHandler {
+	return defaultServiceValue([]KeyHandler{}, func(svc *Service) []KeyHandler {
+		return svc.Handlers()
+	})
+}
+
 // ClearHandlers removes all handlers from the default service.
 //
 // Example:

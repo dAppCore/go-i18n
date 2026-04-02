@@ -425,6 +425,9 @@ func (s *Service) CurrentDirection() TextDirection {
 }
 
 func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
+func (s *Service) CurrentIsRTL() bool {
+	return s.IsRTL()
+}
 func (s *Service) CurrentDebug() bool {
 	return s.Debug()
 }

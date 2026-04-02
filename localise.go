@@ -132,6 +132,14 @@ func CurrentDirection() TextDirection {
 //	rtl := i18n.IsRTL()
 func IsRTL() bool { return Direction() == DirRTL }
 
+// CurrentIsRTL returns true if the current default language uses
+// right-to-left text.
+//
+// Example:
+//
+//	rtl := i18n.CurrentIsRTL()
+func CurrentIsRTL() bool { return IsRTL() }
+
 // CurrentPluralCategory returns the plural category for the current default language.
 //
 // Example:

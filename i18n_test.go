@@ -537,6 +537,20 @@ func TestSetHandlers_Good(t *testing.T) {
 	assert.Equal(t, "i18n.label.status", T("i18n.label.status"))
 }
 
+func TestHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	handlers := Handlers()
+	require.Len(t, handlers, len(svc.Handlers()))
+	assert.Equal(t, svc.Handlers(), handlers)
+}
+
 func TestNewWithHandlers_SkipsNil(t *testing.T) {
 	svc, err := New(WithHandlers(nil, LabelHandler{}))
 	require.NoError(t, err)

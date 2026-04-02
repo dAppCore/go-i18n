@@ -172,6 +172,9 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	if got, want := svc.CurrentDebug(), svc.Debug(); got != want {
 		t.Fatalf("CurrentDebug() = %v, want %v", got, want)
 	}
+	if got, want := svc.CurrentIsRTL(), svc.IsRTL(); got != want {
+		t.Fatalf("CurrentIsRTL() = %v, want %v", got, want)
+	}
 	if got, want := svc.CurrentHandlers(), svc.Handlers(); len(got) != len(want) {
 		t.Fatalf("CurrentHandlers() len = %d, want %d", len(got), len(want))
 	}
