@@ -927,7 +927,7 @@ func TestDisambiguationStats_WithAmbiguous(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
 	tokens := tok.Tokenise("The commit passed the test")
-	stats := DisambiguationStatsFromTokens(tokens)
+	stats := tok.DisambiguationStats(tokens)
 	if stats.AmbiguousTokens == 0 {
 		t.Error("expected ambiguous tokens for dual-class words")
 	}
@@ -940,7 +940,7 @@ func TestDisambiguationStats_NoAmbiguous(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
 	tokens := tok.Tokenise("Deleted the files")
-	stats := DisambiguationStatsFromTokens(tokens)
+	stats := tok.DisambiguationStats(tokens)
 	if stats.AmbiguousTokens != 0 {
 		t.Errorf("AmbiguousTokens = %d, want 0", stats.AmbiguousTokens)
 	}

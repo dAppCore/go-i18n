@@ -1484,3 +1484,8 @@ func DisambiguationStatsFromTokens(tokens []Token) DisambiguationStats {
 	}
 	return s
 }
+
+// DisambiguationStats returns aggregate disambiguation stats for a token slice.
+func (t *Tokeniser) DisambiguationStats(tokens []Token) DisambiguationStats {
+	return DisambiguationStatsFromTokens(tokens)
+}
