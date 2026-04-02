@@ -6,6 +6,7 @@ import (
 	"text/template"
 
 	"dappco.re/go/core"
+	log "dappco.re/go/core/log"
 )
 
 // T translates a message using the default service.
@@ -181,7 +182,9 @@ func AddHandler(handlers ...KeyHandler) {
 //	func init() { i18n.LoadFS(localeFS, "locales") }
 func LoadFS(fsys fs.FS, dir string) {
 	if svc := Default(); svc != nil {
-		_ = svc.LoadFS(fsys, dir)
+		if err := svc.LoadFS(fsys, dir); err != nil {
+			log.Error("i18n: LoadFS failed", "dir", dir, "err", err)
+		}
 	}
 }
 

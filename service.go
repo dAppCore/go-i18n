@@ -239,7 +239,9 @@ func AddLoader(loader Loader) {
 	if svc == nil {
 		return
 	}
-	_ = svc.AddLoader(loader)
+	if err := svc.AddLoader(loader); err != nil {
+		log.Error("i18n: AddLoader failed", "err", err)
+	}
 }
 
 func (s *Service) loadJSON(lang string, data []byte) error {
