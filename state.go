@@ -4,6 +4,22 @@ import (
 	"dappco.re/go/core"
 )
 
+func defaultServiceStateSnapshot() ServiceState {
+	return ServiceState{
+		Language:           "en",
+		RequestedLanguage:  "",
+		LanguageExplicit:   false,
+		AvailableLanguages: []string{},
+		Mode:               ModeNormal,
+		Fallback:           "en",
+		Formality:          FormalityNeutral,
+		Direction:          DirLTR,
+		IsRTL:              false,
+		Debug:              false,
+		Handlers:           []KeyHandler{},
+	}
+}
+
 // ServiceState captures the current configuration of a service in one
 // copy-safe snapshot.
 type ServiceState struct {
@@ -59,19 +75,7 @@ func (s ServiceState) String() string {
 
 func (s *Service) State() ServiceState {
 	if s == nil {
-		return ServiceState{
-			Language:           "en",
-			RequestedLanguage:  "",
-			LanguageExplicit:   false,
-			AvailableLanguages: []string{},
-			Mode:               ModeNormal,
-			Fallback:           "en",
-			Formality:          FormalityNeutral,
-			Direction:          DirLTR,
-			IsRTL:              false,
-			Debug:              false,
-			Handlers:           []KeyHandler{},
-		}
+		return defaultServiceStateSnapshot()
 	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()

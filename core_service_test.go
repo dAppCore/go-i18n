@@ -10,6 +10,11 @@ import (
 
 func TestCoreServiceNilSafe(t *testing.T) {
 	var svc *CoreService
+	savedDefault := defaultService.Load()
+	t.Cleanup(func() {
+		defaultService.Store(savedDefault)
+	})
+	defaultService.Store(nil)
 
 	assert.NotPanics(t, func() {
 		assert.Equal(t, ModeNormal, svc.Mode())
@@ -28,9 +33,10 @@ func TestCoreServiceNilSafe(t *testing.T) {
 		assert.Equal(t, "hello", svc.T("hello"))
 		assert.Equal(t, "hello", svc.Raw("hello"))
 		assert.Equal(t, core.Result{Value: "hello", OK: false}, svc.Translate("hello"))
-		assert.Equal(t, State(), svc.State())
-		assert.Equal(t, State(), svc.CurrentState())
+		assert.Equal(t, defaultServiceStateSnapshot(), svc.State())
+		assert.Equal(t, defaultServiceStateSnapshot(), svc.CurrentState())
 	})
+	assert.Nil(t, defaultService.Load())
 
 	assert.NoError(t, svc.OnStartup(nil))
 	svc.SetMode(ModeCollect)

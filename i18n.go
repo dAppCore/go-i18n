@@ -180,19 +180,7 @@ func CurrentDebug() bool {
 
 // State returns a copy-safe snapshot of the default service configuration.
 func State() ServiceState {
-	return defaultServiceValue(ServiceState{
-		Language:           "en",
-		RequestedLanguage:  "",
-		LanguageExplicit:   false,
-		AvailableLanguages: []string{},
-		Mode:               ModeNormal,
-		Fallback:           "en",
-		Formality:          FormalityNeutral,
-		Direction:          DirLTR,
-		IsRTL:              false,
-		Debug:              false,
-		Handlers:           []KeyHandler{},
-	}, func(svc *Service) ServiceState {
+	return defaultServiceValue(defaultServiceStateSnapshot(), func(svc *Service) ServiceState {
 		return svc.State()
 	})
 }

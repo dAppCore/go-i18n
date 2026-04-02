@@ -337,7 +337,7 @@ func (s *CoreService) CurrentDebug() bool {
 // State returns a copy-safe snapshot of the wrapped service configuration.
 func (s *CoreService) State() ServiceState {
 	if s == nil || s.svc == nil {
-		return State()
+		return defaultServiceStateSnapshot()
 	}
 	return s.svc.State()
 }
