@@ -330,6 +330,49 @@ func TestTokeniser_MatchArticle_FrenchExtended(t *testing.T) {
 	}
 }
 
+func TestTokeniser_MatchArticle_ConfiguredPhrasePrefix(t *testing.T) {
+	setup(t)
+
+	const lang = "xx"
+	prev := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, prev)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Articles: i18n.ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "the",
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"the file", "definite", true},
+		{"a file", "indefinite", true},
+		{"an error", "indefinite", true},
+		{"file", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+}
+
 func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	setup(t)
 	tok := NewTokeniserForLang("fr")

@@ -670,17 +670,8 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 
 	lower := core.Lower(word)
 
-	if lower == core.Lower(data.Articles.IndefiniteDefault) ||
-		lower == core.Lower(data.Articles.IndefiniteVowel) {
-		return "indefinite", true
-	}
-	if lower == core.Lower(data.Articles.Definite) {
-		return "definite", true
-	}
-	for _, article := range data.Articles.ByGender {
-		if lower == core.Lower(article) {
-			return "definite", true
-		}
+	if artType, ok := matchConfiguredArticleText(lower, data); ok {
+		return artType, true
 	}
 	if t.isFrenchLanguage() {
 		if artType, ok := matchFrenchLeadingArticlePhrase(lower); ok {
@@ -701,6 +692,46 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 			return "definite", true
 		case "un", "une":
 			return "indefinite", true
+		}
+	}
+
+	return "", false
+}
+
+func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, bool) {
+	if data == nil {
+		return "", false
+	}
+
+	if lower == core.Lower(data.Articles.IndefiniteDefault) ||
+		lower == core.Lower(data.Articles.IndefiniteVowel) {
+		return "indefinite", true
+	}
+	if lower == core.Lower(data.Articles.Definite) {
+		return "definite", true
+	}
+	for _, article := range data.Articles.ByGender {
+		if lower == core.Lower(article) {
+			return "definite", true
+		}
+	}
+
+	if idx := strings.IndexAny(lower, " \t"); idx > 0 {
+		prefix := core.Trim(lower[:idx])
+		if prefix == "" {
+			return "", false
+		}
+		if prefix == core.Lower(data.Articles.IndefiniteDefault) ||
+			prefix == core.Lower(data.Articles.IndefiniteVowel) {
+			return "indefinite", true
+		}
+		if prefix == core.Lower(data.Articles.Definite) {
+			return "definite", true
+		}
+		for _, article := range data.Articles.ByGender {
+			if prefix == core.Lower(article) {
+				return "definite", true
+			}
 		}
 	}
 
