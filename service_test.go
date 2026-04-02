@@ -232,6 +232,14 @@ func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
 	if len(state.Handlers) == 0 {
 		t.Fatal("CurrentState() returned no handlers")
 	}
+	names := state.HandlerTypeNames()
+	if len(names) != len(state.Handlers) {
+		t.Fatalf("HandlerTypeNames() len = %d, want %d", len(names), len(state.Handlers))
+	}
+	names[0] = "zz"
+	if got := svc.CurrentState().HandlerTypeNames()[0]; got == "zz" {
+		t.Fatalf("HandlerTypeNames() returned a shared slice; first element mutated to %q", got)
+	}
 	state.AvailableLanguages[0] = "zz"
 	if got := svc.CurrentState().AvailableLanguages[0]; got == "zz" {
 		t.Fatalf("CurrentState() returned a shared available languages slice; first element mutated to %q", got)

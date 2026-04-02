@@ -70,23 +70,34 @@ type ServiceState struct {
 	Handlers           []KeyHandler
 }
 
+// HandlerTypeNames returns the short type names of the snapshot's handlers.
+// The returned slice is a fresh copy, so callers can inspect or mutate it
+// without affecting the snapshot.
+func (s ServiceState) HandlerTypeNames() []string {
+	if len(s.Handlers) == 0 {
+		return []string{}
+	}
+	names := make([]string, 0, len(s.Handlers))
+	for _, handler := range s.Handlers {
+		if handler == nil {
+			names = append(names, "<nil>")
+			continue
+		}
+		names = append(names, shortHandlerTypeName(handler))
+	}
+	return names
+}
+
 // String returns a concise, stable summary of the service snapshot.
 func (s ServiceState) String() string {
 	langs := "[]"
 	if len(s.AvailableLanguages) > 0 {
 		langs = "[" + core.Join(", ", s.AvailableLanguages...) + "]"
 	}
+	handlerNames := s.HandlerTypeNames()
 	handlers := "[]"
-	if len(s.Handlers) > 0 {
-		names := make([]string, 0, len(s.Handlers))
-		for _, handler := range s.Handlers {
-			if handler == nil {
-				names = append(names, "<nil>")
-				continue
-			}
-			names = append(names, shortHandlerTypeName(handler))
-		}
-		handlers = "[" + core.Join(", ", names...) + "]"
+	if len(handlerNames) > 0 {
+		handlers = "[" + core.Join(", ", handlerNames...) + "]"
 	}
 	return core.Sprintf(
 		"ServiceState{language=%q requested=%q explicit=%t fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d types=%s}",
