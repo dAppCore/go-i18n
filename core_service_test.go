@@ -35,6 +35,7 @@ func TestCoreServiceNilSafe(t *testing.T) {
 		assert.Equal(t, core.Result{Value: "hello", OK: false}, svc.Translate("hello"))
 		assert.Equal(t, defaultServiceStateSnapshot(), svc.State())
 		assert.Equal(t, defaultServiceStateSnapshot(), svc.CurrentState())
+		assert.Equal(t, defaultServiceStateSnapshot().String(), svc.String())
 	})
 	assert.Nil(t, defaultService.Load())
 

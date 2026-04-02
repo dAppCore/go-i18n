@@ -347,6 +347,11 @@ func (s *CoreService) CurrentState() ServiceState {
 	return s.State()
 }
 
+// String returns a concise snapshot of the wrapped service state.
+func (s *CoreService) String() string {
+	return s.State().String()
+}
+
 // AddHandler appends handlers to the wrapped service's chain.
 func (s *CoreService) AddHandler(handlers ...KeyHandler) {
 	if svc := s.wrapped(); svc != nil {

@@ -280,6 +280,9 @@ func TestServiceNilReceiverIsSafe(t *testing.T) {
 	if got, want := svc.State(), defaultServiceStateSnapshot(); got.Language != want.Language || got.Mode != want.Mode || got.Fallback != want.Fallback || got.Formality != want.Formality || got.Location != want.Location || got.Direction != want.Direction || got.IsRTL != want.IsRTL || got.Debug != want.Debug || len(got.AvailableLanguages) != len(want.AvailableLanguages) || len(got.Handlers) != len(want.Handlers) {
 		t.Fatalf("nil Service.State() = %+v, want %+v", got, want)
 	}
+	if got, want := svc.String(), defaultServiceStateSnapshot().String(); got != want {
+		t.Fatalf("nil Service.String() = %q, want %q", got, want)
+	}
 	if got, want := svc.T("prompt.yes"), "prompt.yes"; got != want {
 		t.Fatalf("nil Service.T(prompt.yes) = %q, want %q", got, want)
 	}

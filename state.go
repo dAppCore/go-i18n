@@ -160,6 +160,11 @@ func (s *Service) State() ServiceState {
 	)
 }
 
+// String returns a concise snapshot of the service state.
+func (s *Service) String() string {
+	return s.State().String()
+}
+
 // CurrentState is a more explicit alias for State.
 func (s *Service) CurrentState() ServiceState {
 	return s.State()
