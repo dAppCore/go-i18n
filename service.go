@@ -184,6 +184,16 @@ func Default() *Service {
 // Passing nil clears the default service.
 func SetDefault(s *Service) {
 	defaultService.Store(s)
+	if s == nil {
+		return
+	}
+	registeredLocalesMu.Lock()
+	loaded := localesLoaded
+	hasRegistrations := len(registeredLocales) > 0
+	registeredLocalesMu.Unlock()
+	if !loaded && hasRegistrations {
+		loadRegisteredLocales(s)
+	}
 }
 
 // AddLoader loads translations from a Loader into the default service.
