@@ -70,7 +70,7 @@ func (h CountHandler) Handle(key string, args []any, next func() string) string 
 		count := getCount(args[0])
 		return core.Sprintf("%s %s", FormatNumber(int64(count)), countWordForm(lang, noun, count))
 	}
-	return renderWord(lang, noun)
+	return countWordForm(lang, noun, 1)
 }
 
 // DoneHandler handles i18n.done.{verb} -> "File deleted" patterns.
