@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"path/filepath"
 	"sync"
 	"testing"
 	"testing/fstest"
@@ -188,6 +189,11 @@ func TestLoadRegisteredLocales_Good(t *testing.T) {
 func TestOnMissingKey_Good(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
 	svc.SetMode(ModeCollect)
 
 	var captured MissingKey
@@ -195,11 +201,11 @@ func TestOnMissingKey_Good(t *testing.T) {
 		captured = m
 	})
 
-	_ = svc.T("missing.test.key", map[string]any{"foo": "bar"})
+	_ = T("missing.test.key", map[string]any{"foo": "bar"})
 
 	assert.Equal(t, "missing.test.key", captured.Key)
 	assert.Equal(t, "bar", captured.Args["foo"])
-	assert.NotEmpty(t, captured.CallerFile)
+	assert.Equal(t, "hooks_test.go", filepath.Base(captured.CallerFile))
 }
 
 func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {

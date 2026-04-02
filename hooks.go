@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"log"
 	"runtime"
+	"strings"
 	"sync"
 	"sync/atomic"
 )
@@ -68,10 +69,24 @@ func dispatchMissingKey(key string, args map[string]any) {
 	if !ok || h == nil {
 		return
 	}
-	_, file, line, ok := runtime.Caller(2)
-	if !ok {
-		file = "unknown"
-		line = 0
-	}
+	file, line := missingKeyCaller()
 	h(MissingKey{Key: key, Args: args, CallerFile: file, CallerLine: line})
+}
+
+func missingKeyCaller() (string, int) {
+	const packagePrefix = "dappco.re/go/core/i18n."
+
+	pcs := make([]uintptr, 16)
+	n := runtime.Callers(2, pcs)
+	frames := runtime.CallersFrames(pcs[:n])
+	for {
+		frame, more := frames.Next()
+		if !strings.HasPrefix(frame.Function, packagePrefix) || strings.HasSuffix(frame.File, "_test.go") {
+			return frame.File, frame.Line
+		}
+		if !more {
+			break
+		}
+	}
+	return "unknown", 0
 }
