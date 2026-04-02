@@ -913,11 +913,21 @@ func ActionFailed(verb, subject string) string {
 	if verb == "" {
 		return ""
 	}
-	verb = renderWord(currentLangForGrammar(), verb)
+	lang := currentLangForGrammar()
+	verb = renderWord(lang, verb)
+	prefix := failedPrefix(lang)
 	if subject == "" {
-		return "Failed to " + verb
+		return prefix + " " + verb
 	}
-	return "Failed to " + verb + " " + renderWord(currentLangForGrammar(), subject)
+	return prefix + " " + verb + " " + renderWord(lang, subject)
+}
+
+func failedPrefix(lang string) string {
+	prefix := renderWord(lang, "failed_to")
+	if prefix == "" || prefix == "failed_to" {
+		return "Failed to"
+	}
+	return prefix
 }
 
 // Label returns a label with suffix: "Status:" (EN) or "Statut :" (FR)

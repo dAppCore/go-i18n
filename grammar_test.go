@@ -841,6 +841,26 @@ func TestActionFailed_RespectsWordMap(t *testing.T) {
 	}
 }
 
+func TestActionFailedFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	if got, want := ActionFailed("supprimer", ""), "Impossible de supprimer"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "supprimer", "", got, want)
+	}
+}
+
 func TestGrammarData_Signals(t *testing.T) {
 	svc, err := New()
 	if err != nil {
