@@ -472,11 +472,32 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 }
 
 func (s *Service) getEffectiveContextExtra(data any) map[string]any {
-	ctx, ok := data.(*TranslationContext)
-	if !ok || ctx == nil || len(ctx.Extra) == 0 {
+	switch v := data.(type) {
+	case *TranslationContext:
+		if v == nil || len(v.Extra) == 0 {
+			return nil
+		}
+		return v.Extra
+	case map[string]any:
+		if len(v) == 0 {
+			return nil
+		}
+		extra := make(map[string]any, len(v))
+		for key, value := range v {
+			switch key {
+			case "Context", "Gender", "Location", "Formality":
+				continue
+			default:
+				extra[key] = value
+			}
+		}
+		if len(extra) == 0 {
+			return nil
+		}
+		return extra
+	default:
 		return nil
 	}
-	return ctx.Extra
 }
 
 func (s *Service) getEffectiveFormality(data any) Formality {

@@ -349,6 +349,31 @@ func TestServiceTranslationContextExtrasInLookup(t *testing.T) {
 	}
 }
 
+func TestServiceMapContextExtrasInLookup(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._greeting":                   "hello",
+		"welcome._greeting._region._europe":   "bonjour",
+		"welcome._greeting._region._americas": "howdy",
+	})
+
+	if got := svc.T("welcome", map[string]any{"Context": "greeting"}); got != "hello" {
+		t.Errorf("T(welcome, map[Context:greeting]) = %q, want %q", got, "hello")
+	}
+
+	if got := svc.T("welcome", map[string]any{"Context": "greeting", "region": "europe"}); got != "bonjour" {
+		t.Errorf("T(welcome, map[Context:greeting region:europe]) = %q, want %q", got, "bonjour")
+	}
+
+	if got := svc.T("welcome", map[string]any{"Context": "greeting", "region": "americas"}); got != "howdy" {
+		t.Errorf("T(welcome, map[Context:greeting region:americas]) = %q, want %q", got, "howdy")
+	}
+}
+
 func TestServiceDefaultLocationAppliesToMapData(t *testing.T) {
 	svc, err := New()
 	if err != nil {
