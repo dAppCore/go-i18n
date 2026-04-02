@@ -986,6 +986,17 @@ func TestServiceAddLoader_Bad(t *testing.T) {
 	}
 }
 
+func TestServiceAddLoader_Nil(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if err := svc.AddLoader(nil); err == nil {
+		t.Error("AddLoader() should fail with nil loader")
+	}
+}
+
 func TestPackageLevelAddLoader(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -1044,6 +1055,12 @@ func TestNewWithLoaderNoLanguages(t *testing.T) {
 	_, err := NewWithFS(empty, "empty")
 	if err == nil {
 		t.Error("NewWithFS with empty dir should fail")
+	}
+}
+
+func TestNewWithLoaderNil(t *testing.T) {
+	if _, err := NewWithLoader(nil); err == nil {
+		t.Error("NewWithLoader(nil) should fail")
 	}
 }
 

@@ -103,6 +103,9 @@ func NewWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 
 // NewWithLoader creates a new i18n service with a custom loader.
 func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
+	if loader == nil {
+		return nil, log.E("NewWithLoader", "nil loader", nil)
+	}
 	s := &Service{
 		loader:          loader,
 		messages:        make(map[string]map[string]Message),
@@ -836,6 +839,9 @@ func (s *Service) AddMessages(lang string, messages map[string]string) {
 // and grammar data into the existing service. This is the correct way to
 // add package-specific translations at runtime.
 func (s *Service) AddLoader(loader Loader) error {
+	if loader == nil {
+		return log.E("Service.AddLoader", "nil loader", nil)
+	}
 	langs := loader.Languages()
 	for _, lang := range langs {
 		messages, grammar, err := loader.Load(lang)
