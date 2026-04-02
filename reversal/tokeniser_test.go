@@ -977,6 +977,18 @@ func TestWithWeights_CopiesInputMap(t *testing.T) {
 	}
 }
 
+func TestWithWeights_PartialOverrideKeepsDefaults(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithWeights(map[string]float64{
+		"verb_auxiliary": 0.25,
+	}))
+
+	tokens := tok.Tokenise("The commit")
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("with partial weights, 'commit' Type = %v, want TokenNoun", tokens[1].Type)
+	}
+}
+
 // --- Benchmarks ---
 
 func benchSetup(b *testing.B) {
