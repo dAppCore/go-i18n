@@ -68,6 +68,9 @@ func IsRTLLanguage(lang string) bool {
 }
 
 // SetFormality sets the default formality level on the default service.
+//
+// Example:
+//   i18n.SetFormality(i18n.FormalityFormal)
 func SetFormality(f Formality) {
 	if svc := Default(); svc != nil {
 		svc.SetFormality(f)
@@ -75,6 +78,9 @@ func SetFormality(f Formality) {
 }
 
 // SetLocation sets the default location context on the default service.
+//
+// Example:
+//   i18n.SetLocation("workspace")
 func SetLocation(location string) {
 	if svc := Default(); svc != nil {
 		svc.SetLocation(location)
@@ -82,6 +88,9 @@ func SetLocation(location string) {
 }
 
 // CurrentLocation returns the current default location context.
+//
+// Example:
+//   location := i18n.CurrentLocation()
 func CurrentLocation() string {
 	if svc := Default(); svc != nil {
 		return svc.Location()
@@ -90,6 +99,9 @@ func CurrentLocation() string {
 }
 
 // Direction returns the text direction for the current language.
+//
+// Example:
+//   dir := i18n.Direction()
 func Direction() TextDirection {
 	if svc := Default(); svc != nil {
 		return svc.Direction()
@@ -98,14 +110,23 @@ func Direction() TextDirection {
 }
 
 // CurrentDirection returns the current default text direction.
+//
+// Example:
+//   dir := i18n.CurrentDirection()
 func CurrentDirection() TextDirection {
 	return Direction()
 }
 
 // IsRTL returns true if the current language uses right-to-left text.
+//
+// Example:
+//   rtl := i18n.IsRTL()
 func IsRTL() bool { return Direction() == DirRTL }
 
 // CurrentPluralCategory returns the plural category for the current default language.
+//
+// Example:
+//   cat := i18n.CurrentPluralCategory(2)
 func CurrentPluralCategory(n int) PluralCategory {
 	if svc := Default(); svc != nil {
 		return svc.PluralCategory(n)

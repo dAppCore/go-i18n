@@ -103,11 +103,17 @@ var _ Translator = (*Service)(nil)
 var _ core.Translator = (*Service)(nil)
 
 // New creates a new i18n service with embedded locales.
+//
+// Example:
+//   svc, err := i18n.New(i18n.WithLanguage("en"))
 func New(opts ...Option) (*Service, error) {
 	return NewWithLoader(NewFSLoader(localeFS, "locales"), opts...)
 }
 
 // NewService creates a new i18n service with embedded locales.
+//
+// Example:
+//   svc, err := i18n.NewService(i18n.WithFallback("en"))
 //
 // This is a named alias for New that keeps the constructor intent explicit
 // for callers that prefer service-oriented naming.
@@ -116,16 +122,25 @@ func NewService(opts ...Option) (*Service, error) {
 }
 
 // NewWithFS creates a new i18n service loading locales from the given filesystem.
+//
+// Example:
+//   svc, err := i18n.NewWithFS(os.DirFS("."), "locales")
 func NewWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 	return NewWithLoader(NewFSLoader(fsys, dir), opts...)
 }
 
 // NewServiceWithFS creates a new i18n service loading locales from the given filesystem.
+//
+// Example:
+//   svc, err := i18n.NewServiceWithFS(os.DirFS("."), "locales")
 func NewServiceWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 	return NewWithFS(fsys, dir, opts...)
 }
 
 // NewWithLoader creates a new i18n service with a custom loader.
+//
+// Example:
+//   svc, err := i18n.NewWithLoader(loader)
 func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	if loader == nil {
 		return nil, log.E("NewWithLoader", "nil loader", nil)
@@ -199,11 +214,17 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 }
 
 // NewServiceWithLoader creates a new i18n service with a custom loader.
+//
+// Example:
+//   svc, err := i18n.NewServiceWithLoader(loader)
 func NewServiceWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	return NewWithLoader(loader, opts...)
 }
 
 // Init initialises the default global service if none has been set via SetDefault.
+//
+// Example:
+//   if err := i18n.Init(); err != nil { return err }
 func Init() error {
 	if defaultService.Load() != nil {
 		return nil
@@ -232,6 +253,9 @@ func Init() error {
 }
 
 // Default returns the global i18n service, initialising if needed.
+//
+// Example:
+//   svc := i18n.Default()
 // Returns nil if initialisation fails (error is logged).
 func Default() *Service {
 	if svc := defaultService.Load(); svc != nil {
@@ -244,6 +268,9 @@ func Default() *Service {
 }
 
 // SetDefault sets the global i18n service.
+//
+// Example:
+//   i18n.SetDefault(svc)
 // Passing nil clears the default service.
 func SetDefault(s *Service) {
 	defaultService.Store(s)
@@ -259,6 +286,9 @@ func SetDefault(s *Service) {
 }
 
 // AddLoader loads translations from a Loader into the default service.
+//
+// Example:
+//   i18n.AddLoader(loader)
 // Call this from init() in packages that ship their own locale files:
 //
 //	//go:embed *.json
@@ -1008,6 +1038,9 @@ func translateOK(messageID, value string) bool {
 }
 
 // LoadFS loads additional locale files from a filesystem.
+//
+// Example:
+//   _ = svc.LoadFS(os.DirFS("."), "locales")
 // Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
 func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 	loader := NewFSLoader(fsys, dir)
