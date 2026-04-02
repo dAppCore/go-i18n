@@ -92,7 +92,7 @@ func (l *FSLoader) Languages() []string {
 		}
 		slices.Sort(l.languages)
 	})
-	return l.languages
+	return append([]string(nil), l.languages...)
 }
 
 // LanguagesErr returns any error from the directory scan.

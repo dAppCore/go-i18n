@@ -35,6 +35,22 @@ func TestFSLoaderLanguagesCanonicalAndUnique(t *testing.T) {
 	}
 }
 
+func TestFSLoaderLanguagesReturnsCopy(t *testing.T) {
+	loader := NewFSLoader(localeFS, "locales")
+
+	langs := loader.Languages()
+	if len(langs) == 0 {
+		t.Fatal("Languages() returned empty")
+	}
+
+	langs[0] = "zz"
+
+	got := loader.Languages()
+	if got[0] == "zz" {
+		t.Fatalf("Languages() returned shared slice: %v", got)
+	}
+}
+
 func TestFSLoaderLoad(t *testing.T) {
 	loader := NewFSLoader(localeFS, "locales")
 	messages, grammar, err := loader.Load("en")
