@@ -7,6 +7,16 @@ import (
 	"time"
 )
 
+type regionFallbackLoader struct{}
+
+func (regionFallbackLoader) Languages() []string {
+	return []string{"en-GB"}
+}
+
+func (regionFallbackLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	return map[string]Message{}, nil, nil
+}
+
 func TestPastTense(t *testing.T) {
 	// Ensure grammar data is loaded from embedded JSON
 	svc, err := New()
@@ -930,6 +940,58 @@ func TestFrenchGrammarData(t *testing.T) {
 	}
 	if got := len(data.Signals.VerbAuxiliaries); got < 15 {
 		t.Errorf("French VerbAuxiliaries: got %d, want >= 15", got)
+	}
+}
+
+func TestGrammarFallbackToBaseLanguageTag(t *testing.T) {
+	prevDefault := Default()
+	prevGrammar := GetGrammarData("en")
+	t.Cleanup(func() {
+		SetGrammarData("en", prevGrammar)
+		SetDefault(prevDefault)
+	})
+
+	SetGrammarData("en", &GrammarData{
+		Verbs: map[string]VerbForms{
+			"delete": {Past: "deleted", Gerund: "deleting"},
+		},
+		Nouns: map[string]NounForms{
+			"file": {One: "file", Other: "files"},
+		},
+		Articles: ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "the",
+		},
+		Punct: PunctuationRules{
+			LabelSuffix:    ":",
+			ProgressSuffix: "...",
+		},
+		Words: map[string]string{
+			"status": "Status",
+		},
+	})
+
+	svc, err := NewWithLoader(regionFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+	SetDefault(svc)
+	if err := svc.SetLanguage("en-GB"); err != nil {
+		t.Fatalf("SetLanguage(en-GB) failed: %v", err)
+	}
+
+	if got := PastTense("delete"); got != "deleted" {
+		t.Fatalf("PastTense(delete) = %q, want %q", got, "deleted")
+	}
+	if got := Pluralize("file", 2); got != "files" {
+		t.Fatalf("Pluralize(file, 2) = %q, want %q", got, "files")
+	}
+	if got := Article("apple"); got != "an" {
+		t.Fatalf("Article(apple) = %q, want %q", got, "an")
+	}
+	if got := Label("status"); got != "Status:" {
+		t.Fatalf("Label(status) = %q, want %q", got, "Status:")
 	}
 }
 

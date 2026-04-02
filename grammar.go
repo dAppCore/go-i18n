@@ -190,7 +190,7 @@ func Upper(s string) string {
 }
 
 func getVerbForm(lang, verb, form string) string {
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data == nil || data.Verbs == nil {
 		return ""
 	}
@@ -207,7 +207,7 @@ func getVerbForm(lang, verb, form string) string {
 }
 
 func getWord(lang, word string) string {
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data == nil || data.Words == nil {
 		return ""
 	}
@@ -215,7 +215,7 @@ func getWord(lang, word string) string {
 }
 
 func getPunct(lang, rule, defaultVal string) string {
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data == nil {
 		return defaultVal
 	}
@@ -233,7 +233,7 @@ func getPunct(lang, rule, defaultVal string) string {
 }
 
 func getNounForm(lang, noun, form string) string {
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data == nil || data.Nouns == nil {
 		return ""
 	}
@@ -477,7 +477,7 @@ func Article(word string) string {
 
 func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 	lang := currentLangForGrammar()
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data == nil {
 		return "", false
 	}
@@ -768,7 +768,7 @@ func DefiniteArticle(word string) string {
 		return article
 	}
 	lang := currentLangForGrammar()
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data != nil && data.Articles.Definite != "" {
 		return data.Articles.Definite
 	}
@@ -794,7 +794,7 @@ func DefinitePhrase(word string) string {
 
 func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 	lang := currentLangForGrammar()
-	data := GetGrammarData(lang)
+	data := grammarDataForLang(lang)
 	if data == nil {
 		return "", false
 	}
@@ -805,6 +805,23 @@ func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, 
 		return article, true
 	}
 	return "", false
+}
+
+func grammarDataForLang(lang string) *GrammarData {
+	if data := GetGrammarData(lang); data != nil {
+		return data
+	}
+	if base := baseLanguageTag(lang); base != "" {
+		return GetGrammarData(base)
+	}
+	return nil
+}
+
+func baseLanguageTag(lang string) string {
+	if idx := indexAny(lang, "-_"); idx > 0 {
+		return lang[:idx]
+	}
+	return ""
 }
 
 func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord, lang string) (string, bool) {
