@@ -85,6 +85,16 @@ func AvailableLanguages() []string {
 	})
 }
 
+// CurrentAvailableLanguages returns the loaded language tags on the default
+// service.
+//
+// Example:
+//
+//	langs := i18n.CurrentAvailableLanguages()
+func CurrentAvailableLanguages() []string {
+	return AvailableLanguages()
+}
+
 // SetMode sets the translation mode for the default service.
 //
 // Example:
