@@ -1034,6 +1034,25 @@ func TestServiceHandlers(t *testing.T) {
 	}
 }
 
+func TestServiceSetHandlers(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.SetHandlers(serviceStubHandler{}, nil, LabelHandler{})
+	handlers := svc.Handlers()
+	if got, want := len(handlers), 2; got != want {
+		t.Fatalf("len(Handlers()) = %d, want %d", got, want)
+	}
+	if _, ok := handlers[0].(serviceStubHandler); !ok {
+		t.Fatalf("Handlers()[0] = %T, want serviceStubHandler", handlers[0])
+	}
+	if _, ok := handlers[1].(LabelHandler); !ok {
+		t.Fatalf("Handlers()[1] = %T, want LabelHandler", handlers[1])
+	}
+}
+
 func TestWithDefaultHandlers_Idempotent(t *testing.T) {
 	svc, err := New(WithDefaultHandlers())
 	if err != nil {

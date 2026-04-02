@@ -406,6 +406,13 @@ func (s *Service) AddHandler(handlers ...KeyHandler) {
 	s.handlers = append(s.handlers, filterNilHandlers(handlers)...)
 }
 
+// SetHandlers replaces the current handler chain.
+func (s *Service) SetHandlers(handlers ...KeyHandler) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.handlers = filterNilHandlers(handlers)
+}
+
 func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
