@@ -245,3 +245,28 @@ func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
 		})
 	}
 }
+
+func TestFormatAgo_FallsBackToLocaleWordMap(t *testing.T) {
+	prev := Default()
+	svc, err := NewWithFS(fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"word": {
+						"month": "mois"
+					}
+				}
+			}`),
+		},
+	}, ".")
+	require.NoError(t, err)
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("en"))
+
+	got := FormatAgo(2, "month")
+	assert.Equal(t, "2 mois ago", got)
+}

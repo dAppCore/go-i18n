@@ -48,9 +48,18 @@ func FormatAgo(count int, unit string) string {
 	key := "time.ago." + unit
 	result := svc.T(key, map[string]any{"Count": count})
 	if result == key {
-		return core.Sprintf("%d %s ago", count, Pluralize(unit, count))
+		return core.Sprintf("%d %s ago", count, fallbackAgoUnit(unit, count))
 	}
 	return result
+}
+
+func fallbackAgoUnit(unit string, count int) string {
+	lang := currentLangForGrammar()
+	rendered := renderWord(lang, unit)
+	if rendered != unit {
+		return rendered
+	}
+	return Pluralize(unit, count)
 }
 
 func normalizeAgoUnit(unit string) string {
