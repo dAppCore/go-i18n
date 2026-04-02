@@ -132,9 +132,6 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				if gerund, ok := v["gerund"].(string); ok {
 					forms.Gerund = gerund
 				}
-				if forms.Past == "" || forms.Gerund == "" {
-					continue
-				}
 				grammar.Verbs[core.Lower(verbName)] = forms
 				continue
 			}

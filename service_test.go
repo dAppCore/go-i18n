@@ -348,6 +348,48 @@ func TestServiceSubjectCountPlurals(t *testing.T) {
 	}
 }
 
+func TestServiceLoadJSONPartialVerbForms(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	const lang = "zz"
+	prevDefault := Default()
+	prevGrammar := GetGrammarData(lang)
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prevDefault)
+		SetGrammarData(lang, prevGrammar)
+	})
+
+	svc.currentLang = lang
+
+	if err := svc.loadJSON(lang, []byte(`{
+		"gram": {
+			"verb": {
+				"render": { "past": "rendered" },
+				"stream": { "gerund": "streaming" }
+			}
+		}
+	}`)); err != nil {
+		t.Fatalf("loadJSON() failed: %v", err)
+	}
+
+	if v, ok := GetGrammarData(lang).Verbs["render"]; !ok || v.Past != "rendered" || v.Gerund != "" {
+		t.Fatalf("partial past verb not loaded correctly: %+v", v)
+	}
+	if v, ok := GetGrammarData(lang).Verbs["stream"]; !ok || v.Past != "" || v.Gerund != "streaming" {
+		t.Fatalf("partial gerund verb not loaded correctly: %+v", v)
+	}
+	if got := PastTense("render"); got != "rendered" {
+		t.Fatalf("PastTense(render) = %q, want %q", got, "rendered")
+	}
+	if got := Gerund("stream"); got != "streaming" {
+		t.Fatalf("Gerund(stream) = %q, want %q", got, "streaming")
+	}
+}
+
 func TestServiceTemplatesSupportGrammarFuncs(t *testing.T) {
 	svc, err := New()
 	if err != nil {

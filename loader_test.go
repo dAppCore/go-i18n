@@ -208,11 +208,15 @@ func TestFlattenWithGrammar(t *testing.T) {
 	if _, ok := grammar.Verbs["publish_draft"]; ok {
 		t.Error("verb should be stored under explicit base, not JSON key")
 	}
-	if _, ok := grammar.Verbs["partial_past"]; ok {
-		t.Error("incomplete verb entry with only past should be skipped")
+	if v, ok := grammar.Verbs["partial_past"]; !ok {
+		t.Error("incomplete verb entry with only past should be extracted")
+	} else if v.Past != "partialed" || v.Gerund != "" {
+		t.Errorf("partial_past forms = %+v, want Past only", v)
 	}
-	if _, ok := grammar.Verbs["partial_gerund"]; ok {
-		t.Error("incomplete verb entry with only gerund should be skipped")
+	if v, ok := grammar.Verbs["partial_gerund"]; !ok {
+		t.Error("incomplete verb entry with only gerund should be extracted")
+	} else if v.Past != "" || v.Gerund != "partialing" {
+		t.Errorf("partial_gerund forms = %+v, want Gerund only", v)
 	}
 	if _, ok := messages["gram.verb.partial_past"]; ok {
 		t.Error("gram.verb.partial_past should not be flattened into messages")
