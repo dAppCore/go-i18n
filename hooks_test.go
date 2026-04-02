@@ -350,9 +350,17 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	assert.Equal(t, svc.Raw("i18n.label.status"), coreSvc.Raw("i18n.label.status"))
 	assert.Equal(t, svc.Translate("i18n.label.status"), coreSvc.Translate("i18n.label.status"))
 	assert.Equal(t, svc.AvailableLanguages(), coreSvc.AvailableLanguages())
+	assert.Equal(t, svc.AvailableLanguages(), coreSvc.CurrentAvailableLanguages())
 	assert.Equal(t, svc.Direction(), coreSvc.Direction())
+	assert.Equal(t, svc.Direction(), coreSvc.CurrentDirection())
 	assert.Equal(t, svc.IsRTL(), coreSvc.IsRTL())
 	assert.Equal(t, svc.PluralCategory(2), coreSvc.PluralCategory(2))
+	assert.Equal(t, svc.Mode(), coreSvc.CurrentMode())
+	assert.Equal(t, svc.Language(), coreSvc.CurrentLanguage())
+	assert.Equal(t, svc.Fallback(), coreSvc.CurrentFallback())
+	assert.Equal(t, svc.Formality(), coreSvc.CurrentFormality())
+	assert.Equal(t, svc.Location(), coreSvc.CurrentLocation())
+	assert.Equal(t, svc.Debug(), coreSvc.CurrentDebug())
 
 	require.NoError(t, coreSvc.SetLanguage("en"))
 	assert.Equal(t, "en", coreSvc.Language())
@@ -373,6 +381,7 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 
 	handlers := coreSvc.Handlers()
 	assert.Equal(t, svc.Handlers(), handlers)
+	assert.Equal(t, svc.Handlers(), coreSvc.CurrentHandlers())
 
 	coreSvc.SetHandlers(LabelHandler{})
 	require.Len(t, coreSvc.Handlers(), 1)

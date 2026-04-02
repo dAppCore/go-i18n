@@ -148,6 +148,11 @@ func (s *CoreService) Mode() Mode {
 	return s.svc.Mode()
 }
 
+// CurrentMode returns the current translation mode.
+func (s *CoreService) CurrentMode() Mode {
+	return s.Mode()
+}
+
 // T translates a message through the wrapped i18n service.
 func (s *CoreService) T(messageID string, args ...any) string {
 	return s.svc.T(messageID, args...)
@@ -178,6 +183,11 @@ func (s *CoreService) Language() string {
 	return s.svc.Language()
 }
 
+// CurrentLanguage returns the wrapped service language.
+func (s *CoreService) CurrentLanguage() string {
+	return s.Language()
+}
+
 // SetFallback changes the wrapped service fallback language.
 func (s *CoreService) SetFallback(lang string) {
 	s.svc.SetFallback(lang)
@@ -186,6 +196,11 @@ func (s *CoreService) SetFallback(lang string) {
 // Fallback returns the wrapped service fallback language.
 func (s *CoreService) Fallback() string {
 	return s.svc.Fallback()
+}
+
+// CurrentFallback returns the wrapped service fallback language.
+func (s *CoreService) CurrentFallback() string {
+	return s.Fallback()
 }
 
 // SetFormality changes the wrapped service default formality.
@@ -198,6 +213,11 @@ func (s *CoreService) Formality() Formality {
 	return s.svc.Formality()
 }
 
+// CurrentFormality returns the wrapped service default formality.
+func (s *CoreService) CurrentFormality() Formality {
+	return s.Formality()
+}
+
 // SetLocation changes the wrapped service default location.
 func (s *CoreService) SetLocation(location string) {
 	s.svc.SetLocation(location)
@@ -208,6 +228,11 @@ func (s *CoreService) Location() string {
 	return s.svc.Location()
 }
 
+// CurrentLocation returns the wrapped service default location.
+func (s *CoreService) CurrentLocation() string {
+	return s.Location()
+}
+
 // SetDebug changes the wrapped service debug mode.
 func (s *CoreService) SetDebug(enabled bool) {
 	s.svc.SetDebug(enabled)
@@ -216,6 +241,11 @@ func (s *CoreService) SetDebug(enabled bool) {
 // Debug reports whether wrapped service debug mode is enabled.
 func (s *CoreService) Debug() bool {
 	return s.svc.Debug()
+}
+
+// CurrentDebug reports whether wrapped service debug mode is enabled.
+func (s *CoreService) CurrentDebug() bool {
+	return s.Debug()
 }
 
 // AddHandler appends handlers to the wrapped service's chain.
@@ -248,6 +278,11 @@ func (s *CoreService) Handlers() []KeyHandler {
 	return s.svc.Handlers()
 }
 
+// CurrentHandlers returns a copy of the wrapped service's handler chain.
+func (s *CoreService) CurrentHandlers() []KeyHandler {
+	return s.Handlers()
+}
+
 // AddLoader loads extra locale data into the wrapped service.
 func (s *CoreService) AddLoader(loader Loader) error {
 	return s.svc.AddLoader(loader)
@@ -263,9 +298,19 @@ func (s *CoreService) AvailableLanguages() []string {
 	return s.svc.AvailableLanguages()
 }
 
+// CurrentAvailableLanguages returns the wrapped service languages.
+func (s *CoreService) CurrentAvailableLanguages() []string {
+	return s.AvailableLanguages()
+}
+
 // Direction returns the wrapped service text direction.
 func (s *CoreService) Direction() TextDirection {
 	return s.svc.Direction()
+}
+
+// CurrentDirection returns the wrapped service text direction.
+func (s *CoreService) CurrentDirection() TextDirection {
+	return s.Direction()
 }
 
 // IsRTL reports whether the wrapped service language is right-to-left.
