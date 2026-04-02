@@ -105,6 +105,14 @@ func CurrentDirection() TextDirection {
 // IsRTL returns true if the current language uses right-to-left text.
 func IsRTL() bool { return Direction() == DirRTL }
 
+// CurrentPluralCategory returns the plural category for the current default language.
+func CurrentPluralCategory(n int) PluralCategory {
+	if svc := Default(); svc != nil {
+		return svc.PluralCategory(n)
+	}
+	return GetPluralCategory("en", n)
+}
+
 func detectLanguage(supported []language.Tag) string {
 	langEnv := os.Getenv("LANG")
 	if langEnv == "" {

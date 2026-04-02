@@ -218,6 +218,28 @@ func TestIsRTL_Good(t *testing.T) {
 	assert.False(t, IsRTL(), "English should not be RTL")
 }
 
+// --- Package-level CurrentPluralCategory ---
+
+func TestCurrentPluralCategory_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, PluralOther, CurrentPluralCategory(0))
+	assert.Equal(t, PluralOne, CurrentPluralCategory(1))
+	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+
+	require.NoError(t, SetLanguage("fr"))
+	assert.Equal(t, PluralOne, CurrentPluralCategory(0))
+	assert.Equal(t, PluralOne, CurrentPluralCategory(1))
+	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+}
+
 // --- detectLanguage ---
 
 func TestDetectLanguage_Good(t *testing.T) {
