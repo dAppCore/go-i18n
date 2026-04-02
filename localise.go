@@ -91,7 +91,7 @@ func SetLocation(location string) {
 //
 //	location := i18n.CurrentLocation()
 func CurrentLocation() string {
-	return Location()
+	return defaultServiceValue("", func(svc *Service) string { return svc.Location() })
 }
 
 // Location returns the current default location context.
@@ -122,7 +122,7 @@ func Direction() TextDirection {
 //
 //	dir := i18n.CurrentDirection()
 func CurrentDirection() TextDirection {
-	return Direction()
+	return defaultServiceValue(DirLTR, func(svc *Service) TextDirection { return svc.Direction() })
 }
 
 // IsRTL returns true if the current language uses right-to-left text.
@@ -138,7 +138,9 @@ func IsRTL() bool { return Direction() == DirRTL }
 // Example:
 //
 //	rtl := i18n.CurrentIsRTL()
-func CurrentIsRTL() bool { return IsRTL() }
+func CurrentIsRTL() bool {
+	return defaultServiceValue(false, func(svc *Service) bool { return svc.IsRTL() })
+}
 
 // CurrentPluralCategory returns the plural category for the current default language.
 //
@@ -146,9 +148,7 @@ func CurrentIsRTL() bool { return IsRTL() }
 //
 //	cat := i18n.CurrentPluralCategory(2)
 func CurrentPluralCategory(n int) PluralCategory {
-	return defaultServiceValue(PluralOther, func(svc *Service) PluralCategory {
-		return svc.PluralCategory(n)
-	})
+	return defaultServiceValue(PluralOther, func(svc *Service) PluralCategory { return svc.PluralCategory(n) })
 }
 
 func detectLanguage(supported []language.Tag) string {
