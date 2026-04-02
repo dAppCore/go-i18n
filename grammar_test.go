@@ -263,6 +263,33 @@ func TestPluralize_UsesLocaleSingularOverride(t *testing.T) {
 	}
 }
 
+func TestPluralize_PreservesUnicodeCapitalization(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	if got, want := Pluralize("Élément", 1), "Élément"; got != want {
+		t.Fatalf("Pluralize(%q, 1) = %q, want %q", "Élément", got, want)
+	}
+	if got, want := Pluralize("Élément", 2), "Éléments"; got != want {
+		t.Fatalf("Pluralize(%q, 2) = %q, want %q", "Élément", got, want)
+	}
+	if got, want := PluralForm("Élément"), "Éléments"; got != want {
+		t.Fatalf("PluralForm(%q) = %q, want %q", "Élément", got, want)
+	}
+}
+
 func TestPluralForm(t *testing.T) {
 	svc, err := New()
 	if err != nil {

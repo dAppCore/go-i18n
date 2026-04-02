@@ -371,10 +371,7 @@ func Pluralize(noun string, count int) string {
 		}
 		lower := core.Lower(noun)
 		if form := getNounForm(currentLangForGrammar(), lower, "one"); form != "" {
-			if unicode.IsUpper(rune(noun[0])) && len(form) > 0 {
-				return core.Upper(string(form[0])) + form[1:]
-			}
-			return form
+			return preserveInitialCapitalization(noun, form)
 		}
 		return noun
 	}
@@ -389,16 +386,10 @@ func PluralForm(noun string) string {
 	}
 	lower := core.Lower(noun)
 	if form := getNounForm(currentLangForGrammar(), lower, "other"); form != "" {
-		if unicode.IsUpper(rune(noun[0])) && len(form) > 0 {
-			return core.Upper(string(form[0])) + form[1:]
-		}
-		return form
+		return preserveInitialCapitalization(noun, form)
 	}
 	if plural, ok := irregularNouns[lower]; ok {
-		if unicode.IsUpper(rune(noun[0])) {
-			return core.Upper(string(plural[0])) + plural[1:]
-		}
-		return plural
+		return preserveInitialCapitalization(noun, plural)
 	}
 	return applyRegularPlural(noun)
 }
@@ -673,6 +664,22 @@ func isInitialism(word string) bool {
 		}
 	}
 	return hasLetter
+}
+
+func preserveInitialCapitalization(original, form string) string {
+	if original == "" || form == "" {
+		return form
+	}
+	originalRunes := []rune(original)
+	formRunes := []rune(form)
+	if len(originalRunes) == 0 || len(formRunes) == 0 {
+		return form
+	}
+	if !unicode.IsUpper(originalRunes[0]) {
+		return form
+	}
+	formRunes[0] = unicode.ToUpper(formRunes[0])
+	return string(formRunes)
 }
 
 func initialismUsesVowelSound(word string) bool {
