@@ -374,6 +374,31 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Tokenise_FrenchPartitiveArticlePhrase(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	tokens := tok.Tokenise("de la branche")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de la branche", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de la" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de la")
+	}
+	if tokens[0].ArtType != "definite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "definite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "branche" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "branche")
+	}
+}
+
 func TestTokeniser_Tokenise(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()

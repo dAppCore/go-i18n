@@ -662,6 +662,14 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			i += consumed - 1
 			continue
 		}
+		if consumed, tok, punctTok := t.matchFrenchArticlePhrase(parts, i); consumed > 0 {
+			tokens = append(tokens, tok)
+			if punctTok != nil {
+				tokens = append(tokens, *punctTok)
+			}
+			i += consumed - 1
+			continue
+		}
 
 		raw := parts[i]
 		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
@@ -828,6 +836,50 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 		}
 
 		return n, tok, nil
+	}
+
+	return 0, Token{}, nil
+}
+
+func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, Token, *Token) {
+	if !t.isFrenchLanguage() || start+1 >= len(parts) {
+		return 0, Token{}, nil
+	}
+
+	first, firstPunct := splitTrailingPunct(parts[start])
+	if first == "" || firstPunct != "" {
+		return 0, Token{}, nil
+	}
+	second, secondPunct := splitTrailingPunct(parts[start+1])
+	if second == "" {
+		return 0, Token{}, nil
+	}
+
+	switch core.Lower(first) {
+	case "de":
+		if core.Lower(second) != "la" {
+			return 0, Token{}, nil
+		}
+		tok := Token{
+			Raw:        first + " " + second,
+			Lower:      "de la",
+			Type:       TokenArticle,
+			ArtType:    "definite",
+			Confidence: 1.0,
+		}
+		if secondPunct != "" {
+			if punctType, ok := matchPunctuation(secondPunct); ok {
+				punctTok := Token{
+					Raw:        secondPunct,
+					Lower:      secondPunct,
+					Type:       TokenPunctuation,
+					PunctType:  punctType,
+					Confidence: 1.0,
+				}
+				return 2, tok, &punctTok
+			}
+		}
+		return 2, tok, nil
 	}
 
 	return 0, Token{}, nil
