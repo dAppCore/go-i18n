@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"bytes"
+	"io/fs"
 	"strings"
 	"text/template"
 
@@ -168,6 +169,20 @@ func normalizeLookupKey(key string) string {
 func AddHandler(handlers ...KeyHandler) {
 	if svc := Default(); svc != nil {
 		svc.AddHandler(handlers...)
+	}
+}
+
+// LoadFS loads additional translations from an fs.FS into the default service.
+//
+// Call this from init() in packages that ship their own locale files:
+//
+//	//go:embed locales/*.json
+//	var localeFS embed.FS
+//
+//	func init() { i18n.LoadFS(localeFS, "locales") }
+func LoadFS(fsys fs.FS, dir string) {
+	if svc := Default(); svc != nil {
+		_ = svc.LoadFS(fsys, dir)
 	}
 }
 
