@@ -474,6 +474,15 @@ func TestQuote(t *testing.T) {
 	}
 }
 
+func TestCaseHelpers(t *testing.T) {
+	if got := Lower("HELLO"); got != "hello" {
+		t.Fatalf("Lower(%q) = %q, want %q", "HELLO", got, "hello")
+	}
+	if got := Upper("hello"); got != "HELLO" {
+		t.Fatalf("Upper(%q) = %q, want %q", "hello", got, "HELLO")
+	}
+}
+
 func TestArticlePhrase(t *testing.T) {
 	tests := []struct {
 		word string

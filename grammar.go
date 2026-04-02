@@ -163,6 +163,16 @@ func IrregularNouns() map[string]string {
 	return result
 }
 
+// Lower returns the lowercase form of s.
+func Lower(s string) string {
+	return core.Lower(s)
+}
+
+// Upper returns the uppercase form of s.
+func Upper(s string) string {
+	return core.Upper(s)
+}
+
 func getVerbForm(lang, verb, form string) string {
 	data := GetGrammarData(lang)
 	if data == nil || data.Verbs == nil {
@@ -782,8 +792,8 @@ func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord,
 func TemplateFuncs() template.FuncMap {
 	return template.FuncMap{
 		"title":           Title,
-		"lower":           core.Lower,
-		"upper":           core.Upper,
+		"lower":           Lower,
+		"upper":           Upper,
 		"past":            PastTense,
 		"gerund":          Gerund,
 		"plural":          Pluralize,
