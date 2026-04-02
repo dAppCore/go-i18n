@@ -126,7 +126,7 @@ func (s *CoreService) handleMissingKey(mk MissingKey) {
 	}
 	s.missingKeysMu.Lock()
 	defer s.missingKeysMu.Unlock()
-	s.missingKeys = append(s.missingKeys, mk)
+	s.missingKeys = append(s.missingKeys, cloneMissingKey(mk))
 }
 
 // MissingKeys returns all missing keys collected in collect mode.
@@ -137,7 +137,9 @@ func (s *CoreService) MissingKeys() []MissingKey {
 	s.missingKeysMu.Lock()
 	defer s.missingKeysMu.Unlock()
 	result := make([]MissingKey, len(s.missingKeys))
-	copy(result, s.missingKeys)
+	for i, mk := range s.missingKeys {
+		result[i] = cloneMissingKey(mk)
+	}
 	return result
 }
 

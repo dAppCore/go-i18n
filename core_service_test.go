@@ -49,3 +49,22 @@ func TestCoreServiceNilSafe(t *testing.T) {
 	require.ErrorIs(t, svc.AddLoader(nil), ErrServiceNotInitialised)
 	require.ErrorIs(t, svc.LoadFS(nil, "locales"), ErrServiceNotInitialised)
 }
+
+func TestCoreServiceMissingKeysReturnsCopies(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	coreSvc := &CoreService{svc: svc}
+
+	coreSvc.SetMode(ModeCollect)
+	_ = svc.T("missing.copy.key", map[string]any{"foo": "bar"})
+
+	missing := coreSvc.MissingKeys()
+	require.Len(t, missing, 1)
+	require.Equal(t, "bar", missing[0].Args["foo"])
+
+	missing[0].Args["foo"] = "mutated"
+
+	again := coreSvc.MissingKeys()
+	require.Len(t, again, 1)
+	assert.Equal(t, "bar", again[0].Args["foo"])
+}

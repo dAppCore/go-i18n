@@ -201,12 +201,25 @@ func dispatchMissingKey(key string, args map[string]any) {
 		return
 	}
 	file, line := missingKeyCaller()
-	mk := MissingKey{Key: key, Args: args, CallerFile: file, CallerLine: line}
+	mk := cloneMissingKey(MissingKey{Key: key, Args: args, CallerFile: file, CallerLine: line})
 	for _, h := range state.handlers {
 		if h != nil {
 			h(mk)
 		}
 	}
+}
+
+func cloneMissingKey(mk MissingKey) MissingKey {
+	if len(mk.Args) == 0 {
+		mk.Args = nil
+		return mk
+	}
+	args := make(map[string]any, len(mk.Args))
+	for key, value := range mk.Args {
+		args[key] = value
+	}
+	mk.Args = args
+	return mk
 }
 
 func missingKeyCaller() (string, int) {
