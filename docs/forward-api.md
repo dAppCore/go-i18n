@@ -31,6 +31,23 @@ svc, err := i18n.NewWithFS(myFS, "locales")
 
 The service automatically detects the system language from `LANG`, `LC_ALL`, or `LC_MESSAGES` environment variables using BCP 47 tag matching.
 
+### Current-State Aliases
+
+The API exposes `Current*` aliases for the most common service getters so call sites can choose between terse and explicit naming without changing behaviour:
+
+- `CurrentLanguage()` / `CurrentLang()`
+- `CurrentAvailableLanguages()`
+- `CurrentMode()`
+- `CurrentFallback()`
+- `CurrentFormality()`
+- `CurrentLocation()`
+- `CurrentDirection()` / `CurrentTextDirection()`
+- `CurrentIsRTL()` / `CurrentRTL()`
+- `CurrentPluralCategory()` / `PluralCategoryOf()`
+- `CurrentDebug()`
+- `CurrentHandlers()`
+- `CurrentPrompt()`
+
 ### Options
 
 | Option | Effect |
