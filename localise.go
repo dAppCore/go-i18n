@@ -73,6 +73,21 @@ func SetFormality(f Formality) {
 	}
 }
 
+// SetLocation sets the default location context on the default service.
+func SetLocation(location string) {
+	if svc := Default(); svc != nil {
+		svc.SetLocation(location)
+	}
+}
+
+// CurrentLocation returns the current default location context.
+func CurrentLocation() string {
+	if svc := Default(); svc != nil {
+		return svc.Location()
+	}
+	return ""
+}
+
 // Direction returns the text direction for the current language.
 func Direction() TextDirection {
 	if svc := Default(); svc != nil {

@@ -25,6 +25,7 @@ type Service struct {
 	mode             Mode
 	debug            bool
 	formality        Formality
+	location         string
 	handlers         []KeyHandler
 	mu               sync.RWMutex
 }
@@ -40,6 +41,11 @@ func WithFallback(lang string) Option {
 // WithFormality sets the default formality level.
 func WithFormality(f Formality) Option {
 	return func(s *Service) { s.formality = f }
+}
+
+// WithLocation sets the default location context.
+func WithLocation(location string) Option {
+	return func(s *Service) { s.location = location }
 }
 
 // WithHandlers sets custom handlers (replaces default handlers).
@@ -257,6 +263,18 @@ func (s *Service) Mode() Mode               { s.mu.RLock(); defer s.mu.RUnlock()
 func (s *Service) SetFormality(f Formality) { s.mu.Lock(); s.formality = f; s.mu.Unlock() }
 func (s *Service) Formality() Formality     { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
 
+func (s *Service) SetLocation(location string) {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.location = location
+}
+
+func (s *Service) Location() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.location
+}
+
 func (s *Service) Direction() TextDirection {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -439,7 +457,7 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		}
 		return context, gender, location, formality
 	}
-	return "", "", "", s.getEffectiveFormality(data)
+	return "", "", s.location, s.getEffectiveFormality(data)
 }
 
 func (s *Service) getEffectiveFormality(data any) Formality {

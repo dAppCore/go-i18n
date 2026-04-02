@@ -132,6 +132,33 @@ func TestCurrentFormality_Good(t *testing.T) {
 	assert.Equal(t, FormalityFormal, CurrentFormality())
 }
 
+// --- Package-level SetLocation ---
+
+func TestSetLocation_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	SetLocation("workspace")
+	assert.Equal(t, "workspace", svc.Location())
+
+	SetLocation("")
+	assert.Equal(t, "", svc.Location())
+}
+
+// --- Package-level CurrentLocation ---
+
+func TestCurrentLocation_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, "", CurrentLocation())
+
+	SetLocation("workspace")
+	assert.Equal(t, "workspace", CurrentLocation())
+}
+
 // --- Package-level Direction ---
 
 func TestDirection_Good(t *testing.T) {

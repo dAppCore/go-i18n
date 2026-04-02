@@ -216,6 +216,22 @@ func TestServiceFormality(t *testing.T) {
 	}
 }
 
+func TestServiceLocation(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if svc.Location() != "" {
+		t.Errorf("default Location() = %q, want empty", svc.Location())
+	}
+
+	svc.SetLocation("workspace")
+	if svc.Location() != "workspace" {
+		t.Errorf("Location() = %q, want workspace", svc.Location())
+	}
+}
+
 func TestServiceTranslationContext(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -267,6 +283,24 @@ func TestServiceTranslationContext(t *testing.T) {
 
 	if got := svc.T("welcome", S("user", "Alice").In("workspace")); got != "welcome aboard" {
 		t.Errorf("T(welcome, S(user, Alice).In(workspace)) = %q, want %q", got, "welcome aboard")
+	}
+}
+
+func TestServiceDefaultLocationContext(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._workspace": "welcome aboard",
+	})
+
+	svc.SetLocation("workspace")
+
+	if got := svc.T("welcome"); got != "welcome aboard" {
+		t.Errorf("T(welcome) with default location = %q, want %q", got, "welcome aboard")
 	}
 }
 
@@ -382,6 +416,7 @@ func TestServiceWithOptions(t *testing.T) {
 	svc, err := New(
 		WithFallback("en"),
 		WithFormality(FormalityFormal),
+		WithLocation("workspace"),
 		WithMode(ModeCollect),
 		WithDebug(true),
 	)
@@ -397,6 +432,9 @@ func TestServiceWithOptions(t *testing.T) {
 	}
 	if !svc.Debug() {
 		t.Error("Debug should be true")
+	}
+	if svc.Location() != "workspace" {
+		t.Errorf("Location = %q, want workspace", svc.Location())
 	}
 }
 
