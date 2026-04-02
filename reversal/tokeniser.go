@@ -683,6 +683,9 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		}
 	}
 	if t.isFrenchLanguage() {
+		if artType, ok := matchFrenchArticleText(lower); ok {
+			return artType, true
+		}
 		if artType, ok := matchFrenchAttachedArticle(lower); ok {
 			return artType, true
 		}
@@ -696,6 +699,50 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		case "un", "une":
 			return "indefinite", true
 		}
+	}
+
+	return "", false
+}
+
+func matchFrenchArticleText(lower string) (string, bool) {
+	switch {
+	case strings.HasPrefix(lower, "de l'"), strings.HasPrefix(lower, "de l’"):
+		return "indefinite", true
+	case strings.HasPrefix(lower, "de la "), strings.HasPrefix(lower, "de le "), strings.HasPrefix(lower, "du "), strings.HasPrefix(lower, "des "):
+		return "indefinite", true
+	case strings.HasPrefix(lower, "au "), strings.HasPrefix(lower, "aux "):
+		return "definite", true
+	}
+
+	fields := strings.Fields(lower)
+	if len(fields) == 0 {
+		return "", false
+	}
+
+	switch fields[0] {
+	case "l'", "l’", "les", "au", "aux":
+		return "definite", true
+	case "un", "une":
+		return "indefinite", true
+	case "du", "des":
+		return "indefinite", true
+	case "de":
+		if len(fields) >= 2 {
+			switch fields[1] {
+			case "la", "l'", "l’":
+				return "indefinite", true
+			case "le", "les":
+				return "definite", true
+			}
+		}
+	case "d'", "d’":
+		return "indefinite", true
+	case "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’":
+		return "definite", true
+	}
+
+	if artType, ok := matchFrenchAttachedArticle(lower); ok {
+		return artType, true
 	}
 
 	return "", false

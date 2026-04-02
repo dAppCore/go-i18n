@@ -304,6 +304,8 @@ func TestTokeniser_MatchArticle_FrenchExtended(t *testing.T) {
 		{"du", "indefinite", true},
 		{"des", "indefinite", true},
 		{"l'enfant", "definite", true},
+		{"de l'enfant", "indefinite", true},
+		{"de l’ami", "indefinite", true},
 	}
 
 	for _, tt := range tests {
