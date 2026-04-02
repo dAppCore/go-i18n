@@ -328,10 +328,11 @@ func loadGrammarNumber(fullKey string, v map[string]any, grammar *GrammarData) b
 }
 
 func isVerbFormObject(m map[string]any) bool {
-	_, hasBase := m["base"]
 	_, hasPast := m["past"]
 	_, hasGerund := m["gerund"]
-	return (hasBase || hasPast || hasGerund) && !isPluralObject(m)
+	// Verb objects are identified by their inflected forms. A bare "base"
+	// field is metadata, not enough to claim the object is a verb table.
+	return (hasPast || hasGerund) && !isPluralObject(m)
 }
 
 func isNounFormObject(m map[string]any) bool {

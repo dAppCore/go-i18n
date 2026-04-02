@@ -328,6 +328,40 @@ func TestFlattenWithGrammar(t *testing.T) {
 	}
 }
 
+func TestFlattenWithGrammar_DetectsSchemaObjectsOutsideGrammarPaths(t *testing.T) {
+	messages := make(map[string]Message)
+	grammar := &GrammarData{
+		Verbs: make(map[string]VerbForms),
+		Words: make(map[string]string),
+	}
+
+	raw := map[string]any{
+		"lexicon": map[string]any{
+			"base_only": map[string]any{
+				"base": "base",
+			},
+		},
+		"phrases": map[string]any{
+			"draft": map[string]any{
+				"past":   "drafted",
+				"gerund": "drafting",
+			},
+		},
+	}
+
+	flattenWithGrammar("", raw, messages, grammar)
+
+	if _, ok := grammar.Verbs["draft"]; !ok {
+		t.Fatal("verb schema object outside gram.verb.* was not extracted")
+	}
+	if _, ok := messages["phrases.draft"]; ok {
+		t.Fatal("verb schema object should not be flattened into messages")
+	}
+	if _, ok := grammar.Verbs["base_only"]; ok {
+		t.Fatal("base-only object should not be detected as a verb table")
+	}
+}
+
 func TestMergeGrammarData(t *testing.T) {
 	const lang = "zz"
 	original := GetGrammarData(lang)
