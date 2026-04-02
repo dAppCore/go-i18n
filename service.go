@@ -378,7 +378,8 @@ func (s *Service) T(messageID string, args ...any) string {
 
 // Translate translates a message by its ID and returns a Core result.
 func (s *Service) Translate(messageID string, args ...any) core.Result {
-	return core.Result{Value: s.T(messageID, args...), OK: true}
+	value := s.T(messageID, args...)
+	return core.Result{Value: value, OK: translateOK(messageID, value)}
 }
 
 // resolveDirect performs exact-key lookup in the current language, its base
@@ -827,6 +828,19 @@ func (s *Service) AddLoader(loader Loader) error {
 	}
 	s.autoDetectLanguage()
 	return nil
+}
+
+func translateOK(messageID, value string) bool {
+	if value == "" {
+		return false
+	}
+	if value == messageID {
+		return false
+	}
+	if value == "["+messageID+"]" {
+		return false
+	}
+	return true
 }
 
 // LoadFS loads additional locale files from a filesystem.

@@ -94,6 +94,21 @@ func TestServiceTranslate(t *testing.T) {
 	var _ core.Translator = (*Service)(nil)
 }
 
+func TestServiceTranslateMissingKey(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	result := svc.Translate("missing.translation.key")
+	if result.OK {
+		t.Fatalf("Translate(missing.translation.key) returned OK, want false: %#v", result)
+	}
+	if got, want := result.Value, "missing.translation.key"; got != want {
+		t.Fatalf("Translate(missing.translation.key) = %#v, want %q", got, want)
+	}
+}
+
 func TestServiceTDirectKeys(t *testing.T) {
 	svc, err := New()
 	if err != nil {

@@ -52,6 +52,17 @@ func TestTranslate_Good(t *testing.T) {
 	assert.Equal(t, "y", result.Value)
 }
 
+func TestTranslate_Good_MissingKey(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	result := Translate("nonexistent.translation.key")
+	require.False(t, result.OK)
+	assert.Equal(t, "nonexistent.translation.key", result.Value)
+}
+
 // --- Package-level Raw() ---
 
 func TestRaw_Good(t *testing.T) {

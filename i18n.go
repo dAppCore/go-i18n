@@ -21,7 +21,7 @@ func Translate(messageID string, args ...any) core.Result {
 	if svc := Default(); svc != nil {
 		return svc.Translate(messageID, args...)
 	}
-	return core.Result{Value: messageID, OK: true}
+	return core.Result{Value: messageID, OK: false}
 }
 
 // Raw translates without i18n.* namespace magic.
