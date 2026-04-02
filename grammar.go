@@ -754,13 +754,7 @@ func ArticlePhrase(word string) string {
 	lang := currentLangForGrammar()
 	word = renderWord(lang, word)
 	article := Article(word)
-	if article == "" {
-		return ""
-	}
-	if strings.HasSuffix(article, "'") {
-		return article + word
-	}
-	return article + " " + word
+	return prefixWithArticle(article, word)
 }
 
 // DefiniteArticle returns the language-specific definite article for a word.
@@ -791,13 +785,7 @@ func DefinitePhrase(word string) string {
 	lang := currentLangForGrammar()
 	word = renderWord(lang, word)
 	article := DefiniteArticle(word)
-	if article == "" {
-		return ""
-	}
-	if strings.HasSuffix(article, "'") {
-		return article + word
-	}
-	return article + " " + word
+	return prefixWithArticle(article, word)
 }
 
 func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
@@ -869,6 +857,16 @@ func TemplateFuncs() template.FuncMap {
 		"timeAgo":         TimeAgo,
 		"formatAgo":       FormatAgo,
 	}
+}
+
+func prefixWithArticle(article, word string) string {
+	if article == "" || word == "" {
+		return ""
+	}
+	if strings.HasSuffix(article, "'") {
+		return article + word
+	}
+	return article + " " + word
 }
 
 // Progress returns a progress message: "Building..."
