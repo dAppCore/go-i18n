@@ -370,6 +370,38 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	assert.True(t, coreSvc.Debug())
 	coreSvc.SetDebug(false)
 	assert.False(t, coreSvc.Debug())
+
+	handlers := coreSvc.Handlers()
+	assert.Equal(t, svc.Handlers(), handlers)
+
+	coreSvc.SetHandlers(LabelHandler{})
+	require.Len(t, coreSvc.Handlers(), 1)
+	assert.IsType(t, LabelHandler{}, coreSvc.Handlers()[0])
+
+	coreSvc.AddHandler(ProgressHandler{})
+	require.Len(t, coreSvc.Handlers(), 2)
+	assert.IsType(t, ProgressHandler{}, coreSvc.Handlers()[1])
+
+	coreSvc.PrependHandler(CountHandler{})
+	require.Len(t, coreSvc.Handlers(), 3)
+	assert.IsType(t, CountHandler{}, coreSvc.Handlers()[0])
+
+	coreSvc.ClearHandlers()
+	assert.Empty(t, coreSvc.Handlers())
+
+	coreSvc.ResetHandlers()
+	require.NotEmpty(t, coreSvc.Handlers())
+	assert.IsType(t, LabelHandler{}, coreSvc.Handlers()[0])
+
+	require.NoError(t, coreSvc.AddLoader(NewFSLoader(fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{Data: []byte(`{"core.service.loaded": "loaded"}`)},
+	}, "locales")))
+	assert.Equal(t, "loaded", coreSvc.T("core.service.loaded"))
+
+	require.NoError(t, coreSvc.LoadFS(fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{Data: []byte(`{"core.service.loaded.fs": "loaded via fs"}`)},
+	}, "locales"))
+	assert.Equal(t, "loaded via fs", coreSvc.T("core.service.loaded.fs"))
 }
 
 func TestInit_ReDetectsRegisteredLocales(t *testing.T) {

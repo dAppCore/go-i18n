@@ -213,6 +213,46 @@ func (s *CoreService) Debug() bool {
 	return s.svc.Debug()
 }
 
+// AddHandler appends handlers to the wrapped service's chain.
+func (s *CoreService) AddHandler(handlers ...KeyHandler) {
+	s.svc.AddHandler(handlers...)
+}
+
+// SetHandlers replaces the wrapped service's handler chain.
+func (s *CoreService) SetHandlers(handlers ...KeyHandler) {
+	s.svc.SetHandlers(handlers...)
+}
+
+// PrependHandler inserts handlers at the front of the wrapped service's chain.
+func (s *CoreService) PrependHandler(handlers ...KeyHandler) {
+	s.svc.PrependHandler(handlers...)
+}
+
+// ClearHandlers removes all handlers from the wrapped service.
+func (s *CoreService) ClearHandlers() {
+	s.svc.ClearHandlers()
+}
+
+// ResetHandlers restores the wrapped service's default handler chain.
+func (s *CoreService) ResetHandlers() {
+	s.svc.ResetHandlers()
+}
+
+// Handlers returns a copy of the wrapped service's handler chain.
+func (s *CoreService) Handlers() []KeyHandler {
+	return s.svc.Handlers()
+}
+
+// AddLoader loads extra locale data into the wrapped service.
+func (s *CoreService) AddLoader(loader Loader) error {
+	return s.svc.AddLoader(loader)
+}
+
+// LoadFS loads locale data from a filesystem into the wrapped service.
+func (s *CoreService) LoadFS(fsys fs.FS, dir string) error {
+	return s.svc.LoadFS(fsys, dir)
+}
+
 // AvailableLanguages returns the wrapped service languages.
 func (s *CoreService) AvailableLanguages() []string {
 	return s.svc.AvailableLanguages()
