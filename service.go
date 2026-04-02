@@ -403,17 +403,11 @@ func (s *Service) resolveWithFallback(messageID string, data any) string {
 		parts := core.Split(messageID, ".")
 		verb := parts[len(parts)-1]
 		commonKey := "common.action." + verb
-		if text := s.tryResolve(s.currentLang, commonKey, data); text != "" {
-			return text
-		}
-		if text := s.tryResolve(s.fallbackLang, commonKey, data); text != "" {
+		if text := s.resolveDirect(commonKey, data); text != "" {
 			return text
 		}
 		commonKey = "common." + verb
-		if text := s.tryResolve(s.currentLang, commonKey, data); text != "" {
-			return text
-		}
-		if text := s.tryResolve(s.fallbackLang, commonKey, data); text != "" {
+		if text := s.resolveDirect(commonKey, data); text != "" {
 			return text
 		}
 	}

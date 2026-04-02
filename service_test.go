@@ -296,6 +296,29 @@ func TestServiceMessageFallbackUsesBaseLanguageTagBeforeConfiguredFallback(t *te
 	}
 }
 
+func TestServiceCommonFallbackUsesBaseLanguageTagBeforeConfiguredFallback(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"common.action.status": "Common status",
+	})
+	svc.AddMessages("fr", map[string]string{
+		"common.action.status": "Statut commun",
+	})
+
+	if err := svc.SetLanguage("en-GB"); err != nil {
+		t.Fatalf("SetLanguage(en-GB) failed: %v", err)
+	}
+	svc.SetFallback("fr")
+
+	if got := svc.T("missing.status"); got != "Common status" {
+		t.Fatalf("T(missing.status) = %q, want %q", got, "Common status")
+	}
+}
+
 func TestServiceDebug(t *testing.T) {
 	svc, err := New()
 	if err != nil {
