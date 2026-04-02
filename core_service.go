@@ -21,6 +21,13 @@ type CoreService struct {
 	hookInstalled bool
 }
 
+func (s *CoreService) wrapped() *Service {
+	if s == nil {
+		return nil
+	}
+	return s.svc
+}
+
 // ServiceOptions configures the i18n Core service.
 type ServiceOptions struct {
 	// Language overrides auto-detection (e.g., "en-GB", "de")
@@ -99,14 +106,14 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 
 // OnStartup initialises the i18n service.
 func (s *CoreService) OnStartup(_ context.Context) error {
-	if s.svc.Mode() == ModeCollect {
+	if svc := s.wrapped(); svc != nil && svc.Mode() == ModeCollect {
 		s.ensureMissingKeyCollector()
 	}
 	return nil
 }
 
 func (s *CoreService) ensureMissingKeyCollector() {
-	if s.hookInstalled {
+	if s == nil || s.svc == nil || s.hookInstalled {
 		return
 	}
 	AddMissingKeyHandler(s.handleMissingKey)
@@ -114,6 +121,9 @@ func (s *CoreService) ensureMissingKeyCollector() {
 }
 
 func (s *CoreService) handleMissingKey(mk MissingKey) {
+	if s == nil {
+		return
+	}
 	s.missingKeysMu.Lock()
 	defer s.missingKeysMu.Unlock()
 	s.missingKeys = append(s.missingKeys, mk)
@@ -121,6 +131,9 @@ func (s *CoreService) handleMissingKey(mk MissingKey) {
 
 // MissingKeys returns all missing keys collected in collect mode.
 func (s *CoreService) MissingKeys() []MissingKey {
+	if s == nil {
+		return []MissingKey{}
+	}
 	s.missingKeysMu.Lock()
 	defer s.missingKeysMu.Unlock()
 	result := make([]MissingKey, len(s.missingKeys))
@@ -130,6 +143,9 @@ func (s *CoreService) MissingKeys() []MissingKey {
 
 // ClearMissingKeys resets the collected missing keys.
 func (s *CoreService) ClearMissingKeys() {
+	if s == nil {
+		return
+	}
 	s.missingKeysMu.Lock()
 	defer s.missingKeysMu.Unlock()
 	s.missingKeys = s.missingKeys[:0]
@@ -137,15 +153,20 @@ func (s *CoreService) ClearMissingKeys() {
 
 // SetMode changes the translation mode.
 func (s *CoreService) SetMode(mode Mode) {
-	s.svc.SetMode(mode)
-	if mode == ModeCollect {
+	if svc := s.wrapped(); svc != nil {
+		svc.SetMode(mode)
+	}
+	if s != nil && s.svc != nil && mode == ModeCollect {
 		s.ensureMissingKeyCollector()
 	}
 }
 
 // Mode returns the current translation mode.
 func (s *CoreService) Mode() Mode {
-	return s.svc.Mode()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Mode()
+	}
+	return ModeNormal
 }
 
 // CurrentMode returns the current translation mode.
@@ -155,32 +176,49 @@ func (s *CoreService) CurrentMode() Mode {
 
 // T translates a message through the wrapped i18n service.
 func (s *CoreService) T(messageID string, args ...any) string {
-	return s.svc.T(messageID, args...)
+	if svc := s.wrapped(); svc != nil {
+		return svc.T(messageID, args...)
+	}
+	return messageID
 }
 
 // Translate translates a message through the wrapped i18n service.
 func (s *CoreService) Translate(messageID string, args ...any) core.Result {
-	return s.svc.Translate(messageID, args...)
+	if svc := s.wrapped(); svc != nil {
+		return svc.Translate(messageID, args...)
+	}
+	return core.Result{Value: messageID, OK: false}
 }
 
 // Raw translates without namespace handler magic.
 func (s *CoreService) Raw(messageID string, args ...any) string {
-	return s.svc.Raw(messageID, args...)
+	if svc := s.wrapped(); svc != nil {
+		return svc.Raw(messageID, args...)
+	}
+	return messageID
 }
 
 // AddMessages adds message strings to the wrapped service.
 func (s *CoreService) AddMessages(lang string, messages map[string]string) {
-	s.svc.AddMessages(lang, messages)
+	if svc := s.wrapped(); svc != nil {
+		svc.AddMessages(lang, messages)
+	}
 }
 
 // SetLanguage changes the wrapped service language.
 func (s *CoreService) SetLanguage(lang string) error {
-	return s.svc.SetLanguage(lang)
+	if svc := s.wrapped(); svc != nil {
+		return svc.SetLanguage(lang)
+	}
+	return ErrServiceNotInitialised
 }
 
 // Language returns the wrapped service language.
 func (s *CoreService) Language() string {
-	return s.svc.Language()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Language()
+	}
+	return "en"
 }
 
 // CurrentLanguage returns the wrapped service language.
@@ -195,7 +233,10 @@ func (s *CoreService) CurrentLang() string {
 
 // Prompt translates a prompt key from the prompt namespace using the wrapped service.
 func (s *CoreService) Prompt(key string) string {
-	return s.svc.Prompt(key)
+	if svc := s.wrapped(); svc != nil {
+		return svc.Prompt(key)
+	}
+	return namespaceLookupKey("prompt", key)
 }
 
 // CurrentPrompt is a short alias for Prompt.
@@ -205,17 +246,25 @@ func (s *CoreService) CurrentPrompt(key string) string {
 
 // Lang translates a language label from the lang namespace using the wrapped service.
 func (s *CoreService) Lang(key string) string {
-	return s.svc.Lang(key)
+	if svc := s.wrapped(); svc != nil {
+		return svc.Lang(key)
+	}
+	return namespaceLookupKey("lang", key)
 }
 
 // SetFallback changes the wrapped service fallback language.
 func (s *CoreService) SetFallback(lang string) {
-	s.svc.SetFallback(lang)
+	if svc := s.wrapped(); svc != nil {
+		svc.SetFallback(lang)
+	}
 }
 
 // Fallback returns the wrapped service fallback language.
 func (s *CoreService) Fallback() string {
-	return s.svc.Fallback()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Fallback()
+	}
+	return "en"
 }
 
 // CurrentFallback returns the wrapped service fallback language.
@@ -225,12 +274,17 @@ func (s *CoreService) CurrentFallback() string {
 
 // SetFormality changes the wrapped service default formality.
 func (s *CoreService) SetFormality(f Formality) {
-	s.svc.SetFormality(f)
+	if svc := s.wrapped(); svc != nil {
+		svc.SetFormality(f)
+	}
 }
 
 // Formality returns the wrapped service default formality.
 func (s *CoreService) Formality() Formality {
-	return s.svc.Formality()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Formality()
+	}
+	return FormalityNeutral
 }
 
 // CurrentFormality returns the wrapped service default formality.
@@ -240,12 +294,17 @@ func (s *CoreService) CurrentFormality() Formality {
 
 // SetLocation changes the wrapped service default location.
 func (s *CoreService) SetLocation(location string) {
-	s.svc.SetLocation(location)
+	if svc := s.wrapped(); svc != nil {
+		svc.SetLocation(location)
+	}
 }
 
 // Location returns the wrapped service default location.
 func (s *CoreService) Location() string {
-	return s.svc.Location()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Location()
+	}
+	return ""
 }
 
 // CurrentLocation returns the wrapped service default location.
@@ -255,12 +314,17 @@ func (s *CoreService) CurrentLocation() string {
 
 // SetDebug changes the wrapped service debug mode.
 func (s *CoreService) SetDebug(enabled bool) {
-	s.svc.SetDebug(enabled)
+	if svc := s.wrapped(); svc != nil {
+		svc.SetDebug(enabled)
+	}
 }
 
 // Debug reports whether wrapped service debug mode is enabled.
 func (s *CoreService) Debug() bool {
-	return s.svc.Debug()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Debug()
+	}
+	return false
 }
 
 // CurrentDebug reports whether wrapped service debug mode is enabled.
@@ -283,32 +347,45 @@ func (s *CoreService) CurrentState() ServiceState {
 
 // AddHandler appends handlers to the wrapped service's chain.
 func (s *CoreService) AddHandler(handlers ...KeyHandler) {
-	s.svc.AddHandler(handlers...)
+	if svc := s.wrapped(); svc != nil {
+		svc.AddHandler(handlers...)
+	}
 }
 
 // SetHandlers replaces the wrapped service's handler chain.
 func (s *CoreService) SetHandlers(handlers ...KeyHandler) {
-	s.svc.SetHandlers(handlers...)
+	if svc := s.wrapped(); svc != nil {
+		svc.SetHandlers(handlers...)
+	}
 }
 
 // PrependHandler inserts handlers at the front of the wrapped service's chain.
 func (s *CoreService) PrependHandler(handlers ...KeyHandler) {
-	s.svc.PrependHandler(handlers...)
+	if svc := s.wrapped(); svc != nil {
+		svc.PrependHandler(handlers...)
+	}
 }
 
 // ClearHandlers removes all handlers from the wrapped service.
 func (s *CoreService) ClearHandlers() {
-	s.svc.ClearHandlers()
+	if svc := s.wrapped(); svc != nil {
+		svc.ClearHandlers()
+	}
 }
 
 // ResetHandlers restores the wrapped service's default handler chain.
 func (s *CoreService) ResetHandlers() {
-	s.svc.ResetHandlers()
+	if svc := s.wrapped(); svc != nil {
+		svc.ResetHandlers()
+	}
 }
 
 // Handlers returns a copy of the wrapped service's handler chain.
 func (s *CoreService) Handlers() []KeyHandler {
-	return s.svc.Handlers()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Handlers()
+	}
+	return []KeyHandler{}
 }
 
 // CurrentHandlers returns a copy of the wrapped service's handler chain.
@@ -318,17 +395,26 @@ func (s *CoreService) CurrentHandlers() []KeyHandler {
 
 // AddLoader loads extra locale data into the wrapped service.
 func (s *CoreService) AddLoader(loader Loader) error {
-	return s.svc.AddLoader(loader)
+	if svc := s.wrapped(); svc != nil {
+		return svc.AddLoader(loader)
+	}
+	return ErrServiceNotInitialised
 }
 
 // LoadFS loads locale data from a filesystem into the wrapped service.
 func (s *CoreService) LoadFS(fsys fs.FS, dir string) error {
-	return s.svc.LoadFS(fsys, dir)
+	if svc := s.wrapped(); svc != nil {
+		return svc.LoadFS(fsys, dir)
+	}
+	return ErrServiceNotInitialised
 }
 
 // AvailableLanguages returns the wrapped service languages.
 func (s *CoreService) AvailableLanguages() []string {
-	return s.svc.AvailableLanguages()
+	if svc := s.wrapped(); svc != nil {
+		return svc.AvailableLanguages()
+	}
+	return []string{}
 }
 
 // CurrentAvailableLanguages returns the wrapped service languages.
@@ -338,7 +424,10 @@ func (s *CoreService) CurrentAvailableLanguages() []string {
 
 // Direction returns the wrapped service text direction.
 func (s *CoreService) Direction() TextDirection {
-	return s.svc.Direction()
+	if svc := s.wrapped(); svc != nil {
+		return svc.Direction()
+	}
+	return DirLTR
 }
 
 // CurrentDirection returns the wrapped service text direction.
@@ -353,7 +442,10 @@ func (s *CoreService) CurrentTextDirection() TextDirection {
 
 // IsRTL reports whether the wrapped service language is right-to-left.
 func (s *CoreService) IsRTL() bool {
-	return s.svc.IsRTL()
+	if svc := s.wrapped(); svc != nil {
+		return svc.IsRTL()
+	}
+	return false
 }
 
 // RTL reports whether the wrapped service language is right-to-left.
@@ -373,7 +465,10 @@ func (s *CoreService) CurrentRTL() bool {
 
 // PluralCategory returns the plural category for the wrapped service language.
 func (s *CoreService) PluralCategory(n int) PluralCategory {
-	return s.svc.PluralCategory(n)
+	if svc := s.wrapped(); svc != nil {
+		return svc.PluralCategory(n)
+	}
+	return PluralOther
 }
 
 // CurrentPluralCategory returns the plural category for the wrapped service language.
