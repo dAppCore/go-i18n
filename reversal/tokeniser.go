@@ -617,7 +617,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	}
 	if t.isFrenchLanguage() {
 		switch lower {
-		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "les", "au", "aux", "du":
+		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "de l'", "de l’", "les", "au", "aux", "du":
 			return "definite", true
 		case "un", "une", "des":
 			return "indefinite", true
@@ -662,8 +662,11 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			i += consumed - 1
 			continue
 		}
-		if consumed, tok, punctTok := t.matchFrenchArticlePhrase(parts, i); consumed > 0 {
+		if consumed, tok, extraTok, punctTok := t.matchFrenchArticlePhrase(parts, i); consumed > 0 {
 			tokens = append(tokens, tok)
+			if extraTok != nil {
+				tokens = append(tokens, *extraTok)
+			}
 			if punctTok != nil {
 				tokens = append(tokens, *punctTok)
 			}
@@ -841,24 +844,47 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 	return 0, Token{}, nil
 }
 
-func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, Token, *Token) {
+func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, Token, *Token, *Token) {
 	if !t.isFrenchLanguage() || start+1 >= len(parts) {
-		return 0, Token{}, nil
+		return 0, Token{}, nil, nil
 	}
 
 	first, firstPunct := splitTrailingPunct(parts[start])
 	if first == "" || firstPunct != "" {
-		return 0, Token{}, nil
+		return 0, Token{}, nil, nil
 	}
 	second, secondPunct := splitTrailingPunct(parts[start+1])
 	if second == "" {
-		return 0, Token{}, nil
+		return 0, Token{}, nil, nil
 	}
 
 	switch core.Lower(first) {
 	case "de":
 		if core.Lower(second) != "la" {
-			return 0, Token{}, nil
+			if prefix, rest, ok := t.splitFrenchElision(second); ok && (prefix == "l'" || prefix == "l’") && rest != "" {
+				tok := Token{
+					Raw:        first + " " + prefix,
+					Lower:      core.Lower(first + " " + prefix),
+					Type:       TokenArticle,
+					ArtType:    "definite",
+					Confidence: 1.0,
+				}
+				extra := t.classifyElidedFrenchWord(rest)
+				var punctTok *Token
+				if secondPunct != "" {
+					if punctType, ok := matchPunctuation(secondPunct); ok {
+						punctTok = &Token{
+							Raw:        secondPunct,
+							Lower:      secondPunct,
+							Type:       TokenPunctuation,
+							PunctType:  punctType,
+							Confidence: 1.0,
+						}
+					}
+				}
+				return 2, tok, &extra, punctTok
+			}
+			return 0, Token{}, nil, nil
 		}
 		tok := Token{
 			Raw:        first + " " + second,
@@ -876,13 +902,66 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 					PunctType:  punctType,
 					Confidence: 1.0,
 				}
-				return 2, tok, &punctTok
+				return 2, tok, nil, &punctTok
 			}
 		}
-		return 2, tok, nil
+		return 2, tok, nil, nil
 	}
 
-	return 0, Token{}, nil
+	return 0, Token{}, nil, nil
+}
+
+func (t *Tokeniser) classifyElidedFrenchWord(word string) Token {
+	tok := Token{Raw: word, Lower: core.Lower(word)}
+
+	if artType, ok := t.MatchArticle(word); ok {
+		tok.Type = TokenArticle
+		tok.ArtType = artType
+		tok.Confidence = 1.0
+		return tok
+	}
+
+	vm, verbOK := t.MatchVerb(word)
+	nm, nounOK := t.MatchNoun(word)
+	if verbOK && nounOK && t.dualClass[tok.Lower] {
+		if vm.Tense != "base" {
+			tok.Type = TokenVerb
+			tok.VerbInfo = vm
+			tok.NounInfo = nm
+			tok.Confidence = 1.0
+		} else if nm.Plural {
+			tok.Type = TokenNoun
+			tok.VerbInfo = vm
+			tok.NounInfo = nm
+			tok.Confidence = 1.0
+		} else {
+			tok.Type = tokenAmbiguous
+			tok.VerbInfo = vm
+			tok.NounInfo = nm
+		}
+		return tok
+	}
+	if verbOK {
+		tok.Type = TokenVerb
+		tok.VerbInfo = vm
+		tok.Confidence = 1.0
+		return tok
+	}
+	if nounOK {
+		tok.Type = TokenNoun
+		tok.NounInfo = nm
+		tok.Confidence = 1.0
+		return tok
+	}
+	if cat, ok := t.MatchWord(word); ok {
+		tok.Type = TokenWord
+		tok.WordCat = cat
+		tok.Confidence = 1.0
+		return tok
+	}
+
+	tok.Type = TokenUnknown
+	return tok
 }
 
 // resolveAmbiguous iterates all tokens and resolves any marked as
