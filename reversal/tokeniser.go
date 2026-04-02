@@ -900,7 +900,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
 					Raw:        prefix,
-					Lower:      core.Lower(prefix),
+					Lower:      normalizeFrenchApostrophes(core.Lower(prefix)),
 					Type:       TokenArticle,
 					ArtType:    artType,
 					Confidence: 1.0,
@@ -1085,7 +1085,7 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 		case "la", "le", "les", "du", "des":
 			tok := Token{
 				Raw:        first + " " + second,
-				Lower:      core.Lower(first + " " + second),
+				Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + second)),
 				Type:       TokenArticle,
 				ArtType:    "indefinite",
 				Confidence: 1.0,
@@ -1104,10 +1104,10 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 			}
 			return 2, tok, nil, nil
 		default:
-			if prefix, rest, ok := t.splitFrenchElision(second); ok && (prefix == "l'" || prefix == "l’") && rest != "" {
+			if prefix, rest, ok := t.splitFrenchElision(second); ok && normalizeFrenchApostrophes(prefix) == "l'" && rest != "" {
 				tok := Token{
 					Raw:        first + " " + prefix,
-					Lower:      core.Lower(first + " " + prefix),
+					Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + prefix)),
 					Type:       TokenArticle,
 					ArtType:    "indefinite",
 					Confidence: 1.0,
@@ -1128,12 +1128,12 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 				return 2, tok, &extra, punctTok
 			}
 			// Handle spaced elision forms such as "de l' enfant" or "de l’ enfant".
-			if (second == "l'" || second == "l’") && start+2 < len(parts) {
+			if normalizeFrenchApostrophes(second) == "l'" && start+2 < len(parts) {
 				third, thirdPunct := splitTrailingPunct(parts[start+2])
 				if third != "" {
 					tok := Token{
 						Raw:        first + " " + second,
-						Lower:      core.Lower(first + " " + second),
+						Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + second)),
 						Type:       TokenArticle,
 						ArtType:    "indefinite",
 						Confidence: 1.0,
@@ -1549,7 +1549,7 @@ func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
 		}
 		if idx < len(raw) {
 			r, size := utf8.DecodeRuneInString(raw[idx:])
-			if r != '\'' && r != '’' {
+			if !isFrenchApostrophe(r) {
 				continue
 			}
 			if size > 0 {
@@ -1567,10 +1567,20 @@ func (t *Tokeniser) isFrenchLanguage() bool {
 }
 
 func normalizeFrenchApostrophes(s string) string {
-	if s == "" || !strings.ContainsRune(s, '’') {
+	if s == "" || (!strings.ContainsRune(s, '’') && !strings.ContainsRune(s, 'ʼ')) {
 		return s
 	}
-	return strings.ReplaceAll(s, "’", "'")
+	s = strings.ReplaceAll(s, "’", "'")
+	return strings.ReplaceAll(s, "ʼ", "'")
+}
+
+func isFrenchApostrophe(r rune) bool {
+	switch r {
+	case '\'', '’', 'ʼ':
+		return true
+	default:
+		return false
+	}
 }
 
 // matchPunctuation detects known punctuation patterns.
