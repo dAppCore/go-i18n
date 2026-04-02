@@ -259,7 +259,7 @@ func Lang(key string) string {
 			}
 		}
 	}
-	return T("lang." + key)
+	return "lang." + key
 }
 
 func normalizeLookupKey(key string) string {

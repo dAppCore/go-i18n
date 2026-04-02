@@ -365,6 +365,28 @@ func TestLang_Good(t *testing.T) {
 	}
 }
 
+func TestLang_MissingKeyHandler_FiresOnce(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetMissingKeyHandlers()
+		SetMode(ModeNormal)
+		SetDefault(prev)
+	})
+
+	SetMode(ModeCollect)
+	calls := 0
+	SetMissingKeyHandlers(func(MissingKey) {
+		calls++
+	})
+
+	got := Lang("zz")
+	assert.Equal(t, "[lang.zz]", got)
+	assert.Equal(t, 1, calls)
+}
+
 // --- AddHandler / PrependHandler ---
 
 func TestAddHandler_Good(t *testing.T) {
