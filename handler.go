@@ -238,6 +238,8 @@ func subjectArgText(arg any) string {
 		return ""
 	case map[string]any:
 		return contextArgText(v)
+	case map[string]string:
+		return contextArgText(v)
 	case fmt.Stringer:
 		return v.String()
 	default:
@@ -245,15 +247,10 @@ func subjectArgText(arg any) string {
 	}
 }
 
-func contextArgText(values map[string]any) string {
-	if len(values) == 0 {
-		return ""
-	}
+func contextArgText(values any) string {
 	for _, key := range []string{"Subject", "subject", "Value", "value", "Text", "text", "Context", "context", "Noun", "noun"} {
-		if raw, ok := values[key]; ok {
-			if text := core.Trim(core.Sprintf("%v", raw)); text != "" {
-				return text
-			}
+		if text, ok := mapValueString(values, key); ok {
+			return text
 		}
 	}
 	return ""

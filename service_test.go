@@ -128,6 +128,32 @@ func TestServiceTMapContextNestedExtra(t *testing.T) {
 	}
 }
 
+func TestServiceTMapContextStringExtras(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._greeting":                   "hello",
+		"welcome._greeting._region._europe":   "bonjour",
+		"welcome._greeting._region._americas": "howdy",
+	})
+
+	if got := svc.T("welcome", map[string]string{"Context": "greeting"}); got != "hello" {
+		t.Fatalf("T(welcome, map[string]string{Context:greeting}) = %q, want %q", got, "hello")
+	}
+
+	if got := svc.T("welcome", map[string]string{"Context": "greeting", "region": "europe"}); got != "bonjour" {
+		t.Fatalf("T(welcome, map[string]string{Context:greeting region:europe}) = %q, want %q", got, "bonjour")
+	}
+
+	if got := svc.T("welcome", map[string]string{"Context": "greeting", "region": "americas"}); got != "howdy" {
+		t.Fatalf("T(welcome, map[string]string{Context:greeting region:americas}) = %q, want %q", got, "howdy")
+	}
+}
+
 func TestServiceRaw(t *testing.T) {
 	svc, err := New()
 	if err != nil {

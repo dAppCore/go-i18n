@@ -453,14 +453,14 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		var gender string
 		location := s.location
 		formality := s.formality
-		if v, ok := m["Context"].(string); ok {
-			context = core.Trim(v)
+		if v, ok := mapValueString(m, "Context"); ok {
+			context = v
 		}
-		if v, ok := m["Gender"].(string); ok {
-			gender = core.Trim(v)
+		if v, ok := mapValueString(m, "Gender"); ok {
+			gender = v
 		}
-		if v, ok := m["Location"].(string); ok {
-			location = core.Trim(v)
+		if v, ok := mapValueString(m, "Location"); ok {
+			location = v
 		}
 		if v, ok := m["Formality"]; ok {
 			switch f := v.(type) {
@@ -479,6 +479,30 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		}
 		return context, gender, location, formality
 	}
+	if m, ok := data.(map[string]string); ok {
+		var context string
+		var gender string
+		location := s.location
+		formality := s.formality
+		if v, ok := mapValueString(m, "Context"); ok {
+			context = v
+		}
+		if v, ok := mapValueString(m, "Gender"); ok {
+			gender = v
+		}
+		if v, ok := mapValueString(m, "Location"); ok {
+			location = v
+		}
+		if v, ok := mapValueString(m, "Formality"); ok {
+			switch core.Lower(v) {
+			case "formal":
+				formality = FormalityFormal
+			case "informal":
+				formality = FormalityInformal
+			}
+		}
+		return context, gender, location, formality
+	}
 	return "", "", s.location, s.getEffectiveFormality(data)
 }
 
@@ -490,25 +514,9 @@ func (s *Service) getEffectiveContextExtra(data any) map[string]any {
 		}
 		return v.Extra
 	case map[string]any:
-		if len(v) == 0 {
-			return nil
-		}
-		extra := make(map[string]any, len(v))
-		for key, value := range v {
-			switch key {
-			case "Context", "Gender", "Location", "Formality":
-				continue
-			case "Extra", "extra", "Extras", "extras":
-				mergeContextExtra(extra, value)
-				continue
-			default:
-				extra[key] = value
-			}
-		}
-		if len(extra) == 0 {
-			return nil
-		}
-		return extra
+		return contextMapValues(v)
+	case map[string]string:
+		return contextMapValues(v)
 	default:
 		return nil
 	}
@@ -555,6 +563,16 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 				return f
 			}
 		case string:
+			switch core.Lower(f) {
+			case "formal":
+				return FormalityFormal
+			case "informal":
+				return FormalityInformal
+			}
+		}
+	}
+	if m, ok := data.(map[string]string); ok {
+		if f, ok := mapValueString(m, "Formality"); ok {
 			switch core.Lower(f) {
 			case "formal":
 				return FormalityFormal
@@ -690,6 +708,8 @@ func missingKeyArgs(args []any) map[string]any {
 	switch v := args[0].(type) {
 	case map[string]any:
 		return v
+	case map[string]string:
+		return contextMapValues(v)
 	case *TranslationContext:
 		return missingKeyContextArgs(v)
 	case *Subject:
