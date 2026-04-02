@@ -6,8 +6,7 @@ func GetPluralRule(lang string) PluralRule {
 	if rule, ok := pluralRules[lang]; ok {
 		return rule
 	}
-	if len(lang) > 2 {
-		base := lang[:2]
+	if base := baseLanguageTag(lang); base != "" {
 		if rule, ok := pluralRules[base]; ok {
 			return rule
 		}
