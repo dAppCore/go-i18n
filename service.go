@@ -562,9 +562,31 @@ func (s *Service) CurrentHandlers() []KeyHandler {
 //	T("i18n.done.delete", "file")       // "File deleted"
 //	T("i18n.fail.delete", "file")       // "Failed to delete file"
 func (s *Service) T(messageID string, args ...any) string {
+	result, _ := s.translateWithStatus(messageID, args...)
+	s.mu.RLock()
+	debug := s.debug
+	s.mu.RUnlock()
+	if debug {
+		return debugFormat(messageID, result)
+	}
+	return result
+}
+
+// Translate translates a message by its ID and returns a Core result.
+func (s *Service) Translate(messageID string, args ...any) core.Result {
+	value, ok := s.translateWithStatus(messageID, args...)
+	s.mu.RLock()
+	debug := s.debug
+	s.mu.RUnlock()
+	if debug {
+		value = debugFormat(messageID, value)
+	}
+	return core.Result{Value: value, OK: ok}
+}
+
+func (s *Service) translateWithStatus(messageID string, args ...any) (string, bool) {
 	s.mu.RLock()
 	handlers := append([]KeyHandler(nil), s.handlers...)
-	debug := s.debug
 	s.mu.RUnlock()
 
 	result := RunHandlerChain(handlers, messageID, args, func() string {
@@ -576,21 +598,12 @@ func (s *Service) T(messageID string, args ...any) string {
 		s.mu.RLock()
 		text := s.resolveWithFallbackLocked(messageID, data)
 		s.mu.RUnlock()
-		if text == "" {
-			return s.handleMissingKey(messageID, args)
-		}
 		return text
 	})
-	if debug {
-		return debugFormat(messageID, result)
+	if result != "" {
+		return result, true
 	}
-	return result
-}
-
-// Translate translates a message by its ID and returns a Core result.
-func (s *Service) Translate(messageID string, args ...any) core.Result {
-	value := s.T(messageID, args...)
-	return core.Result{Value: value, OK: translateOK(messageID, value)}
+	return s.handleMissingKey(messageID, args), false
 }
 
 // resolveDirect performs exact-key lookup in the current language, its base
@@ -1136,28 +1149,6 @@ func (s *Service) addAvailableLanguageLocked(tag language.Tag) {
 			return strings.Compare(a.String(), b.String())
 		})
 	}
-}
-
-func translateOK(messageID, value string) bool {
-	if value == "" {
-		return false
-	}
-	prefix := "[" + messageID + "] "
-	if core.HasPrefix(value, prefix) {
-		value = core.TrimPrefix(value, prefix)
-	} else if value == "["+messageID+"]" {
-		value = ""
-	}
-	if value == "" {
-		return false
-	}
-	if value == messageID {
-		return false
-	}
-	if value == "["+messageID+"]" {
-		return false
-	}
-	return true
 }
 
 // LoadFS loads additional locale files from a filesystem.

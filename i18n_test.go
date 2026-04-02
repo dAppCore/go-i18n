@@ -64,6 +64,24 @@ func TestTranslate_Good_MissingKey(t *testing.T) {
 	assert.Equal(t, "nonexistent.translation.key", result.Value)
 }
 
+func TestTranslate_Good_SameTextAsKey(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	AddMessages("en", map[string]string{
+		"exact.same.key": "exact.same.key",
+	})
+
+	result := Translate("exact.same.key")
+	require.True(t, result.OK)
+	assert.Equal(t, "exact.same.key", result.Value)
+}
+
 // --- Package-level Raw() ---
 
 func TestRaw_Good(t *testing.T) {
