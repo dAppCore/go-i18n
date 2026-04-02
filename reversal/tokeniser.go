@@ -662,9 +662,13 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 			return artType, true
 		}
 		switch lower {
-		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "de l'", "de l’", "de la", "les", "au", "aux", "du":
+		case "l'", "l’", "les", "au", "aux":
 			return "definite", true
-		case "un", "une", "des":
+		case "d'", "d’", "de l'", "de l’", "de la", "du", "des":
+			return "indefinite", true
+		case "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’":
+			return "definite", true
+		case "un", "une":
 			return "indefinite", true
 		}
 	}
@@ -684,7 +688,14 @@ func matchFrenchAttachedArticle(lower string) (string, bool) {
 		if !strings.HasPrefix(rest, "'") && !strings.HasPrefix(rest, "’") {
 			continue
 		}
-		return "definite", true
+		switch prefix {
+		case "d":
+			return "indefinite", true
+		case "l":
+			return "definite", true
+		default:
+			return "definite", true
+		}
 	}
 	return "", false
 }
@@ -928,7 +939,7 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 					Raw:        first + " " + prefix,
 					Lower:      core.Lower(first + " " + prefix),
 					Type:       TokenArticle,
-					ArtType:    "definite",
+					ArtType:    "indefinite",
 					Confidence: 1.0,
 				}
 				extra := t.classifyElidedFrenchWord(rest)
@@ -954,7 +965,7 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 						Raw:        first + " " + second,
 						Lower:      core.Lower(first + " " + second),
 						Type:       TokenArticle,
-						ArtType:    "definite",
+						ArtType:    "indefinite",
 						Confidence: 1.0,
 					}
 					extra := t.classifyElidedFrenchWord(third)
@@ -979,7 +990,7 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 			Raw:        first + " " + second,
 			Lower:      "de la",
 			Type:       TokenArticle,
-			ArtType:    "definite",
+			ArtType:    "indefinite",
 			Confidence: 1.0,
 		}
 		if secondPunct != "" {

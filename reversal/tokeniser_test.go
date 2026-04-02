@@ -220,9 +220,9 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 		{"la", "definite", true},
 		{"Le", "definite", true},
 		{"La", "definite", true},
-		{"de la", "definite", true},
-		{"de l'", "definite", true},
-		{"de l’", "definite", true},
+		{"de la", "indefinite", true},
+		{"de l'", "indefinite", true},
+		{"de l’", "indefinite", true},
 		{"un", "indefinite", true},
 		{"une", "indefinite", true},
 	}
@@ -301,7 +301,7 @@ func TestTokeniser_MatchArticle_FrenchExtended(t *testing.T) {
 		{"les", "definite", true},
 		{"au", "definite", true},
 		{"aux", "definite", true},
-		{"du", "definite", true},
+		{"du", "indefinite", true},
 		{"des", "indefinite", true},
 		{"l'enfant", "definite", true},
 	}
@@ -347,6 +347,9 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	if tokens[0].Type != TokenArticle {
 		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
 	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
 	if tokens[0].Lower != "de l'" {
 		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
 	}
@@ -363,6 +366,9 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	}
 	if tokens[0].Type != TokenArticle {
 		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
 	}
 	if tokens[0].Lower != "de l'" {
 		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
@@ -398,6 +404,9 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	if tokens[0].Type != TokenArticle {
 		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
 	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
 	if tokens[1].Type != TokenNoun {
 		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
 	}
@@ -408,6 +417,9 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	}
 	if tokens[0].Type != TokenArticle {
 		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "definite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "definite")
 	}
 	if tokens[1].Type != TokenNoun {
 		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
@@ -442,8 +454,8 @@ func TestTokeniser_Tokenise_FrenchPartitiveArticlePhrase(t *testing.T) {
 	if tokens[0].Lower != "de la" {
 		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de la")
 	}
-	if tokens[0].ArtType != "definite" {
-		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "definite")
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
 	}
 	if tokens[1].Type != TokenNoun {
 		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
