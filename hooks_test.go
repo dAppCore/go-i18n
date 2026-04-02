@@ -298,6 +298,18 @@ func TestNewCoreService_LoadsRegisteredLocales(t *testing.T) {
 	assert.Equal(t, "loaded on core bootstrap", got)
 }
 
+func TestNewCoreService_InvalidLanguagePreservesSetLanguageError(t *testing.T) {
+	factory := NewCoreService(ServiceOptions{Language: "es"})
+
+	_, err := factory(nil)
+	require.Error(t, err)
+
+	msg := err.Error()
+	assert.Contains(t, msg, "unsupported language: es")
+	assert.Contains(t, msg, "available:")
+	assert.NotContains(t, msg, "invalid language")
+}
+
 func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 	t.Setenv("LANG", "de_DE.UTF-8")
 
