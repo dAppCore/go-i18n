@@ -244,6 +244,15 @@ func LoadFS(fsys fs.FS, dir string) {
 	})
 }
 
+// AddMessages adds message strings to the default service for a language.
+//
+// Example:
+//
+//	i18n.AddMessages("en", map[string]string{"custom.greeting": "Hello!"})
+func AddMessages(lang string, messages map[string]string) {
+	withDefaultService(func(svc *Service) { svc.AddMessages(lang, messages) })
+}
+
 // PrependHandler inserts one or more handlers at the start of the default service's handler chain.
 //
 // Example:
