@@ -11,6 +11,7 @@ import (
 )
 
 var missingKeyHandler atomic.Value
+var missingKeyHandlerMu sync.Mutex
 
 type missingKeyHandlersState struct {
 	handlers []MissingKeyHandler
@@ -131,6 +132,8 @@ func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
 
 // OnMissingKey registers a handler for missing translation keys.
 func OnMissingKey(h MissingKeyHandler) {
+	missingKeyHandlerMu.Lock()
+	defer missingKeyHandlerMu.Unlock()
 	if h == nil {
 		missingKeyHandler.Store(missingKeyHandlersState{})
 		return
@@ -140,6 +143,8 @@ func OnMissingKey(h MissingKeyHandler) {
 
 // ClearMissingKeyHandlers removes all registered missing-key handlers.
 func ClearMissingKeyHandlers() {
+	missingKeyHandlerMu.Lock()
+	defer missingKeyHandlerMu.Unlock()
 	missingKeyHandler.Store(missingKeyHandlersState{})
 }
 
@@ -149,6 +154,8 @@ func AddMissingKeyHandler(h MissingKeyHandler) {
 	if h == nil {
 		return
 	}
+	missingKeyHandlerMu.Lock()
+	defer missingKeyHandlerMu.Unlock()
 	current := missingKeyHandlers()
 	current.handlers = append(current.handlers, h)
 	missingKeyHandler.Store(current)

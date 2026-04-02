@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"path/filepath"
+	"sync"
 	"testing"
 	"testing/fstest"
 
@@ -454,6 +455,38 @@ func TestAddMissingKeyHandler_Good(t *testing.T) {
 
 	assert.Equal(t, 1, first)
 	assert.Equal(t, 1, second)
+}
+
+func TestAddMissingKeyHandler_Good_Concurrent(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	prevHandlers := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prevHandlers)
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	ClearMissingKeyHandlers()
+	t.Cleanup(func() {
+		ClearMissingKeyHandlers()
+	})
+
+	const handlers = 32
+	var wg sync.WaitGroup
+	wg.Add(handlers)
+	for i := 0; i < handlers; i++ {
+		go func() {
+			defer wg.Done()
+			AddMissingKeyHandler(func(MissingKey) {})
+		}()
+	}
+	wg.Wait()
+
+	state := missingKeyHandlers()
+	assert.Len(t, state.handlers, handlers)
 }
 
 func TestClearMissingKeyHandlers_Good(t *testing.T) {
