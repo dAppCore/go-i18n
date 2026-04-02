@@ -675,6 +675,8 @@ func (t *Tokeniser) MatchWord(word string) (string, bool) {
 }
 
 // MatchArticle checks whether a word is an article (definite or indefinite).
+// It recognises configured grammar articles plus French elision, plural,
+// and gendered forms when the active language is French.
 // Returns the article type ("indefinite" or "definite") and true if matched,
 // or ("", false) otherwise.
 func (t *Tokeniser) MatchArticle(word string) (string, bool) {

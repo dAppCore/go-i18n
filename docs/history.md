@@ -201,7 +201,7 @@ The `irregularVerbs` and `irregularNouns` Go maps and the regular morphology rul
 
 **French reversal**
 
-Elision (`l'`) and plural articles (`les`, `des`) are not handled by the current `Article()` function or the reversal tokeniser. The `by_gender` article map supports gendered articles for composition, but the reversal tokeniser's `MatchArticle()` only checks `IndefiniteDefault`, `IndefiniteVowel`, and `Definite`. French reversal is therefore incomplete.
+French article handling now covers elision (`l'`), plural forms (`les`, `des`), and gendered articles in the reversal tokeniser. The forward composer also uses `by_gender` when available, so the French article path is no longer a known limitation.
 
 **Dual-class expansion candidates not yet measured**
 
@@ -227,7 +227,7 @@ Measure imprint drift on the 88K seeds for the 20 candidate words listed above. 
 
 **French reversal**
 
-Extend `Article()` to handle elision (`l'` before vowel-initial nouns) and plural forms (`les`, `des`). Update `MatchArticle()` in the reversal tokeniser to recognise the full French article set including gendered and plural variants.
+If additional French article variants or locale-specific contractions are added later, update both the forward composer and `MatchArticle()` together so composition and reversal stay symmetric.
 
 **88K seed corpus processing**
 
