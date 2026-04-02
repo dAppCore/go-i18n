@@ -469,7 +469,7 @@ func joinAvailableLanguagesLocked(tags []language.Tag) string {
 		langs[i] = tag.String()
 	}
 	slices.Sort(langs)
-	return strings.Join(langs, ", ")
+	return core.Join(", ", langs...)
 }
 
 func (s *Service) AddHandler(handlers ...KeyHandler) {
