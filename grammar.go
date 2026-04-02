@@ -709,6 +709,71 @@ func ArticlePhrase(word string) string {
 	return article + " " + word
 }
 
+// DefiniteArticle returns the language-specific definite article for a word.
+// For languages such as French, this respects gendered articles, plural forms,
+// and elision rules when grammar data is available.
+func DefiniteArticle(word string) string {
+	if word == "" {
+		return ""
+	}
+	trimmed := core.Trim(word)
+	lower := core.Lower(trimmed)
+	if article, ok := definiteArticleForCurrentLanguage(lower, trimmed); ok {
+		return article
+	}
+	lang := currentLangForGrammar()
+	data := GetGrammarData(lang)
+	if data != nil && data.Articles.Definite != "" {
+		return data.Articles.Definite
+	}
+	return "the"
+}
+
+// DefinitePhrase prefixes a noun phrase with the correct definite article.
+func DefinitePhrase(word string) string {
+	if word == "" {
+		return ""
+	}
+	lang := currentLangForGrammar()
+	word = renderWord(lang, word)
+	article := DefiniteArticle(word)
+	if article == "" {
+		return ""
+	}
+	if strings.HasSuffix(article, "'") {
+		return article + word
+	}
+	return article + " " + word
+}
+
+func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
+	lang := currentLangForGrammar()
+	data := GetGrammarData(lang)
+	if data == nil {
+		return "", false
+	}
+	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
+		return article, true
+	}
+	if article, ok := definiteArticleFromGrammarForms(data, lowerWord, originalWord, lang); ok {
+		return article, true
+	}
+	return "", false
+}
+
+func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord, lang string) (string, bool) {
+	if data == nil || data.Articles.Definite == "" {
+		return "", false
+	}
+	if isFrenchLanguage(lang) {
+		if isKnownPluralNoun(data, lowerWord) || looksLikeFrenchPlural(originalWord) {
+			return "les", true
+		}
+		return maybeElideArticle(data.Articles.Definite, originalWord, lang), true
+	}
+	return data.Articles.Definite, true
+}
+
 // TemplateFuncs returns the template.FuncMap with all grammar functions.
 func TemplateFuncs() template.FuncMap {
 	return template.FuncMap{
@@ -720,6 +785,7 @@ func TemplateFuncs() template.FuncMap {
 		"plural":          Pluralize,
 		"pluralForm":      PluralForm,
 		"article":         ArticlePhrase,
+		"definite":        DefinitePhrase,
 		"quote":           Quote,
 		"label":           Label,
 		"progress":        Progress,

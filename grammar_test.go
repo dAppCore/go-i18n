@@ -590,6 +590,62 @@ func TestArticlePhraseFrenchLocale(t *testing.T) {
 	}
 }
 
+func TestDefiniteArticle(t *testing.T) {
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"file", "the"},
+		{"error", "the"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := DefiniteArticle(tt.word)
+			if got != tt.want {
+				t.Errorf("DefiniteArticle(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefinitePhraseFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"branche", "la branche"},
+		{"branches", "les branches"},
+		{"amis", "les amis"},
+		{"enfant", "l'enfant"},
+		{"fichier", "le fichier"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := DefinitePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("DefinitePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
 func TestLabel(t *testing.T) {
 	svc, err := New()
 	if err != nil {
