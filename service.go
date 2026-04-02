@@ -264,7 +264,7 @@ func (s *Service) SetLanguage(lang string) error {
 	matcher := language.NewMatcher(s.availableLangs)
 	bestMatch, bestIndex, confidence := matcher.Match(requestedLang)
 	if confidence == language.No {
-		return log.E("Service.SetLanguage", "unsupported language: "+lang, nil)
+		return log.E("Service.SetLanguage", "unsupported language: "+lang+" (available: "+joinAvailableLanguagesLocked(s.availableLangs)+")", nil)
 	}
 	if bestIndex >= 0 && bestIndex < len(s.availableLangs) {
 		s.currentLang = s.availableLangs[bestIndex].String()
@@ -334,6 +334,18 @@ func (s *Service) PluralCategory(n int) PluralCategory {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return GetPluralCategory(s.currentLang, n)
+}
+
+func joinAvailableLanguagesLocked(tags []language.Tag) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	langs := make([]string, len(tags))
+	for i, tag := range tags {
+		langs[i] = tag.String()
+	}
+	slices.Sort(langs)
+	return strings.Join(langs, ", ")
 }
 
 func (s *Service) AddHandler(handlers ...KeyHandler) {

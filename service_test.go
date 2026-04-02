@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
@@ -86,6 +87,27 @@ func TestServiceAvailableLanguagesSorted(t *testing.T) {
 
 	if got, want := svc.AvailableLanguages(), []string{"en", "en-GB", "fr"}; !slices.Equal(got, want) {
 		t.Fatalf("AvailableLanguages() = %v, want %v", got, want)
+	}
+}
+
+func TestServiceSetLanguageUnsupportedIncludesAvailableLanguages(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	err = svc.SetLanguage("es")
+	if err == nil {
+		t.Fatal("SetLanguage(es) succeeded, want error")
+	}
+	msg := err.Error()
+	if !strings.Contains(msg, "unsupported language: es") {
+		t.Fatalf("SetLanguage(es) error = %q, want unsupported language message", msg)
+	}
+	for _, want := range []string{"en", "en-GB", "fr"} {
+		if !strings.Contains(msg, want) {
+			t.Fatalf("SetLanguage(es) error = %q, want available language %q", msg, want)
+		}
 	}
 }
 
