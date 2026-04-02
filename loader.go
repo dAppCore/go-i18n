@@ -351,10 +351,46 @@ func loadSignalPriors(grammar *GrammarData, priors map[string]any) {
 			grammar.Signals.Priors[key] = make(map[string]float64, len(bucket))
 		}
 		for role, value := range bucket {
-			if score := toFloat64(value); score != 0 {
-				grammar.Signals.Priors[key][core.Lower(role)] = score
+			score, ok := float64Value(value)
+			if !ok {
+				continue
 			}
+			grammar.Signals.Priors[key][core.Lower(role)] = score
 		}
+	}
+}
+
+func float64Value(v any) (float64, bool) {
+	if v == nil {
+		return 0, false
+	}
+	switch n := v.(type) {
+	case float64:
+		return n, true
+	case float32:
+		return float64(n), true
+	case int:
+		return float64(n), true
+	case int64:
+		return float64(n), true
+	case int32:
+		return float64(n), true
+	case int16:
+		return float64(n), true
+	case int8:
+		return float64(n), true
+	case uint:
+		return float64(n), true
+	case uint64:
+		return float64(n), true
+	case uint32:
+		return float64(n), true
+	case uint16:
+		return float64(n), true
+	case uint8:
+		return float64(n), true
+	default:
+		return 0, false
 	}
 }
 
