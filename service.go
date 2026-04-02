@@ -448,6 +448,13 @@ func (s *Service) ClearHandlers() {
 	s.handlers = nil
 }
 
+// ResetHandlers restores the built-in default handler chain.
+func (s *Service) ResetHandlers() {
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.handlers = DefaultHandlers()
+}
+
 func (s *Service) Handlers() []KeyHandler {
 	s.mu.RLock()
 	defer s.mu.RUnlock()

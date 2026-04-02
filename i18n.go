@@ -273,6 +273,16 @@ func ClearHandlers() {
 	withDefaultService(func(svc *Service) { svc.ClearHandlers() })
 }
 
+// ResetHandlers restores the built-in default handler chain on the default
+// service.
+//
+// Example:
+//
+//	i18n.ResetHandlers()
+func ResetHandlers() {
+	withDefaultService(func(svc *Service) { svc.ResetHandlers() })
+}
+
 func executeIntentTemplate(tmplStr string, data templateData) string {
 	if tmplStr == "" {
 		return ""
