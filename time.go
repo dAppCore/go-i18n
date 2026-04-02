@@ -17,7 +17,10 @@ func TimeAgo(t time.Time) string {
 	}
 	switch {
 	case duration < 5*time.Second:
-		return T("time.just_now")
+		if text := T("time.just_now"); text != "time.just_now" {
+			return text
+		}
+		return "just now"
 	case duration < time.Minute:
 		return FormatAgo(int(duration/time.Second), "second")
 	case duration < time.Hour:

@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -91,6 +92,24 @@ func TestTimeAgo_Good_SingleUnits(t *testing.T) {
 	// 1 week ago
 	got = TimeAgo(time.Now().Add(-7 * 24 * time.Hour))
 	assert.Contains(t, got, "1 week ago")
+}
+
+func TestTimeAgo_Good_MissingJustNowKeyFallback(t *testing.T) {
+	svc, err := NewWithFS(fstest.MapFS{
+		"xx.json": &fstest.MapFile{
+			Data: []byte(`{}`),
+		},
+	}, ".")
+	require.NoError(t, err)
+
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	got := TimeAgo(time.Now().Add(-4 * time.Second))
+	assert.Equal(t, "just now", got)
 }
 
 // --- FormatAgo ---
