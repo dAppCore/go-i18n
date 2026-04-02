@@ -125,6 +125,15 @@ func CurrentDirection() TextDirection {
 	return Direction()
 }
 
+// CurrentTextDirection is a more explicit alias for CurrentDirection.
+//
+// Example:
+//
+//	dir := i18n.CurrentTextDirection()
+func CurrentTextDirection() TextDirection {
+	return CurrentDirection()
+}
+
 // IsRTL returns true if the current language uses right-to-left text.
 //
 // Example:

@@ -353,6 +353,7 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	assert.Equal(t, svc.AvailableLanguages(), coreSvc.CurrentAvailableLanguages())
 	assert.Equal(t, svc.Direction(), coreSvc.Direction())
 	assert.Equal(t, svc.Direction(), coreSvc.CurrentDirection())
+	assert.Equal(t, svc.Direction(), coreSvc.CurrentTextDirection())
 	assert.Equal(t, svc.IsRTL(), coreSvc.IsRTL())
 	assert.Equal(t, svc.IsRTL(), coreSvc.CurrentIsRTL())
 	assert.Equal(t, svc.IsRTL(), coreSvc.RTL())

@@ -424,6 +424,11 @@ func (s *Service) CurrentDirection() TextDirection {
 	return s.Direction()
 }
 
+// CurrentTextDirection is a more explicit alias for CurrentDirection.
+func (s *Service) CurrentTextDirection() TextDirection {
+	return s.CurrentDirection()
+}
+
 func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
 func (s *Service) CurrentIsRTL() bool {
 	return s.IsRTL()

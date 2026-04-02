@@ -222,6 +222,16 @@ func TestCurrentDirection_Good(t *testing.T) {
 	assert.Equal(t, DirLTR, CurrentDirection())
 }
 
+// --- Package-level CurrentTextDirection ---
+
+func TestCurrentTextDirection_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentDirection(), CurrentTextDirection())
+}
+
 // --- Package-level IsRTL ---
 
 func TestIsRTL_Good(t *testing.T) {

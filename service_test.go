@@ -169,6 +169,9 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	if got, want := svc.CurrentDirection(), svc.Direction(); got != want {
 		t.Fatalf("CurrentDirection() = %v, want %v", got, want)
 	}
+	if got, want := svc.CurrentTextDirection(), svc.CurrentDirection(); got != want {
+		t.Fatalf("CurrentTextDirection() = %v, want %v", got, want)
+	}
 	if got, want := svc.CurrentPluralCategory(2), svc.PluralCategory(2); got != want {
 		t.Fatalf("CurrentPluralCategory() = %v, want %v", got, want)
 	}

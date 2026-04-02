@@ -318,6 +318,11 @@ func (s *CoreService) CurrentDirection() TextDirection {
 	return s.Direction()
 }
 
+// CurrentTextDirection is a more explicit alias for CurrentDirection.
+func (s *CoreService) CurrentTextDirection() TextDirection {
+	return s.CurrentDirection()
+}
+
 // IsRTL reports whether the wrapped service language is right-to-left.
 func (s *CoreService) IsRTL() bool {
 	return s.svc.IsRTL()
