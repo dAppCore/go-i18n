@@ -132,6 +132,12 @@ func TestFlattenWithGrammar(t *testing.T) {
 					"past":   "tested",
 					"gerund": "testing",
 				},
+				"partial_past": map[string]any{
+					"past": "partialed",
+				},
+				"partial_gerund": map[string]any{
+					"gerund": "partialing",
+				},
 				"publish_draft": map[string]any{
 					"base":   "publish",
 					"past":   "published",
@@ -200,6 +206,18 @@ func TestFlattenWithGrammar(t *testing.T) {
 	}
 	if _, ok := grammar.Verbs["publish_draft"]; ok {
 		t.Error("verb should be stored under explicit base, not JSON key")
+	}
+	if _, ok := grammar.Verbs["partial_past"]; ok {
+		t.Error("incomplete verb entry with only past should be skipped")
+	}
+	if _, ok := grammar.Verbs["partial_gerund"]; ok {
+		t.Error("incomplete verb entry with only gerund should be skipped")
+	}
+	if _, ok := messages["gram.verb.partial_past"]; ok {
+		t.Error("gram.verb.partial_past should not be flattened into messages")
+	}
+	if _, ok := messages["gram.verb.partial_gerund"]; ok {
+		t.Error("gram.verb.partial_gerund should not be flattened into messages")
 	}
 
 	// Noun extracted
