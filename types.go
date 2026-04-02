@@ -467,10 +467,13 @@ var dualClassVerbs = map[string]VerbForms{
 	"process":  {Past: "processed", Gerund: "processing"},
 	"queue":    {Past: "queued", Gerund: "queuing"},
 	"release":  {Past: "released", Gerund: "releasing"},
+	"pull":     {Past: "pulled", Gerund: "pulling"},
+	"push":     {Past: "pushed", Gerund: "pushing"},
 	"stream":   {Past: "streamed", Gerund: "streaming"},
 	"tag":      {Past: "tagged", Gerund: "tagging"},
 	"trigger":  {Past: "triggered", Gerund: "triggering"},
 	"watch":    {Past: "watched", Gerund: "watching"},
+	"update":   {Past: "updated", Gerund: "updating"},
 }
 
 // dualClassNouns mirrors the same vocabulary as nouns so the tokeniser can
@@ -489,10 +492,13 @@ var dualClassNouns = map[string]string{
 	"process":  "processes",
 	"queue":    "queues",
 	"release":  "releases",
+	"pull":     "pulls",
+	"push":     "pushes",
 	"stream":   "streams",
 	"tag":      "tags",
 	"trigger":  "triggers",
 	"watch":    "watches",
+	"update":   "updates",
 }
 
 var vowelSounds = map[string]bool{

@@ -725,13 +725,13 @@ func TestTokeniser_DualClassDetection(t *testing.T) {
 		}
 	}
 
-	for _, word := range []string{"change", "export", "function", "handle", "host", "import", "link", "log", "merge", "patch", "process", "queue", "release", "stream", "tag", "trigger", "watch"} {
+	for _, word := range []string{"change", "export", "function", "handle", "host", "import", "link", "log", "merge", "patch", "process", "pull", "push", "queue", "release", "stream", "tag", "trigger", "update", "watch"} {
 		if !tok.IsDualClass(word) {
 			t.Errorf("%q should be dual-class after expansion", word)
 		}
 	}
 
-	notDual := []string{"delete", "go", "push", "branch", "repo"}
+	notDual := []string{"delete", "go", "branch", "repo"}
 	for _, word := range notDual {
 		if tok.IsDualClass(word) {
 			t.Errorf("%q should not be dual-class", word)
