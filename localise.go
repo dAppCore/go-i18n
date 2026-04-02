@@ -132,6 +132,13 @@ func CurrentDirection() TextDirection {
 //	rtl := i18n.IsRTL()
 func IsRTL() bool { return Direction() == DirRTL }
 
+// RTL is a short alias for IsRTL.
+//
+// Example:
+//
+//	rtl := i18n.RTL()
+func RTL() bool { return IsRTL() }
+
 // CurrentIsRTL returns true if the current default language uses
 // right-to-left text.
 //
@@ -140,6 +147,15 @@ func IsRTL() bool { return Direction() == DirRTL }
 //	rtl := i18n.CurrentIsRTL()
 func CurrentIsRTL() bool {
 	return defaultServiceValue(false, func(svc *Service) bool { return svc.IsRTL() })
+}
+
+// CurrentRTL is a short alias for CurrentIsRTL.
+//
+// Example:
+//
+//	rtl := i18n.CurrentRTL()
+func CurrentRTL() bool {
+	return CurrentIsRTL()
 }
 
 // CurrentPluralCategory returns the plural category for the current default language.

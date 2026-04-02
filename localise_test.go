@@ -232,6 +232,16 @@ func TestIsRTL_Good(t *testing.T) {
 	assert.False(t, IsRTL(), "English should not be RTL")
 }
 
+// --- Package-level RTL ---
+
+func TestRTL_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, IsRTL(), RTL())
+}
+
 // --- Package-level CurrentIsRTL ---
 
 func TestCurrentIsRTL_Good(t *testing.T) {
@@ -240,6 +250,16 @@ func TestCurrentIsRTL_Good(t *testing.T) {
 	SetDefault(svc)
 
 	assert.False(t, CurrentIsRTL(), "English should not be RTL")
+}
+
+// --- Package-level CurrentRTL ---
+
+func TestCurrentRTL_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentIsRTL(), CurrentRTL())
 }
 
 // --- Package-level CurrentPluralCategory ---

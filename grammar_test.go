@@ -1122,6 +1122,7 @@ func TestTemplateFuncs(t *testing.T) {
 		"pluralForm",
 		"article",
 		"articlePhrase",
+		"definiteArticle",
 		"definite",
 		"definitePhrase",
 		"quote",
@@ -1169,6 +1170,20 @@ func TestTemplateFuncs_Article(t *testing.T) {
 
 	if got, want := buf.String(), "an apple|the apple"; got != want {
 		t.Fatalf("template article aliases = %q, want %q", got, want)
+	}
+
+	tmpl, err = template.New("").Funcs(TemplateFuncs()).Parse(`{{definiteArticle "apple"}}`)
+	if err != nil {
+		t.Fatalf("Parse() definite article helper failed: %v", err)
+	}
+
+	buf.Reset()
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() definite article helper failed: %v", err)
+	}
+
+	if got, want := buf.String(), "the"; got != want {
+		t.Fatalf("template definite article = %q, want %q", got, want)
 	}
 }
 

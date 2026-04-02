@@ -428,6 +428,13 @@ func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
 func (s *Service) CurrentIsRTL() bool {
 	return s.IsRTL()
 }
+
+// RTL is a short alias for IsRTL.
+func (s *Service) RTL() bool { return s.IsRTL() }
+
+// CurrentRTL is a short alias for CurrentIsRTL.
+func (s *Service) CurrentRTL() bool { return s.CurrentIsRTL() }
+
 func (s *Service) CurrentDebug() bool {
 	return s.Debug()
 }

@@ -950,6 +950,7 @@ func TemplateFuncs() template.FuncMap {
 		"pluralForm":      PluralForm,
 		"article":         ArticlePhrase,
 		"articlePhrase":   ArticlePhrase,
+		"definiteArticle": DefiniteArticle,
 		"definite":        DefinitePhrase,
 		"definitePhrase":  DefinitePhrase,
 		"quote":           Quote,
