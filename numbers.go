@@ -56,6 +56,11 @@ func FormatDecimalN(f float64, decimals int) string {
 	}
 	multiplier := math.Pow(10, float64(decimals))
 	fracInt := int64(math.Round(fracPart * multiplier))
+	if fracInt >= int64(multiplier) {
+		intPart++
+		intStr = formatIntWithSep(intPart, nf.ThousandsSep)
+		fracInt = 0
+	}
 	if fracInt == 0 {
 		if negative {
 			return "-" + intStr

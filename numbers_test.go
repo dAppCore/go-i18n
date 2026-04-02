@@ -44,6 +44,8 @@ func TestFormatDecimal(t *testing.T) {
 	}{
 		{1.5, "1.5"},
 		{1.0, "1"},
+		{1.995, "2"},
+		{9.999, "10"},
 		{1234.56, "1,234.56"},
 		{0.1, "0.1"},
 		{-0.1, "-0.1"},
@@ -54,6 +56,31 @@ func TestFormatDecimal(t *testing.T) {
 		got := FormatDecimal(tt.f)
 		if got != tt.want {
 			t.Errorf("FormatDecimal(%v) = %q, want %q", tt.f, got, tt.want)
+		}
+	}
+}
+
+func TestFormatDecimalN_RoundsCarry(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tests := []struct {
+		f        float64
+		decimals int
+		want     string
+	}{
+		{1.995, 2, "2"},
+		{9.999, 2, "10"},
+		{999.999, 2, "1,000"},
+	}
+
+	for _, tt := range tests {
+		got := FormatDecimalN(tt.f, tt.decimals)
+		if got != tt.want {
+			t.Errorf("FormatDecimalN(%v, %d) = %q, want %q", tt.f, tt.decimals, got, tt.want)
 		}
 	}
 }
