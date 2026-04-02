@@ -1,5 +1,7 @@
 package i18n
 
+import "dappco.re/go/core"
+
 // TranslationContext provides disambiguation for translations.
 //
 //	T("direction.right", C("navigation")) // "rechts" (German)
@@ -9,12 +11,14 @@ type TranslationContext struct {
 	Gender    string
 	Location  string
 	Formality Formality
+	count     int
+	countSet  bool
 	Extra     map[string]any
 }
 
 // C creates a TranslationContext.
 func C(context string) *TranslationContext {
-	return &TranslationContext{Context: context}
+	return &TranslationContext{Context: context, count: 1}
 }
 
 func (c *TranslationContext) WithGender(gender string) *TranslationContext {
@@ -54,6 +58,16 @@ func (c *TranslationContext) WithFormality(f Formality) *TranslationContext {
 		return nil
 	}
 	c.Formality = f
+	return c
+}
+
+// Count sets the count used for plural-sensitive translations.
+func (c *TranslationContext) Count(n int) *TranslationContext {
+	if c == nil {
+		return nil
+	}
+	c.count = n
+	c.countSet = true
 	return c
 }
 
@@ -108,4 +122,32 @@ func (c *TranslationContext) FormalityValue() Formality {
 		return FormalityNeutral
 	}
 	return c.Formality
+}
+
+// CountInt returns the current count value.
+func (c *TranslationContext) CountInt() int {
+	if c == nil {
+		return 1
+	}
+	return c.count
+}
+
+// CountString returns the current count value formatted as text.
+func (c *TranslationContext) CountString() string {
+	if c == nil {
+		return "1"
+	}
+	return core.Sprintf("%d", c.count)
+}
+
+// IsPlural reports whether the count is plural.
+func (c *TranslationContext) IsPlural() bool {
+	return c != nil && c.count != 1
+}
+
+func (c *TranslationContext) countValue() (int, bool) {
+	if c == nil {
+		return 1, false
+	}
+	return c.count, c.countSet
 }

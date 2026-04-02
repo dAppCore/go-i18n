@@ -15,6 +15,9 @@ func TestC_Good(t *testing.T) {
 	assert.Equal(t, "navigation", ctx.Context)
 	assert.Equal(t, "navigation", ctx.ContextString())
 	assert.Equal(t, "navigation", ctx.String())
+	assert.Equal(t, 1, ctx.CountInt())
+	assert.Equal(t, "1", ctx.CountString())
+	assert.False(t, ctx.IsPlural())
 }
 
 func TestC_Good_EmptyContext(t *testing.T) {
@@ -28,6 +31,7 @@ func TestC_Good_EmptyContext(t *testing.T) {
 func TestTranslationContext_NilReceiver_Good(t *testing.T) {
 	var ctx *TranslationContext
 
+	assert.Nil(t, ctx.Count(2))
 	assert.Nil(t, ctx.WithGender("masculine"))
 	assert.Nil(t, ctx.In("workspace"))
 	assert.Nil(t, ctx.Formal())
@@ -39,6 +43,9 @@ func TestTranslationContext_NilReceiver_Good(t *testing.T) {
 	assert.Equal(t, "", ctx.GenderString())
 	assert.Equal(t, "", ctx.LocationString())
 	assert.Equal(t, FormalityNeutral, ctx.FormalityValue())
+	assert.Equal(t, 1, ctx.CountInt())
+	assert.Equal(t, "1", ctx.CountString())
+	assert.False(t, ctx.IsPlural())
 }
 
 // --- WithGender ---
@@ -119,12 +126,16 @@ func TestTranslationContext_Get_Bad_NilExtra(t *testing.T) {
 
 func TestTranslationContext_FullChain_Good(t *testing.T) {
 	ctx := C("medical").
+		Count(3).
 		WithGender("feminine").
 		In("clinic").
 		Formal().
 		Set("speciality", "cardiology")
 
 	assert.Equal(t, "medical", ctx.ContextString())
+	assert.Equal(t, 3, ctx.CountInt())
+	assert.Equal(t, "3", ctx.CountString())
+	assert.True(t, ctx.IsPlural())
 	assert.Equal(t, "feminine", ctx.GenderString())
 	assert.Equal(t, "clinic", ctx.LocationString())
 	assert.Equal(t, FormalityFormal, ctx.FormalityValue())

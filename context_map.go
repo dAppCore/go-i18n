@@ -47,7 +47,7 @@ func contextMapValuesAny(values map[string]any) map[string]any {
 	extra := make(map[string]any, len(values))
 	for key, value := range values {
 		switch key {
-		case "Context", "Gender", "Location", "Formality":
+		case "Context", "Gender", "Location", "Formality", "Count", "IsPlural":
 			continue
 		case "Extra", "extra", "Extras", "extras":
 			mergeContextExtra(extra, value)
@@ -69,7 +69,8 @@ func contextMapValuesString(values map[string]string) map[string]any {
 	extra := make(map[string]any, len(values))
 	for key, value := range values {
 		switch key {
-		case "Context", "Gender", "Location", "Formality", "Extra", "extra", "Extras", "extras":
+		case "Context", "Gender", "Location", "Formality", "Count", "IsPlural",
+			"Extra", "extra", "Extras", "extras":
 			continue
 		default:
 			extra[key] = value
