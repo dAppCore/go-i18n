@@ -12,21 +12,45 @@ import (
 
 // GetGrammarData returns the grammar data for the specified language.
 func GetGrammarData(lang string) *GrammarData {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" {
+		return nil
+	}
 	grammarCacheMu.RLock()
 	defer grammarCacheMu.RUnlock()
-	return grammarCache[lang]
+	if data, ok := grammarCache[lang]; ok && data != nil {
+		return data
+	}
+	if base := baseLanguageTag(lang); base != "" {
+		if data, ok := grammarCache[base]; ok && data != nil {
+			return data
+		}
+	}
+	return nil
 }
 
 // SetGrammarData sets the grammar data for a language, replacing any existing data.
 func SetGrammarData(lang string, data *GrammarData) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" {
+		return
+	}
 	grammarCacheMu.Lock()
 	defer grammarCacheMu.Unlock()
+	if data == nil {
+		delete(grammarCache, lang)
+		return
+	}
 	grammarCache[lang] = cloneGrammarData(data)
 }
 
 // MergeGrammarData merges grammar data into the existing data for a language.
 // New entries are added; existing entries are overwritten per-key.
 func MergeGrammarData(lang string, data *GrammarData) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" || data == nil {
+		return
+	}
 	grammarCacheMu.Lock()
 	defer grammarCacheMu.Unlock()
 	existing := grammarCache[lang]
