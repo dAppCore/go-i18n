@@ -1110,6 +1110,9 @@ func TestTemplateFuncs(t *testing.T) {
 		"plural",
 		"pluralForm",
 		"article",
+		"articlePhrase",
+		"definite",
+		"definitePhrase",
 		"quote",
 		"label",
 		"progress",
@@ -1141,6 +1144,20 @@ func TestTemplateFuncs_Article(t *testing.T) {
 
 	if got, want := buf.String(), "an apple"; got != want {
 		t.Fatalf("template article = %q, want %q", got, want)
+	}
+
+	tmpl, err = template.New("").Funcs(TemplateFuncs()).Parse(`{{articlePhrase "apple"}}|{{definitePhrase "apple"}}`)
+	if err != nil {
+		t.Fatalf("Parse() alias helpers failed: %v", err)
+	}
+
+	buf.Reset()
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() alias helpers failed: %v", err)
+	}
+
+	if got, want := buf.String(), "an apple|the apple"; got != want {
+		t.Fatalf("template article aliases = %q, want %q", got, want)
 	}
 }
 
