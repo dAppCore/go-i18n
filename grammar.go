@@ -485,16 +485,16 @@ func applyRegularPlural(noun string) string {
 //	Article("user")     // "a" (sounds like "yoo-zer")
 //	Article("hour")     // "an" (silent h)
 func Article(word string) string {
+	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
-	trimmed := core.Trim(word)
-	lower := core.Lower(trimmed)
+	lower := core.Lower(word)
 	if article, ok := articleForCurrentLanguage(lower, word); ok {
 		return article
 	}
-	if isInitialism(trimmed) {
-		if initialismUsesVowelSound(trimmed) {
+	if isInitialism(word) {
+		if initialismUsesVowelSound(word) {
 			return "an"
 		}
 		return "a"
@@ -796,6 +796,7 @@ func Quote(s string) string {
 
 // ArticlePhrase prefixes a noun phrase with the correct article.
 func ArticlePhrase(word string) string {
+	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
@@ -809,12 +810,12 @@ func ArticlePhrase(word string) string {
 // For languages such as French, this respects gendered articles, plural forms,
 // and elision rules when grammar data is available.
 func DefiniteArticle(word string) string {
+	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
-	trimmed := core.Trim(word)
-	lower := core.Lower(trimmed)
-	if article, ok := definiteArticleForCurrentLanguage(lower, trimmed); ok {
+	lower := core.Lower(word)
+	if article, ok := definiteArticleForCurrentLanguage(lower, word); ok {
 		return article
 	}
 	lang := currentLangForGrammar()
@@ -827,6 +828,7 @@ func DefiniteArticle(word string) string {
 
 // DefinitePhrase prefixes a noun phrase with the correct definite article.
 func DefinitePhrase(word string) string {
+	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
@@ -938,6 +940,7 @@ func ProgressSubject(verb, subject string) string {
 		return ""
 	}
 	suffix := getPunct(lang, "progress", "...")
+	subject = core.Trim(subject)
 	if subject == "" {
 		return Title(g) + suffix
 	}
@@ -950,6 +953,7 @@ func ActionResult(verb, subject string) string {
 	if p == "" {
 		return ""
 	}
+	subject = core.Trim(subject)
 	if subject == "" {
 		return Title(p)
 	}
@@ -958,12 +962,14 @@ func ActionResult(verb, subject string) string {
 
 // ActionFailed returns a failure message: "Failed to delete file"
 func ActionFailed(verb, subject string) string {
+	verb = core.Trim(verb)
 	if verb == "" {
 		return ""
 	}
 	lang := currentLangForGrammar()
 	verb = renderWord(lang, verb)
 	prefix := failedPrefix(lang)
+	subject = core.Trim(subject)
 	if subject == "" {
 		return prefix + " " + verb
 	}
@@ -980,6 +986,7 @@ func failedPrefix(lang string) string {
 
 // Label returns a label with suffix: "Status:" (EN) or "Statut :" (FR)
 func Label(word string) string {
+	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
