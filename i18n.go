@@ -95,11 +95,7 @@ func Language() string {
 //	langs := i18n.AvailableLanguages()
 func AvailableLanguages() []string {
 	return defaultServiceValue([]string{}, func(svc *Service) []string {
-		langs := svc.AvailableLanguages()
-		if len(langs) == 0 {
-			return []string{}
-		}
-		return append([]string(nil), langs...)
+		return svc.AvailableLanguages()
 	})
 }
 
@@ -180,10 +176,9 @@ func CurrentDebug() bool {
 
 // State returns a copy-safe snapshot of the default service configuration.
 func State() ServiceState {
-	if svc := Default(); svc != nil {
+	return defaultServiceValue(defaultServiceStateSnapshot(), func(svc *Service) ServiceState {
 		return svc.State()
-	}
-	return defaultServiceStateSnapshot()
+	})
 }
 
 // CurrentState is a more explicit alias for State.
