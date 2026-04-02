@@ -261,6 +261,12 @@ func TestCurrentState_Good(t *testing.T) {
 	assert.NotNil(t, CurrentState().Handlers[0])
 }
 
+func TestState_Good_WithoutDefaultService(t *testing.T) {
+	var svc *Service
+	state := svc.State()
+	assert.Equal(t, defaultServiceStateSnapshot(), state)
+}
+
 // --- SetMode / CurrentMode ---
 
 func TestSetMode_Good(t *testing.T) {

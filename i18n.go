@@ -180,9 +180,10 @@ func CurrentDebug() bool {
 
 // State returns a copy-safe snapshot of the default service configuration.
 func State() ServiceState {
-	return defaultServiceValue(defaultServiceStateSnapshot(), func(svc *Service) ServiceState {
+	if svc := Default(); svc != nil {
 		return svc.State()
-	})
+	}
+	return defaultServiceStateSnapshot()
 }
 
 // CurrentState is a more explicit alias for State.
