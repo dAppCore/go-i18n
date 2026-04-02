@@ -286,6 +286,33 @@ func TestN_Good(t *testing.T) {
 	}
 }
 
+func TestN_Good_WithoutDefaultService(t *testing.T) {
+	prev := Default()
+	SetDefault(nil)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	tests := []struct {
+		name   string
+		format string
+		value  any
+		args   []any
+		want   string
+	}{
+		{"number", "number", int64(1234567), nil, "1,234,567"},
+		{"percent", "percent", 0.85, nil, "85%"},
+		{"bytes", "bytes", int64(1536000), nil, "1.46 MB"},
+		{"ordinal", "ordinal", 1, nil, "1st"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := N(tt.format, tt.value, tt.args...)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 // --- Prompt() prompt shorthand ---
 
 func TestPrompt_Good(t *testing.T) {

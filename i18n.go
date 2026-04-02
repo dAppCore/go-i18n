@@ -197,6 +197,25 @@ func Debug() bool {
 //
 //	N("ago", 5, "minutes")  // "5 minutes ago"
 func N(format string, value any, args ...any) string {
+	format = normalizeLookupKey(format)
+	switch format {
+	case "number", "int":
+		return FormatNumber(toInt64(value))
+	case "decimal", "float":
+		return FormatDecimal(toFloat64(value))
+	case "percent", "pct":
+		return FormatPercent(toFloat64(value))
+	case "bytes", "size":
+		return FormatBytes(toInt64(value))
+	case "ordinal", "ord":
+		return FormatOrdinal(toInt(value))
+	case "ago":
+		if len(args) > 0 {
+			if unit, ok := args[0].(string); ok {
+				return FormatAgo(toInt(value), unit)
+			}
+		}
+	}
 	return T("i18n.numeric."+format, append([]any{value}, args...)...)
 }
 
