@@ -279,7 +279,7 @@ func filterNilHandlers(handlers []KeyHandler) []KeyHandler {
 	if len(handlers) == 0 {
 		return nil
 	}
-	filtered := handlers[:0]
+	filtered := make([]KeyHandler, 0, len(handlers))
 	for _, h := range handlers {
 		if h != nil {
 			filtered = append(filtered, h)
