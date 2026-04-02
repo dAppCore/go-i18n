@@ -8,6 +8,8 @@ import (
 // copy-safe snapshot.
 type ServiceState struct {
 	Language           string
+	RequestedLanguage  string
+	LanguageExplicit   bool
 	AvailableLanguages []string
 	Mode               Mode
 	Fallback           string
@@ -38,8 +40,10 @@ func (s ServiceState) String() string {
 		handlers = "[" + core.Join(", ", names...) + "]"
 	}
 	return core.Sprintf(
-		"ServiceState{language=%q fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d types=%s}",
+		"ServiceState{language=%q requested=%q explicit=%t fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d types=%s}",
 		s.Language,
+		s.RequestedLanguage,
+		s.LanguageExplicit,
 		s.Fallback,
 		s.Mode,
 		s.Formality,
@@ -57,6 +61,8 @@ func (s *Service) State() ServiceState {
 	if s == nil {
 		return ServiceState{
 			Language:           "en",
+			RequestedLanguage:  "",
+			LanguageExplicit:   false,
 			AvailableLanguages: []string{},
 			Mode:               ModeNormal,
 			Fallback:           "en",
@@ -85,6 +91,8 @@ func (s *Service) State() ServiceState {
 
 	return ServiceState{
 		Language:           s.currentLang,
+		RequestedLanguage:  s.requestedLang,
+		LanguageExplicit:   s.languageExplicit,
 		AvailableLanguages: langs,
 		Mode:               s.mode,
 		Fallback:           s.fallbackLang,

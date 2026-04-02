@@ -193,6 +193,12 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	if got, want := svc.CurrentState(), svc.State(); len(got.AvailableLanguages) != len(want.AvailableLanguages) || len(got.Handlers) != len(want.Handlers) {
 		t.Fatalf("CurrentState() = %+v, want %+v", got, want)
 	}
+	if got, want := svc.CurrentState().RequestedLanguage, svc.State().RequestedLanguage; got != want {
+		t.Fatalf("CurrentState().RequestedLanguage = %q, want %q", got, want)
+	}
+	if got, want := svc.CurrentState().LanguageExplicit, svc.State().LanguageExplicit; got != want {
+		t.Fatalf("CurrentState().LanguageExplicit = %t, want %t", got, want)
+	}
 }
 
 func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
@@ -249,6 +255,8 @@ func TestServiceStateString(t *testing.T) {
 	for _, want := range []string{
 		"ServiceState{",
 		"language=",
+		"requested=",
+		"explicit=",
 		"fallback=",
 		"mode=",
 		"available=",

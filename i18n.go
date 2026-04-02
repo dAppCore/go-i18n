@@ -182,6 +182,8 @@ func CurrentDebug() bool {
 func State() ServiceState {
 	return defaultServiceValue(ServiceState{
 		Language:           "en",
+		RequestedLanguage:  "",
+		LanguageExplicit:   false,
 		AvailableLanguages: []string{},
 		Mode:               ModeNormal,
 		Fallback:           "en",
