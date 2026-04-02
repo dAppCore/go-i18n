@@ -10,17 +10,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testLocaleProvider struct {
+	sources []FSSource
+}
+
+func (p testLocaleProvider) LocaleSources() []FSSource {
+	return p.sources
+}
+
 func TestRegisterLocales_Good(t *testing.T) {
 	// Save and restore registered locales state
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = nil
+	registeredLocaleProviders = nil
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 	}()
@@ -39,6 +50,41 @@ func TestRegisterLocales_Good(t *testing.T) {
 	assert.Equal(t, 1, count, "should have 1 registered locale")
 }
 
+func TestRegisterLocaleProvider_Good(t *testing.T) {
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	registeredLocaleProviders = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"provider.loaded": "loaded from provider"}`),
+		},
+	}
+
+	RegisterLocaleProvider(testLocaleProvider{
+		sources: []FSSource{{FS: fs, Dir: "locales"}},
+	})
+
+	got := svc.T("provider.loaded")
+	assert.Equal(t, "loaded from provider", got)
+}
+
 func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
 	// When localesLoaded is true, RegisterLocales should also call LoadFS immediately
 	svc, err := New()
@@ -49,13 +95,16 @@ func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
 	// Save and restore state
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = nil
+	registeredLocaleProviders = nil
 	localesLoaded = true // Simulate already loaded
 	registeredLocalesMu.Unlock()
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 	}()
@@ -81,13 +130,16 @@ func TestRegisterLocales_Good_WithInitializedDefaultService(t *testing.T) {
 
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = nil
+	registeredLocaleProviders = nil
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 	}()
@@ -107,13 +159,16 @@ func TestRegisterLocales_Good_WithInitializedDefaultService(t *testing.T) {
 func TestSetDefault_Good_LoadsQueuedRegisteredLocales(t *testing.T) {
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = nil
+	registeredLocaleProviders = nil
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 	}()
@@ -137,8 +192,10 @@ func TestInit_LoadsRegisteredLocales(t *testing.T) {
 	// Save and restore global service state.
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = nil
+	registeredLocaleProviders = nil
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 
@@ -148,6 +205,7 @@ func TestInit_LoadsRegisteredLocales(t *testing.T) {
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 		defaultService.Store(nil)
@@ -211,6 +269,7 @@ func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = nil
 	localesLoaded = false
@@ -222,6 +281,7 @@ func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 		defaultService.Store(nil)
@@ -250,6 +310,7 @@ func TestLoadRegisteredLocales_Good(t *testing.T) {
 	// Save and restore state
 	registeredLocalesMu.Lock()
 	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
 	savedLoaded := localesLoaded
 	registeredLocales = []localeRegistration{
 		{
@@ -261,11 +322,13 @@ func TestLoadRegisteredLocales_Good(t *testing.T) {
 			dir: "loc",
 		},
 	}
+	registeredLocaleProviders = nil
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 	defer func() {
 		registeredLocalesMu.Lock()
 		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 	}()

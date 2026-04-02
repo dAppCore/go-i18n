@@ -20,10 +20,16 @@ type localeRegistration struct {
 	dir  string
 }
 
+// LocaleProvider supplies one or more locale filesystems to the default service.
+type LocaleProvider interface {
+	LocaleSources() []FSSource
+}
+
 var (
-	registeredLocales   []localeRegistration
-	registeredLocalesMu sync.Mutex
-	localesLoaded       bool
+	registeredLocales        []localeRegistration
+	registeredLocaleProviders []LocaleProvider
+	registeredLocalesMu      sync.Mutex
+	localesLoaded            bool
 )
 
 // RegisterLocales registers a filesystem containing locale files.
@@ -46,15 +52,50 @@ func RegisterLocales(fsys fs.FS, dir string) {
 	}
 }
 
+// RegisterLocaleProvider registers a provider that can contribute locale files.
+// This is useful for packages that need to expose multiple locale sources as a
+// single unit.
+func RegisterLocaleProvider(provider LocaleProvider) {
+	if provider == nil {
+		return
+	}
+	registeredLocalesMu.Lock()
+	registeredLocaleProviders = append(registeredLocaleProviders, provider)
+	registeredLocalesMu.Unlock()
+	if svc := defaultService.Load(); svc != nil {
+		loadLocaleProvider(svc, provider)
+	}
+}
+
 func loadRegisteredLocales(svc *Service) {
 	registeredLocalesMu.Lock()
-	defer registeredLocalesMu.Unlock()
-	for _, reg := range registeredLocales {
+	locales := append([]localeRegistration(nil), registeredLocales...)
+	providers := append([]LocaleProvider(nil), registeredLocaleProviders...)
+	registeredLocalesMu.Unlock()
+
+	for _, reg := range locales {
 		if err := svc.LoadFS(reg.fsys, reg.dir); err != nil {
 			log.Printf("i18n: loadRegisteredLocales failed to load %q: %v", reg.dir, err)
 		}
 	}
+	for _, provider := range providers {
+		loadLocaleProvider(svc, provider)
+	}
+
+	registeredLocalesMu.Lock()
 	localesLoaded = true
+	registeredLocalesMu.Unlock()
+}
+
+func loadLocaleProvider(svc *Service, provider LocaleProvider) {
+	if svc == nil || provider == nil {
+		return
+	}
+	for _, src := range provider.LocaleSources() {
+		if err := svc.LoadFS(src.FS, src.Dir); err != nil {
+			log.Printf("i18n: loadLocaleProvider failed to load %q: %v", src.Dir, err)
+		}
+	}
 }
 
 // OnMissingKey registers a handler for missing translation keys.
