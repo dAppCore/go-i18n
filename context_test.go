@@ -14,6 +14,7 @@ func TestC_Good(t *testing.T) {
 	require.NotNil(t, ctx)
 	assert.Equal(t, "navigation", ctx.Context)
 	assert.Equal(t, "navigation", ctx.ContextString())
+	assert.Equal(t, "navigation", ctx.String())
 }
 
 func TestC_Good_EmptyContext(t *testing.T) {
