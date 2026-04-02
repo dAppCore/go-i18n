@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"maps"
+	"strconv"
 	"strings"
 	"text/template"
 	"unicode"
@@ -742,7 +743,7 @@ func renderWordOrTitle(lang, word string) string {
 
 // Quote wraps a string in double quotes.
 func Quote(s string) string {
-	return `"` + s + `"`
+	return strconv.Quote(s)
 }
 
 // ArticlePhrase prefixes a noun phrase with the correct article.
