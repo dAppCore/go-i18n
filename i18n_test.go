@@ -150,6 +150,15 @@ func TestSetLanguage_Good_UnderscoreTag(t *testing.T) {
 	assert.Equal(t, "fr", CurrentLanguage()[:2])
 }
 
+func TestLanguage_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentLanguage(), Language())
+}
+
 func TestSetLanguage_Bad_Unsupported(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
@@ -200,6 +209,28 @@ func TestCurrentAvailableLanguages_Good(t *testing.T) {
 	langs := CurrentAvailableLanguages()
 	require.NotEmpty(t, langs)
 	assert.Equal(t, svc.AvailableLanguages(), langs)
+}
+
+func TestFallback_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, "en", Fallback())
+
+	SetFallback("fr")
+	assert.Equal(t, "fr", Fallback())
+}
+
+func TestDebug_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.False(t, Debug())
+
+	SetDebug(true)
+	assert.True(t, Debug())
 }
 
 // --- SetMode / CurrentMode ---

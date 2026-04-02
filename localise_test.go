@@ -188,6 +188,19 @@ func TestCurrentLocation_Good(t *testing.T) {
 	assert.Equal(t, "workspace", CurrentLocation())
 }
 
+// --- Package-level Location ---
+
+func TestLocation_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentLocation(), Location())
+
+	SetLocation("workspace")
+	assert.Equal(t, CurrentLocation(), Location())
+}
+
 // --- Package-level Direction ---
 
 func TestDirection_Good(t *testing.T) {

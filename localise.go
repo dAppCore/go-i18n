@@ -91,6 +91,15 @@ func SetLocation(location string) {
 //
 //	location := i18n.CurrentLocation()
 func CurrentLocation() string {
+	return Location()
+}
+
+// Location returns the current default location context.
+//
+// Example:
+//
+//	location := i18n.Location()
+func Location() string {
 	return defaultServiceValue("", func(svc *Service) string {
 		return svc.Location()
 	})

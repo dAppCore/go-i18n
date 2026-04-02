@@ -65,6 +65,15 @@ func SetLanguage(lang string) error {
 //
 //	lang := i18n.CurrentLanguage()
 func CurrentLanguage() string {
+	return Language()
+}
+
+// Language returns the current language code.
+//
+// Example:
+//
+//	lang := i18n.Language()
+func Language() string {
 	return defaultServiceValue("en", func(svc *Service) string {
 		return svc.Language()
 	})
@@ -113,6 +122,17 @@ func SetFallback(lang string) {
 	withDefaultService(func(svc *Service) { svc.SetFallback(lang) })
 }
 
+// Fallback returns the current fallback language.
+//
+// Example:
+//
+//	fallback := i18n.Fallback()
+func Fallback() string {
+	return defaultServiceValue("en", func(svc *Service) string {
+		return svc.Fallback()
+	})
+}
+
 // CurrentMode returns the current translation mode.
 //
 // Example:
@@ -152,6 +172,15 @@ func CurrentFormality() Formality {
 //
 //	debug := i18n.CurrentDebug()
 func CurrentDebug() bool {
+	return Debug()
+}
+
+// Debug reports whether debug mode is enabled on the default service.
+//
+// Example:
+//
+//	debug := i18n.Debug()
+func Debug() bool {
 	return defaultServiceValue(false, func(svc *Service) bool {
 		return svc.Debug()
 	})
