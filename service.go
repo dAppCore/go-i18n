@@ -890,17 +890,37 @@ func missingKeyArgs(args []any) map[string]any {
 	if len(args) == 0 {
 		return nil
 	}
-	switch v := args[0].(type) {
-	case map[string]any:
-		return v
-	case map[string]string:
-		return contextMapValues(v)
-	case *TranslationContext:
-		return missingKeyContextArgs(v)
-	case *Subject:
-		return missingKeySubjectArgs(v)
-	default:
+	result := make(map[string]any)
+	for _, arg := range args {
+		mergeMissingKeyArgs(result, arg)
+	}
+	if len(result) == 0 {
 		return nil
+	}
+	return result
+}
+
+func mergeMissingKeyArgs(dst map[string]any, value any) {
+	if dst == nil || value == nil {
+		return
+	}
+	switch v := value.(type) {
+	case map[string]any:
+		for key, item := range contextMapValuesAny(v) {
+			dst[key] = item
+		}
+	case map[string]string:
+		for key, item := range contextMapValuesString(v) {
+			dst[key] = item
+		}
+	case *TranslationContext:
+		for key, item := range missingKeyContextArgs(v) {
+			dst[key] = item
+		}
+	case *Subject:
+		for key, item := range missingKeySubjectArgs(v) {
+			dst[key] = item
+		}
 	}
 }
 

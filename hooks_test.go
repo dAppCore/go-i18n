@@ -723,6 +723,28 @@ func TestOnMissingKey_Good_TranslationContextArgs(t *testing.T) {
 	assert.Equal(t, FormalityFormal, captured.Args["Formality"])
 }
 
+func TestOnMissingKey_Good_MergesAdditionalArgs(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	var captured MissingKey
+	OnMissingKey(func(m MissingKey) {
+		captured = m
+	})
+
+	_ = T("missing.extra.args", S("file", "config.yaml"), map[string]any{"trace": "abc123"})
+
+	assert.Equal(t, "missing.extra.args", captured.Key)
+	assert.Equal(t, "config.yaml", captured.Args["Subject"])
+	assert.Equal(t, "abc123", captured.Args["trace"])
+}
+
 func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
 	// Reset to the empty handler set.
 	OnMissingKey(nil)
