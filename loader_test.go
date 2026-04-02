@@ -624,3 +624,38 @@ func TestCustomFSLoader(t *testing.T) {
 		t.Errorf("signal priors not loaded correctly: %+v", gd.Signals.Priors["draft"])
 	}
 }
+
+func TestCustomFSLoaderPreservesZeroSignalPriors(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/test.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"signal": {
+						"prior": {
+							"commit": { "verb": 0, "noun": 1 }
+						}
+					}
+				}
+			}`),
+		},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	_, grammar, err := loader.Load("test")
+	if err != nil {
+		t.Fatalf("Load(test) failed: %v", err)
+	}
+	if grammar == nil {
+		t.Fatal("expected grammar data")
+	}
+	bucket, ok := grammar.Signals.Priors["commit"]
+	if !ok {
+		t.Fatal("signal priors for commit were not loaded")
+	}
+	if got := bucket["verb"]; got != 0 {
+		t.Fatalf("signal priors verb = %v, want 0", got)
+	}
+	if got := bucket["noun"]; got != 1 {
+		t.Fatalf("signal priors noun = %v, want 1", got)
+	}
+}
