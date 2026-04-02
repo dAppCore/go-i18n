@@ -259,6 +259,9 @@ func contextArgText(values any) string {
 // RunHandlerChain executes a chain of handlers for a key.
 func RunHandlerChain(handlers []KeyHandler, key string, args []any, fallback func() string) string {
 	for i, h := range handlers {
+		if h == nil {
+			continue
+		}
 		if h.Match(key) {
 			next := func() string {
 				remaining := handlers[i+1:]
@@ -271,6 +274,22 @@ func RunHandlerChain(handlers []KeyHandler, key string, args []any, fallback fun
 		}
 	}
 	return fallback()
+}
+
+func filterNilHandlers(handlers []KeyHandler) []KeyHandler {
+	if len(handlers) == 0 {
+		return nil
+	}
+	filtered := handlers[:0]
+	for _, h := range handlers {
+		if h != nil {
+			filtered = append(filtered, h)
+		}
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
+	return filtered
 }
 
 var (
