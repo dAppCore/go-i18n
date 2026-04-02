@@ -238,7 +238,7 @@ func SetHandlers(handlers ...KeyHandler) {
 //	func init() { i18n.LoadFS(localeFS, "locales") }
 func LoadFS(fsys fs.FS, dir string) {
 	withDefaultService(func(svc *Service) {
-		if err := svc.LoadFS(fsys, dir); err != nil {
+		if err := svc.AddLoader(NewFSLoader(fsys, dir)); err != nil {
 			log.Error("i18n: LoadFS failed", "dir", dir, "err", err)
 		}
 	})
