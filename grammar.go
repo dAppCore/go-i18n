@@ -380,6 +380,9 @@ func applyRegularPastTense(verb string) string {
 			return verb[:len(verb)-1] + "ied"
 		}
 	}
+	if core.HasSuffix(verb, "c") {
+		return verb + "ked"
+	}
 	if len(verb) >= 2 && shouldDoubleConsonant(verb) {
 		return verb + string(verb[len(verb)-1]) + "ed"
 	}
@@ -436,6 +439,9 @@ func applyRegularGerund(verb string) string {
 		if secondLast != 'e' && secondLast != 'y' && secondLast != 'o' {
 			return verb[:len(verb)-1] + "ing"
 		}
+	}
+	if core.HasSuffix(verb, "c") {
+		return verb + "king"
 	}
 	if shouldDoubleConsonant(verb) {
 		return verb + string(verb[len(verb)-1]) + "ing"
