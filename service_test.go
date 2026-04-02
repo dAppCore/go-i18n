@@ -57,6 +57,31 @@ func (underscoreLangLoader) Load(lang string) (map[string]Message, *GrammarData,
 	}, nil, nil
 }
 
+type duplicateLangLoader struct{}
+
+func (duplicateLangLoader) Languages() []string {
+	return []string{"en_US", "en-US"}
+}
+
+func (duplicateLangLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	switch lang {
+	case "en_US":
+		return map[string]Message{
+			"first.key": {Text: "first"},
+		}, &GrammarData{
+			Words: map[string]string{"pkg": "package"},
+		}, nil
+	case "en-US":
+		return map[string]Message{
+			"second.key": {Text: "second"},
+		}, &GrammarData{
+			Words: map[string]string{"api": "API"},
+		}, nil
+	default:
+		return map[string]Message{}, nil, nil
+	}
+}
+
 func TestNewService(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -237,6 +262,35 @@ func TestNewWithLoaderNormalisesLanguageTags(t *testing.T) {
 	}
 	if got := svc.T("greeting"); got != "hello" {
 		t.Fatalf("T(greeting) after SetLanguage(en_US) = %q, want %q", got, "hello")
+	}
+}
+
+func TestNewWithLoaderMergesCanonicalDuplicateLanguages(t *testing.T) {
+	svc, err := NewWithLoader(duplicateLangLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	if err := svc.SetLanguage("en-US"); err != nil {
+		t.Fatalf("SetLanguage(en-US) failed: %v", err)
+	}
+
+	if got, want := svc.T("first.key"), "first"; got != want {
+		t.Fatalf("T(first.key) = %q, want %q", got, want)
+	}
+	if got, want := svc.T("second.key"), "second"; got != want {
+		t.Fatalf("T(second.key) = %q, want %q", got, want)
+	}
+
+	data := GetGrammarData("en-US")
+	if data == nil {
+		t.Fatal("GetGrammarData(en-US) returned nil")
+	}
+	if got, want := data.Words["pkg"], "package"; got != want {
+		t.Fatalf("grammar word pkg = %q, want %q", got, want)
+	}
+	if got, want := data.Words["api"], "API"; got != want {
+		t.Fatalf("grammar word api = %q, want %q", got, want)
 	}
 }
 

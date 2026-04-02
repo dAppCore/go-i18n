@@ -136,12 +136,28 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 			return nil, log.E("NewWithLoader", "load locale: "+lang, err)
 		}
 		lang = normalizeLanguageTag(lang)
-		s.messages[lang] = messages
+		_, seen := s.messages[lang]
+
+		if existing, ok := s.messages[lang]; ok {
+			if existing == nil {
+				existing = make(map[string]Message)
+				s.messages[lang] = existing
+			}
+			maps.Copy(existing, messages)
+		} else {
+			s.messages[lang] = messages
+		}
 		if grammarDataHasContent(grammar) {
-			SetGrammarData(lang, grammar)
+			if seen {
+				MergeGrammarData(lang, grammar)
+			} else {
+				SetGrammarData(lang, grammar)
+			}
 		}
 		tag := language.Make(lang)
-		s.availableLangs = append(s.availableLangs, tag)
+		if !slices.Contains(s.availableLangs, tag) {
+			s.availableLangs = append(s.availableLangs, tag)
+		}
 	}
 
 	if detected := detectLanguage(s.availableLangs); detected != "" {
