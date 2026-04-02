@@ -725,7 +725,7 @@ func TestActionResult(t *testing.T) {
 		{"delete", "config.yaml", "Config.yaml deleted"},
 		{"build", "project", "Project built"},
 		{"", "file", ""},
-		{"delete", "", ""},
+		{"delete", "", "Deleted"},
 	}
 
 	for _, tt := range tests {
@@ -1070,8 +1070,14 @@ func TestCompositeHelpersRespectWordMap(t *testing.T) {
 	if got, want := ProgressSubject("build", "go_mod"), "Building go.mod..."; got != want {
 		t.Fatalf("ProgressSubject(%q, %q) = %q, want %q", "build", "go_mod", got, want)
 	}
+	if got, want := ProgressSubject("build", ""), "Building..."; got != want {
+		t.Fatalf("ProgressSubject(%q, %q) = %q, want %q", "build", "", got, want)
+	}
 	if got, want := ActionResult("delete", "go_mod"), "go.mod deleted"; got != want {
 		t.Fatalf("ActionResult(%q, %q) = %q, want %q", "delete", "go_mod", got, want)
+	}
+	if got, want := ActionResult("delete", ""), "Deleted"; got != want {
+		t.Fatalf("ActionResult(%q, %q) = %q, want %q", "delete", "", got, want)
 	}
 	if got, want := ActionFailed("delete", "go_mod"), "Failed to delete go.mod"; got != want {
 		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "delete", "go_mod", got, want)

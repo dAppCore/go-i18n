@@ -820,14 +820,20 @@ func ProgressSubject(verb, subject string) string {
 		return ""
 	}
 	suffix := getPunct(lang, "progress", "...")
+	if subject == "" {
+		return Title(g) + suffix
+	}
 	return Title(g) + " " + renderWord(lang, subject) + suffix
 }
 
 // ActionResult returns a completion message: "File deleted"
 func ActionResult(verb, subject string) string {
 	p := PastTense(verb)
-	if p == "" || subject == "" {
+	if p == "" {
 		return ""
+	}
+	if subject == "" {
+		return Title(p)
 	}
 	return renderWordOrTitle(currentLangForGrammar(), subject) + " " + p
 }
