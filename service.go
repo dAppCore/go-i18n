@@ -948,8 +948,9 @@ func translateOK(messageID, value string) bool {
 	if value == "" {
 		return false
 	}
-	if strings.HasPrefix(value, "["+messageID+"] ") {
-		value = strings.TrimPrefix(value, "["+messageID+"] ")
+	prefix := "[" + messageID + "] "
+	if core.HasPrefix(value, prefix) {
+		value = core.TrimPrefix(value, prefix)
 	} else if value == "["+messageID+"]" {
 		value = ""
 	}
