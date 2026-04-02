@@ -147,3 +147,88 @@ func (s *CoreService) SetMode(mode Mode) {
 func (s *CoreService) Mode() Mode {
 	return s.svc.Mode()
 }
+
+// T translates a message through the wrapped i18n service.
+func (s *CoreService) T(messageID string, args ...any) string {
+	return s.svc.T(messageID, args...)
+}
+
+// Translate translates a message through the wrapped i18n service.
+func (s *CoreService) Translate(messageID string, args ...any) core.Result {
+	return s.svc.Translate(messageID, args...)
+}
+
+// Raw translates without namespace handler magic.
+func (s *CoreService) Raw(messageID string, args ...any) string {
+	return s.svc.Raw(messageID, args...)
+}
+
+// SetLanguage changes the wrapped service language.
+func (s *CoreService) SetLanguage(lang string) error {
+	return s.svc.SetLanguage(lang)
+}
+
+// Language returns the wrapped service language.
+func (s *CoreService) Language() string {
+	return s.svc.Language()
+}
+
+// SetFallback changes the wrapped service fallback language.
+func (s *CoreService) SetFallback(lang string) {
+	s.svc.SetFallback(lang)
+}
+
+// Fallback returns the wrapped service fallback language.
+func (s *CoreService) Fallback() string {
+	return s.svc.Fallback()
+}
+
+// SetFormality changes the wrapped service default formality.
+func (s *CoreService) SetFormality(f Formality) {
+	s.svc.SetFormality(f)
+}
+
+// Formality returns the wrapped service default formality.
+func (s *CoreService) Formality() Formality {
+	return s.svc.Formality()
+}
+
+// SetLocation changes the wrapped service default location.
+func (s *CoreService) SetLocation(location string) {
+	s.svc.SetLocation(location)
+}
+
+// Location returns the wrapped service default location.
+func (s *CoreService) Location() string {
+	return s.svc.Location()
+}
+
+// SetDebug changes the wrapped service debug mode.
+func (s *CoreService) SetDebug(enabled bool) {
+	s.svc.SetDebug(enabled)
+}
+
+// Debug reports whether wrapped service debug mode is enabled.
+func (s *CoreService) Debug() bool {
+	return s.svc.Debug()
+}
+
+// AvailableLanguages returns the wrapped service languages.
+func (s *CoreService) AvailableLanguages() []string {
+	return s.svc.AvailableLanguages()
+}
+
+// Direction returns the wrapped service text direction.
+func (s *CoreService) Direction() TextDirection {
+	return s.svc.Direction()
+}
+
+// IsRTL reports whether the wrapped service language is right-to-left.
+func (s *CoreService) IsRTL() bool {
+	return s.svc.IsRTL()
+}
+
+// PluralCategory returns the plural category for the wrapped service language.
+func (s *CoreService) PluralCategory(n int) PluralCategory {
+	return s.svc.PluralCategory(n)
+}
