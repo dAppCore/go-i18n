@@ -22,6 +22,11 @@ func TestLabelHandler(t *testing.T) {
 	if got != "Status:" {
 		t.Errorf("LabelHandler.Handle(status) = %q, want %q", got, "Status:")
 	}
+
+	got = h.Handle("i18n.label.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("LabelHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
 }
 
 func TestProgressHandler(t *testing.T) {
@@ -67,6 +72,11 @@ func TestProgressHandler(t *testing.T) {
 	got = h.Handle("i18n.progress.build", []any{map[string]string{"Subject": "project"}}, nil)
 	if got != "Building project..." {
 		t.Errorf("ProgressHandler.Handle(build, map[string]string[Subject:project]) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("ProgressHandler.Handle(empty) = %q, want %q", got, "fallback")
 	}
 }
 
@@ -117,6 +127,11 @@ func TestCountHandler(t *testing.T) {
 	if got != "3 files" {
 		t.Errorf("CountHandler.Handle(file, TranslationContext.Count=3) = %q, want %q", got, "3 files")
 	}
+
+	got = h.Handle("i18n.count.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("CountHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
 }
 
 func TestDoneHandler(t *testing.T) {
@@ -163,6 +178,11 @@ func TestDoneHandler(t *testing.T) {
 	if got != "Deleted" {
 		t.Errorf("DoneHandler.Handle(delete) = %q, want %q", got, "Deleted")
 	}
+
+	got = h.Handle("i18n.done.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("DoneHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
 }
 
 func TestFailHandler(t *testing.T) {
@@ -200,6 +220,11 @@ func TestFailHandler(t *testing.T) {
 	got = h.Handle("i18n.fail.push", nil, nil)
 	if got != "Failed to push" {
 		t.Errorf("FailHandler.Handle(push) = %q, want %q", got, "Failed to push")
+	}
+
+	got = h.Handle("i18n.fail.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("FailHandler.Handle(empty) = %q, want %q", got, "fallback")
 	}
 }
 
