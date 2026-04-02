@@ -658,6 +658,9 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		}
 	}
 	if t.isFrenchLanguage() {
+		if artType, ok := matchFrenchAttachedArticle(lower); ok {
+			return artType, true
+		}
 		switch lower {
 		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "de l'", "de l’", "de la", "les", "au", "aux", "du":
 			return "definite", true
@@ -666,6 +669,23 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		}
 	}
 
+	return "", false
+}
+
+func matchFrenchAttachedArticle(lower string) (string, bool) {
+	for _, prefix := range frenchElisionPrefixes {
+		if !strings.HasPrefix(lower, prefix) {
+			continue
+		}
+		rest := strings.TrimPrefix(lower, prefix)
+		if rest == "" {
+			continue
+		}
+		if !strings.HasPrefix(rest, "'") && !strings.HasPrefix(rest, "’") {
+			continue
+		}
+		return "definite", true
+	}
 	return "", false
 }
 
