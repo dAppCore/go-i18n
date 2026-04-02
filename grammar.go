@@ -1054,7 +1054,8 @@ func ActionFailed(verb, subject string) string {
 		return ""
 	}
 	lang := currentLangForGrammar()
-	verb = renderWord(lang, verb)
+	// Keep the failure verb in sentence case when no locale override exists.
+	verb = renderWord(lang, core.Lower(verb))
 	prefix := failedPrefix(lang)
 	subject = core.Trim(subject)
 	if subject == "" {

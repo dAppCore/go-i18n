@@ -819,6 +819,7 @@ func TestActionFailed(t *testing.T) {
 		want          string
 	}{
 		{"delete", "config.yaml", "Failed to delete config.yaml"},
+		{"Delete", "config.yaml", "Failed to delete config.yaml"},
 		{"push", "commits", "Failed to push commits"},
 		{"push", "", "Failed to push"},
 		{"", "", ""},
