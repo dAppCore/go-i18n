@@ -671,7 +671,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	if base, _ := splitTrailingPunct(word); base != "" {
 		word = base
 	}
-	lower := core.Lower(word)
+	lower := normalizeFrenchApostrophes(core.Lower(word))
 
 	if artType, ok := matchConfiguredArticleText(lower, data); ok {
 		return artType, true
@@ -705,6 +705,7 @@ func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, b
 	if data == nil {
 		return "", false
 	}
+	lower = normalizeFrenchApostrophes(lower)
 
 	if lower == core.Lower(data.Articles.IndefiniteDefault) ||
 		lower == core.Lower(data.Articles.IndefiniteVowel) {
@@ -742,6 +743,7 @@ func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, b
 }
 
 func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
+	lower = normalizeFrenchApostrophes(lower)
 	switch {
 	case lower == "le", lower == "la", lower == "les",
 		lower == "l'", lower == "l’", lower == "au", lower == "aux":
@@ -777,8 +779,9 @@ func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
 }
 
 func matchFrenchArticleText(lower string) (string, bool) {
+	lower = normalizeFrenchApostrophes(lower)
 	switch {
-	case strings.HasPrefix(lower, "de l'"), strings.HasPrefix(lower, "de l’"):
+	case strings.HasPrefix(lower, "de l'"):
 		return "indefinite", true
 	case strings.HasPrefix(lower, "de la "), strings.HasPrefix(lower, "de le "), strings.HasPrefix(lower, "de les "), strings.HasPrefix(lower, "du "), strings.HasPrefix(lower, "des "):
 		return "indefinite", true
@@ -821,6 +824,7 @@ func matchFrenchArticleText(lower string) (string, bool) {
 }
 
 func matchFrenchAttachedArticle(lower string) (string, bool) {
+	lower = normalizeFrenchApostrophes(lower)
 	for _, prefix := range frenchElisionPrefixes {
 		if !strings.HasPrefix(lower, prefix) {
 			continue
@@ -1530,7 +1534,7 @@ func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
 		return "", raw, false
 	}
 
-	lower := core.Lower(raw)
+	lower := normalizeFrenchApostrophes(core.Lower(raw))
 	if len(lower) < 2 {
 		return "", raw, false
 	}
@@ -1560,6 +1564,13 @@ func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
 func (t *Tokeniser) isFrenchLanguage() bool {
 	lang := core.Lower(t.lang)
 	return lang == "fr" || core.HasPrefix(lang, "fr-")
+}
+
+func normalizeFrenchApostrophes(s string) string {
+	if s == "" || !strings.ContainsRune(s, '’') {
+		return s
+	}
+	return strings.ReplaceAll(s, "’", "'")
 }
 
 // matchPunctuation detects known punctuation patterns.

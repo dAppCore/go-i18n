@@ -319,6 +319,7 @@ func TestTokeniser_MatchArticle_FrenchExtended(t *testing.T) {
 		{"l'enfant", "definite", true},
 		{"de l'enfant", "indefinite", true},
 		{"de l’ami", "indefinite", true},
+		{"De l’enfant", "indefinite", true},
 	}
 
 	for _, tt := range tests {
@@ -436,6 +437,29 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	}
 	if tokens[1].Lower != "enfant" {
 		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("De l’enfant.")
+	if len(tokens) != 3 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 3", "De l’enfant.", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+	if tokens[2].Type != TokenPunctuation {
+		t.Fatalf("tokens[2].Type = %v, want TokenPunctuation", tokens[2].Type)
+	}
+	if tokens[2].PunctType != "sentence_end" {
+		t.Fatalf("tokens[2].PunctType = %q, want %q", tokens[2].PunctType, "sentence_end")
 	}
 
 	tokens = tok.Tokenise("de le serveur")
