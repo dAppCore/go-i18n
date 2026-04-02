@@ -287,6 +287,28 @@ func TestCountHandler_PreservesPhraseDisplay(t *testing.T) {
 	}
 }
 
+func TestCountHandler_PluralisesLocaleNounPhrases(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.mise à jour", []any{2}, nil)
+	if got != "2 mises à jour" {
+		t.Fatalf("CountHandler.Handle(mise à jour, 2) = %q, want %q", got, "2 mises à jour")
+	}
+}
+
 func TestRunHandlerChain(t *testing.T) {
 	handlers := DefaultHandlers()
 	fallback := func() string { return "missed" }

@@ -134,6 +134,10 @@ func DefaultHandlers() []KeyHandler {
 }
 
 func countWordForm(lang, noun string, count int) string {
+	if hasGrammarCountForms(lang, noun) {
+		return Pluralize(noun, count)
+	}
+
 	display := renderWord(lang, noun)
 	if display == "" {
 		return Pluralize(noun, count)
@@ -148,6 +152,18 @@ func countWordForm(lang, noun string, count int) string {
 		return display
 	}
 	return Pluralize(display, count)
+}
+
+func hasGrammarCountForms(lang, noun string) bool {
+	data := GetGrammarData(lang)
+	if data == nil || len(data.Nouns) == 0 {
+		return false
+	}
+	forms, ok := data.Nouns[core.Lower(noun)]
+	if !ok {
+		return false
+	}
+	return forms.One != "" || forms.Other != ""
 }
 
 func isPluralisableWordDisplay(s string) bool {
