@@ -46,6 +46,8 @@ func TestFormatDecimal(t *testing.T) {
 		{1.0, "1"},
 		{1234.56, "1,234.56"},
 		{0.1, "0.1"},
+		{-0.1, "-0.1"},
+		{-1234.56, "-1,234.56"},
 	}
 
 	for _, tt := range tests {
@@ -71,6 +73,7 @@ func TestFormatPercent(t *testing.T) {
 		{1.0, "100%"},
 		{0.0, "0%"},
 		{0.333, "33.3%"},
+		{-0.1, "-10%"},
 	}
 
 	for _, tt := range tests {
@@ -163,5 +166,8 @@ func TestFormatNumberFromLocale(t *testing.T) {
 	}
 	if got := FormatPercent(0.85); got != "85 %" {
 		t.Errorf("FormatPercent(fr) = %q, want %q", got, "85 %")
+	}
+	if got := FormatDecimal(-0.1); got != "-0,1" {
+		t.Errorf("FormatDecimal(fr, negative) = %q, want %q", got, "-0,1")
 	}
 }

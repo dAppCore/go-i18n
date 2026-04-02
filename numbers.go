@@ -43,19 +43,30 @@ func FormatDecimal(f float64) string {
 // FormatDecimalN formats a float with N decimal places.
 func FormatDecimalN(f float64, decimals int) string {
 	nf := getNumberFormat()
-	intPart := int64(f)
-	fracPart := math.Abs(f - float64(intPart))
+	negative := f < 0
+	absVal := math.Abs(f)
+	intPart := int64(absVal)
+	fracPart := absVal - float64(intPart)
 	intStr := formatIntWithSep(intPart, nf.ThousandsSep)
 	if decimals <= 0 || fracPart == 0 {
+		if negative {
+			return "-" + intStr
+		}
 		return intStr
 	}
 	multiplier := math.Pow(10, float64(decimals))
 	fracInt := int64(math.Round(fracPart * multiplier))
 	if fracInt == 0 {
+		if negative {
+			return "-" + intStr
+		}
 		return intStr
 	}
 	fracStr := core.Sprintf("%0*d", decimals, fracInt)
 	fracStr = trimRight(fracStr, "0")
+	if negative {
+		return "-" + intStr + nf.DecimalSep + fracStr
+	}
 	return intStr + nf.DecimalSep + fracStr
 }
 
