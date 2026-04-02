@@ -163,6 +163,11 @@ func (s *CoreService) Raw(messageID string, args ...any) string {
 	return s.svc.Raw(messageID, args...)
 }
 
+// AddMessages adds message strings to the wrapped service.
+func (s *CoreService) AddMessages(lang string, messages map[string]string) {
+	s.svc.AddMessages(lang, messages)
+}
+
 // SetLanguage changes the wrapped service language.
 func (s *CoreService) SetLanguage(lang string) error {
 	return s.svc.SetLanguage(lang)

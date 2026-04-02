@@ -108,6 +108,23 @@ func TestLoadFS_Good(t *testing.T) {
 	assert.Equal(t, "loaded via package helper", got)
 }
 
+func TestAddMessages_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	AddMessages("en", map[string]string{
+		"add.messages.key": "loaded via package helper",
+	})
+
+	got := T("add.messages.key")
+	assert.Equal(t, "loaded via package helper", got)
+}
+
 // --- SetLanguage / CurrentLanguage ---
 
 func TestSetLanguage_Good(t *testing.T) {

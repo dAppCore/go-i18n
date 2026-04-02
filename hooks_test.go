@@ -402,6 +402,11 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 		"locales/en.json": &fstest.MapFile{Data: []byte(`{"core.service.loaded.fs": "loaded via fs"}`)},
 	}, "locales"))
 	assert.Equal(t, "loaded via fs", coreSvc.T("core.service.loaded.fs"))
+
+	coreSvc.AddMessages("en", map[string]string{
+		"core.service.add.messages": "loaded via add messages",
+	})
+	assert.Equal(t, "loaded via add messages", coreSvc.T("core.service.add.messages"))
 }
 
 func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
