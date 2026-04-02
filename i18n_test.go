@@ -316,6 +316,19 @@ func TestAddHandler_Good_SkipsNil(t *testing.T) {
 	assert.IsType(t, LabelHandler{}, handlers[0])
 }
 
+func TestAddHandler_DoesNotMutateInputSlice(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	handlers := []KeyHandler{nil, LabelHandler{}}
+	AddHandler(handlers...)
+
+	assert.Nil(t, handlers[0])
+	assert.IsType(t, LabelHandler{}, handlers[1])
+}
+
 func TestPrependHandler_Good(t *testing.T) {
 	svc, err := New(WithHandlers()) // start with no handlers
 	require.NoError(t, err)
@@ -356,6 +369,19 @@ func TestPrependHandler_Good_SkipsNil(t *testing.T) {
 	handlers := svc.Handlers()
 	require.Len(t, handlers, 1)
 	assert.IsType(t, LabelHandler{}, handlers[0])
+}
+
+func TestPrependHandler_DoesNotMutateInputSlice(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	handlers := []KeyHandler{nil, ProgressHandler{}}
+	PrependHandler(handlers...)
+
+	assert.Nil(t, handlers[0])
+	assert.IsType(t, ProgressHandler{}, handlers[1])
 }
 
 func TestClearHandlers_Good(t *testing.T) {
