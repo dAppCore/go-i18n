@@ -352,6 +352,11 @@ func (s *Service) Language() string {
 	return s.currentLang
 }
 
+// CurrentLanguage returns the current language tag.
+func (s *Service) CurrentLanguage() string {
+	return s.Language()
+}
+
 func (s *Service) AvailableLanguages() []string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -363,10 +368,19 @@ func (s *Service) AvailableLanguages() []string {
 	return langs
 }
 
+// CurrentAvailableLanguages returns the current language tags.
+func (s *Service) CurrentAvailableLanguages() []string {
+	return s.AvailableLanguages()
+}
+
 func (s *Service) SetMode(m Mode)           { s.mu.Lock(); s.mode = m; s.mu.Unlock() }
 func (s *Service) Mode() Mode               { s.mu.RLock(); defer s.mu.RUnlock(); return s.mode }
+func (s *Service) CurrentMode() Mode        { return s.Mode() }
 func (s *Service) SetFormality(f Formality) { s.mu.Lock(); s.formality = f; s.mu.Unlock() }
 func (s *Service) Formality() Formality     { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
+func (s *Service) CurrentFormality() Formality {
+	return s.Formality()
+}
 func (s *Service) SetFallback(lang string) {
 	s.mu.Lock()
 	s.fallbackLang = normalizeLanguageTag(lang)
@@ -377,6 +391,7 @@ func (s *Service) Fallback() string {
 	defer s.mu.RUnlock()
 	return s.fallbackLang
 }
+func (s *Service) CurrentFallback() string { return s.Fallback() }
 
 func (s *Service) SetLocation(location string) {
 	s.mu.Lock()
@@ -390,6 +405,11 @@ func (s *Service) Location() string {
 	return s.location
 }
 
+// CurrentLocation returns the current default location context.
+func (s *Service) CurrentLocation() string {
+	return s.Location()
+}
+
 func (s *Service) Direction() TextDirection {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -399,12 +419,25 @@ func (s *Service) Direction() TextDirection {
 	return DirLTR
 }
 
+// CurrentDirection returns the current text direction.
+func (s *Service) CurrentDirection() TextDirection {
+	return s.Direction()
+}
+
 func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
+func (s *Service) CurrentDebug() bool {
+	return s.Debug()
+}
 
 func (s *Service) PluralCategory(n int) PluralCategory {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return GetPluralCategory(s.currentLang, n)
+}
+
+// CurrentPluralCategory returns the plural category for the current language.
+func (s *Service) CurrentPluralCategory(n int) PluralCategory {
+	return s.PluralCategory(n)
 }
 
 func joinAvailableLanguagesLocked(tags []language.Tag) string {
@@ -461,6 +494,11 @@ func (s *Service) Handlers() []KeyHandler {
 	result := make([]KeyHandler, len(s.handlers))
 	copy(result, s.handlers)
 	return result
+}
+
+// CurrentHandlers returns a copy of the current handler chain.
+func (s *Service) CurrentHandlers() []KeyHandler {
+	return s.Handlers()
 }
 
 // T translates a message by its ID with handler chain support.

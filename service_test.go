@@ -133,6 +133,50 @@ func TestNewServiceAliases(t *testing.T) {
 	}
 }
 
+func TestServiceCurrentStateAliases(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	svc.SetFallback("fr")
+	svc.SetMode(ModeCollect)
+	svc.SetFormality(FormalityFormal)
+	svc.SetLocation("workspace")
+	svc.SetDebug(true)
+
+	if got, want := svc.CurrentLanguage(), svc.Language(); got != want {
+		t.Fatalf("CurrentLanguage() = %q, want %q", got, want)
+	}
+	if got, want := svc.CurrentAvailableLanguages(), svc.AvailableLanguages(); !slices.Equal(got, want) {
+		t.Fatalf("CurrentAvailableLanguages() = %v, want %v", got, want)
+	}
+	if got, want := svc.CurrentMode(), svc.Mode(); got != want {
+		t.Fatalf("CurrentMode() = %v, want %v", got, want)
+	}
+	if got, want := svc.CurrentFallback(), svc.Fallback(); got != want {
+		t.Fatalf("CurrentFallback() = %q, want %q", got, want)
+	}
+	if got, want := svc.CurrentFormality(), svc.Formality(); got != want {
+		t.Fatalf("CurrentFormality() = %v, want %v", got, want)
+	}
+	if got, want := svc.CurrentLocation(), svc.Location(); got != want {
+		t.Fatalf("CurrentLocation() = %q, want %q", got, want)
+	}
+	if got, want := svc.CurrentDirection(), svc.Direction(); got != want {
+		t.Fatalf("CurrentDirection() = %v, want %v", got, want)
+	}
+	if got, want := svc.CurrentPluralCategory(2), svc.PluralCategory(2); got != want {
+		t.Fatalf("CurrentPluralCategory() = %v, want %v", got, want)
+	}
+	if got, want := svc.CurrentDebug(), svc.Debug(); got != want {
+		t.Fatalf("CurrentDebug() = %v, want %v", got, want)
+	}
+	if got, want := svc.CurrentHandlers(), svc.Handlers(); len(got) != len(want) {
+		t.Fatalf("CurrentHandlers() len = %d, want %d", len(got), len(want))
+	}
+}
+
 func TestServiceAvailableLanguagesSorted(t *testing.T) {
 	svc, err := NewWithLoader(messageBaseFallbackLoader{})
 	if err != nil {
