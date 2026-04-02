@@ -57,6 +57,7 @@ func (g GrammaticalGender) String() string {
 
 // IsRTLLanguage returns true if the language code uses right-to-left text.
 func IsRTLLanguage(lang string) bool {
+	lang = normalizeLanguageTag(lang)
 	if rtlLanguages[lang] {
 		return true
 	}
@@ -110,8 +111,7 @@ func detectLanguage(supported []language.Tag) string {
 	if langEnv == "" {
 		return ""
 	}
-	baseLang := core.Split(langEnv, ".")[0]
-	baseLang = core.Replace(baseLang, "_", "-")
+	baseLang := normalizeLanguageTag(core.Split(langEnv, ".")[0])
 	parsedLang, err := language.Parse(baseLang)
 	if err != nil {
 		return ""
@@ -128,4 +128,12 @@ func detectLanguage(supported []language.Tag) string {
 		return bestMatch.String()
 	}
 	return ""
+}
+
+func normalizeLanguageTag(lang string) string {
+	lang = core.Trim(lang)
+	if lang == "" {
+		return ""
+	}
+	return core.Replace(lang, "_", "-")
 }

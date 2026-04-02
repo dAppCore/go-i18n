@@ -2,6 +2,7 @@ package i18n
 
 // GetPluralRule returns the plural rule for a language code.
 func GetPluralRule(lang string) PluralRule {
+	lang = normalizeLanguageTag(lang)
 	if rule, ok := pluralRules[lang]; ok {
 		return rule
 	}

@@ -12,11 +12,13 @@ func TestGetPluralCategory(t *testing.T) {
 		{"en", 0, PluralOther},
 		{"en", 1, PluralOne},
 		{"en", 2, PluralOther},
+		{"en_US", 1, PluralOne},
 
 		// French (0 and 1 are singular)
 		{"fr", 0, PluralOne},
 		{"fr", 1, PluralOne},
 		{"fr", 2, PluralOther},
+		{"fr_CA", 2, PluralOther},
 
 		// Russian
 		{"ru", 1, PluralOne},
@@ -86,6 +88,11 @@ func TestGetPluralRule(t *testing.T) {
 	rule = GetPluralRule("cy-GB")
 	if rule(2) != PluralTwo {
 		t.Error("Welsh-GB rule(2) should be PluralTwo")
+	}
+
+	rule = GetPluralRule("en_US")
+	if rule(1) != PluralOne {
+		t.Error("English_US rule(1) should be PluralOne")
 	}
 
 	// Unknown falls back to English

@@ -75,6 +75,18 @@ func TestSetLanguage_Good(t *testing.T) {
 	assert.Contains(t, CurrentLanguage(), "en")
 }
 
+func TestSetLanguage_Good_UnderscoreTag(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	err = SetLanguage("fr_CA")
+	assert.NoError(t, err)
+	assert.True(t, len(CurrentLanguage()) >= 2)
+	assert.Equal(t, "fr", CurrentLanguage()[:2])
+}
+
 func TestSetLanguage_Bad_Unsupported(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)

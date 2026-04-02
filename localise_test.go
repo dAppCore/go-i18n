@@ -88,6 +88,7 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 	}{
 		{"arabic", "ar", true},
 		{"arabic_sa", "ar-SA", true},
+		{"arabic_sa_underscore", "ar_EG", true},
 		{"hebrew", "he", true},
 		{"farsi", "fa", true},
 		{"urdu", "ur", true},

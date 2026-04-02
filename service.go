@@ -231,6 +231,7 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 func (s *Service) SetLanguage(lang string) error {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	lang = normalizeLanguageTag(lang)
 	requestedLang, err := language.Parse(lang)
 	if err != nil {
 		return log.E("Service.SetLanguage", "invalid language tag: "+lang, err)
