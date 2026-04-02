@@ -10,6 +10,23 @@ func S(noun string, value any) *Subject {
 	return &Subject{Noun: noun, Value: value, count: 1}
 }
 
+// ComposeIntent renders an intent's templates into concrete output.
+func ComposeIntent(intent Intent, subject *Subject) Composed {
+	return intent.Compose(subject)
+}
+
+// Compose renders an intent's templates into concrete output.
+func (i Intent) Compose(subject *Subject) Composed {
+	data := newTemplateData(subject)
+	return Composed{
+		Question: executeIntentTemplate(i.Question, data),
+		Confirm:  executeIntentTemplate(i.Confirm, data),
+		Success:  executeIntentTemplate(i.Success, data),
+		Failure:  executeIntentTemplate(i.Failure, data),
+		Meta:     i.Meta,
+	}
+}
+
 func (s *Subject) Count(n int) *Subject {
 	if s == nil {
 		return nil
@@ -68,12 +85,37 @@ func (s *Subject) String() string {
 	return fmt.Sprint(s.Value)
 }
 
-func (s *Subject) IsPlural() bool  { return s != nil && s.count != 1 }
-func (s *Subject) CountInt() int   { if s == nil { return 1 }; return s.count }
-func (s *Subject) CountString() string { if s == nil { return "1" }; return fmt.Sprint(s.count) }
-func (s *Subject) GenderString() string { if s == nil { return "" }; return s.gender }
-func (s *Subject) LocationString() string { if s == nil { return "" }; return s.location }
-func (s *Subject) NounString() string { if s == nil { return "" }; return s.Noun }
+func (s *Subject) IsPlural() bool { return s != nil && s.count != 1 }
+func (s *Subject) CountInt() int {
+	if s == nil {
+		return 1
+	}
+	return s.count
+}
+func (s *Subject) CountString() string {
+	if s == nil {
+		return "1"
+	}
+	return fmt.Sprint(s.count)
+}
+func (s *Subject) GenderString() string {
+	if s == nil {
+		return ""
+	}
+	return s.gender
+}
+func (s *Subject) LocationString() string {
+	if s == nil {
+		return ""
+	}
+	return s.location
+}
+func (s *Subject) NounString() string {
+	if s == nil {
+		return ""
+	}
+	return s.Noun
+}
 func (s *Subject) FormalityString() string {
 	if s == nil {
 		return FormalityNeutral.String()

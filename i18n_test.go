@@ -293,6 +293,43 @@ func TestExecuteIntentTemplate_Good_WithFuncs(t *testing.T) {
 	assert.Equal(t, "built!", got)
 }
 
+func TestComposeIntent_Good(t *testing.T) {
+	intent := Intent{
+		Meta: IntentMeta{
+			Type:      "action",
+			Verb:      "delete",
+			Dangerous: true,
+			Default:   "no",
+			Supports:  []string{"yes", "no"},
+		},
+		Question: "Delete {{.Subject}}?",
+		Confirm:  "Really delete {{article .Subject}}?",
+		Success:  "{{title .Subject}} deleted",
+		Failure:  "Failed to delete {{lower .Subject}}",
+	}
+
+	got := ComposeIntent(intent, S("file", "config.yaml"))
+
+	assert.Equal(t, "Delete config.yaml?", got.Question)
+	assert.Equal(t, "Really delete a config.yaml?", got.Confirm)
+	assert.Equal(t, "Config.yaml deleted", got.Success)
+	assert.Equal(t, "Failed to delete config.yaml", got.Failure)
+	assert.Equal(t, intent.Meta, got.Meta)
+}
+
+func TestIntentCompose_Good_NilSubject(t *testing.T) {
+	intent := Intent{
+		Question: "Proceed?",
+	}
+
+	got := intent.Compose(nil)
+
+	assert.Equal(t, "Proceed?", got.Question)
+	assert.Empty(t, got.Confirm)
+	assert.Empty(t, got.Success)
+	assert.Empty(t, got.Failure)
+}
+
 // --- applyTemplate ---
 
 func TestApplyTemplate_Good(t *testing.T) {
