@@ -104,6 +104,7 @@ func TestPastTense(t *testing.T) {
 		{"push", "pushed"},
 		{"pull", "pulled"},
 		{"start", "started"},
+		{"panic", "panicked"},
 		{"copy", "copied"},
 		{"apply", "applied"},
 
@@ -170,6 +171,7 @@ func TestGerund(t *testing.T) {
 		{"push", "pushing"},
 		{"pull", "pulling"},
 		{"start", "starting"},
+		{"panic", "panicking"},
 		{"die", "dying"},
 
 		// Edge cases
