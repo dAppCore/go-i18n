@@ -545,17 +545,46 @@ func (s *Service) handleMissingKey(key string, args []any) string {
 	case ModeStrict:
 		panic(core.Sprintf("i18n: missing translation key %q", key))
 	case ModeCollect:
-		var argsMap map[string]any
-		if len(args) > 0 {
-			if m, ok := args[0].(map[string]any); ok {
-				argsMap = m
-			}
-		}
+		argsMap := missingKeyArgs(args)
 		dispatchMissingKey(key, argsMap)
 		return "[" + key + "]"
 	default:
 		return key
 	}
+}
+
+func missingKeyArgs(args []any) map[string]any {
+	if len(args) == 0 {
+		return nil
+	}
+	switch v := args[0].(type) {
+	case map[string]any:
+		return v
+	case *TranslationContext:
+		return missingKeyContextArgs(v)
+	case *Subject:
+		return missingKeySubjectArgs(v)
+	default:
+		return nil
+	}
+}
+
+func missingKeyContextArgs(ctx *TranslationContext) map[string]any {
+	if ctx == nil {
+		return nil
+	}
+	data := templateDataForRendering(ctx)
+	result, _ := data.(map[string]any)
+	return result
+}
+
+func missingKeySubjectArgs(subj *Subject) map[string]any {
+	if subj == nil {
+		return nil
+	}
+	data := templateDataForRendering(subj)
+	result, _ := data.(map[string]any)
+	return result
 }
 
 // Raw translates without i18n.* namespace magic.

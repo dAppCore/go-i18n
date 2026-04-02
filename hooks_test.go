@@ -208,6 +208,55 @@ func TestOnMissingKey_Good(t *testing.T) {
 	assert.Equal(t, "hooks_test.go", filepath.Base(captured.CallerFile))
 }
 
+func TestOnMissingKey_Good_SubjectArgs(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	var captured MissingKey
+	OnMissingKey(func(m MissingKey) {
+		captured = m
+	})
+
+	_ = T("missing.subject.key", S("file", "config.yaml").Count(3).In("workspace").Formal())
+
+	assert.Equal(t, "missing.subject.key", captured.Key)
+	assert.Equal(t, "config.yaml", captured.Args["Subject"])
+	assert.Equal(t, "file", captured.Args["Noun"])
+	assert.Equal(t, 3, captured.Args["Count"])
+	assert.Equal(t, "workspace", captured.Args["Location"])
+	assert.Equal(t, FormalityFormal, captured.Args["Formality"])
+}
+
+func TestOnMissingKey_Good_TranslationContextArgs(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	var captured MissingKey
+	OnMissingKey(func(m MissingKey) {
+		captured = m
+	})
+
+	_ = T("missing.context.key", C("navigation").WithGender("feminine").In("workspace").Formal())
+
+	assert.Equal(t, "missing.context.key", captured.Key)
+	assert.Equal(t, "navigation", captured.Args["Context"])
+	assert.Equal(t, "feminine", captured.Args["Gender"])
+	assert.Equal(t, "workspace", captured.Args["Location"])
+	assert.Equal(t, FormalityFormal, captured.Args["Formality"])
+}
+
 func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
 	// Store nil handler (using correct type)
 	missingKeyHandler.Store(MissingKeyHandler(nil))
