@@ -268,6 +268,19 @@ func (s *CoreService) CurrentDebug() bool {
 	return s.Debug()
 }
 
+// State returns a copy-safe snapshot of the wrapped service configuration.
+func (s *CoreService) State() ServiceState {
+	if s == nil || s.svc == nil {
+		return State()
+	}
+	return s.svc.State()
+}
+
+// CurrentState is a more explicit alias for State.
+func (s *CoreService) CurrentState() ServiceState {
+	return s.State()
+}
+
 // AddHandler appends handlers to the wrapped service's chain.
 func (s *CoreService) AddHandler(handlers ...KeyHandler) {
 	s.svc.AddHandler(handlers...)

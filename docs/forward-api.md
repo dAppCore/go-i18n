@@ -47,6 +47,7 @@ The API exposes `Current*` aliases for the most common service getters so call s
 - `CurrentDebug()`
 - `CurrentHandlers()`
 - `CurrentPrompt()`
+- `State()` / `CurrentState()` snapshot of the full service configuration
 
 ### Options
 

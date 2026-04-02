@@ -178,6 +178,28 @@ func CurrentDebug() bool {
 	return Debug()
 }
 
+// State returns a copy-safe snapshot of the default service configuration.
+func State() ServiceState {
+	return defaultServiceValue(ServiceState{
+		Language:           "en",
+		AvailableLanguages: []string{},
+		Mode:               ModeNormal,
+		Fallback:           "en",
+		Formality:          FormalityNeutral,
+		Direction:          DirLTR,
+		IsRTL:              false,
+		Debug:              false,
+		Handlers:           []KeyHandler{},
+	}, func(svc *Service) ServiceState {
+		return svc.State()
+	})
+}
+
+// CurrentState is a more explicit alias for State.
+func CurrentState() ServiceState {
+	return State()
+}
+
 // Debug reports whether debug mode is enabled on the default service.
 //
 // Example:

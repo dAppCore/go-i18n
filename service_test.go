@@ -190,6 +190,9 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	if got, want := svc.CurrentHandlers(), svc.Handlers(); len(got) != len(want) {
 		t.Fatalf("CurrentHandlers() len = %d, want %d", len(got), len(want))
 	}
+	if got, want := svc.CurrentState(), svc.State(); len(got.AvailableLanguages) != len(want.AvailableLanguages) || len(got.Handlers) != len(want.Handlers) {
+		t.Fatalf("CurrentState() = %+v, want %+v", got, want)
+	}
 }
 
 func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
@@ -214,6 +217,22 @@ func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
 	handlers[0] = nil
 	if svc.CurrentHandlers()[0] == nil {
 		t.Fatal("CurrentHandlers() returned a shared slice; first handler mutated to nil")
+	}
+
+	state := svc.CurrentState()
+	if len(state.AvailableLanguages) == 0 {
+		t.Fatal("CurrentState() returned no available languages")
+	}
+	if len(state.Handlers) == 0 {
+		t.Fatal("CurrentState() returned no handlers")
+	}
+	state.AvailableLanguages[0] = "zz"
+	if got := svc.CurrentState().AvailableLanguages[0]; got == "zz" {
+		t.Fatalf("CurrentState() returned a shared available languages slice; first element mutated to %q", got)
+	}
+	state.Handlers[0] = nil
+	if svc.CurrentState().Handlers[0] == nil {
+		t.Fatal("CurrentState() returned a shared handlers slice; first handler mutated to nil")
 	}
 }
 

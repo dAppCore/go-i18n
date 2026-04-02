@@ -234,6 +234,33 @@ func TestDebug_Good(t *testing.T) {
 	assert.True(t, Debug())
 }
 
+func TestCurrentState_Good(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	state := CurrentState()
+	assert.Equal(t, svc.Language(), state.Language)
+	assert.Equal(t, svc.AvailableLanguages(), state.AvailableLanguages)
+	assert.Equal(t, svc.Mode(), state.Mode)
+	assert.Equal(t, svc.Fallback(), state.Fallback)
+	assert.Equal(t, svc.Formality(), state.Formality)
+	assert.Equal(t, svc.Location(), state.Location)
+	assert.Equal(t, svc.Direction(), state.Direction)
+	assert.Equal(t, svc.IsRTL(), state.IsRTL)
+	assert.Equal(t, svc.Debug(), state.Debug)
+	assert.Len(t, state.Handlers, len(svc.Handlers()))
+
+	state.AvailableLanguages[0] = "zz"
+	assert.NotEqual(t, "zz", CurrentState().AvailableLanguages[0])
+	state.Handlers[0] = nil
+	assert.NotNil(t, CurrentState().Handlers[0])
+}
+
 // --- SetMode / CurrentMode ---
 
 func TestSetMode_Good(t *testing.T) {
