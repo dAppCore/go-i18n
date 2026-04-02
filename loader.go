@@ -27,15 +27,7 @@ func NewFSLoader(fsys fs.FS, dir string) *FSLoader {
 
 // Load implements Loader.Load.
 func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
-	variants := []string{
-		lang + ".json",
-		core.Replace(lang, "-", "_") + ".json",
-		core.Replace(lang, "_", "-") + ".json",
-	}
-	if base := baseLanguageTag(lang); base != "" && base != lang {
-		variants = append(variants, base+".json")
-	}
-
+	variants := localeFilenameCandidates(lang)
 	var data []byte
 	var err error
 	for _, filename := range variants {
@@ -64,6 +56,27 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 	flattenWithGrammar("", raw, messages, grammar)
 
 	return messages, grammar, nil
+}
+
+func localeFilenameCandidates(lang string) []string {
+	// Preserve the documented lookup order: exact tag first, then underscore /
+	// hyphen variants, then the base language tag.
+	variants := make([]string, 0, 4)
+	addVariant := func(candidate string) {
+		for _, existing := range variants {
+			if existing == candidate {
+				return
+			}
+		}
+		variants = append(variants, candidate)
+	}
+	addVariant(lang + ".json")
+	addVariant(core.Replace(lang, "-", "_") + ".json")
+	addVariant(core.Replace(lang, "_", "-") + ".json")
+	if base := baseLanguageTag(lang); base != "" && base != lang {
+		addVariant(base + ".json")
+	}
+	return variants
 }
 
 // Languages implements Loader.Languages.

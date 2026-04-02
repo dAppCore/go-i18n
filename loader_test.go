@@ -179,6 +179,14 @@ func TestFSLoaderLoadFallsBackToBaseLanguage(t *testing.T) {
 	}
 }
 
+func TestLocaleFilenameCandidates(t *testing.T) {
+	got := localeFilenameCandidates("en-GB")
+	want := []string{"en-GB.json", "en_GB.json", "en.json"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("localeFilenameCandidates(en-GB) = %v, want %v", got, want)
+	}
+}
+
 func TestFlattenWithGrammar(t *testing.T) {
 	messages := make(map[string]Message)
 	grammar := &GrammarData{
