@@ -228,6 +228,8 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 		{"Un enfant", "indefinite", true},
 		{"Une amie", "indefinite", true},
 		{"de la", "indefinite", true},
+		{"de le", "indefinite", true},
+		{"de les", "indefinite", true},
 		{"de l'", "indefinite", true},
 		{"de l’", "indefinite", true},
 		{"du serveur", "indefinite", true},
@@ -436,6 +438,46 @@ func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
 	}
 
+	tokens = tok.Tokenise("de le serveur")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de le serveur", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[0].Lower != "de le" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de le")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "serveur" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "serveur")
+	}
+
+	tokens = tok.Tokenise("de les amis")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de les amis", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[0].Lower != "de les" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de les")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "amis" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "amis")
+	}
+
 	tokens = tok.Tokenise("de l’ enfant")
 	if len(tokens) != 2 {
 		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de l’ enfant", len(tokens))
@@ -518,6 +560,26 @@ func TestTokeniser_Tokenise_FrenchPartitiveArticlePhrase(t *testing.T) {
 	}
 	if tokens[1].Lower != "branche" {
 		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "branche")
+	}
+
+	tokens = tok.Tokenise("de les amis")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de les amis", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de les" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de les")
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "amis" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "amis")
 	}
 }
 

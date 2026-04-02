@@ -780,7 +780,7 @@ func matchFrenchArticleText(lower string) (string, bool) {
 	switch {
 	case strings.HasPrefix(lower, "de l'"), strings.HasPrefix(lower, "de l’"):
 		return "indefinite", true
-	case strings.HasPrefix(lower, "de la "), strings.HasPrefix(lower, "de le "), strings.HasPrefix(lower, "du "), strings.HasPrefix(lower, "des "):
+	case strings.HasPrefix(lower, "de la "), strings.HasPrefix(lower, "de le "), strings.HasPrefix(lower, "de les "), strings.HasPrefix(lower, "du "), strings.HasPrefix(lower, "des "):
 		return "indefinite", true
 	case strings.HasPrefix(lower, "au "), strings.HasPrefix(lower, "aux "):
 		return "definite", true
@@ -801,9 +801,9 @@ func matchFrenchArticleText(lower string) (string, bool) {
 	case "de":
 		if len(fields) >= 2 {
 			switch fields[1] {
-			case "la", "l'", "l’":
+			case "la", "le", "les", "l'", "l’":
 				return "indefinite", true
-			case "le", "les":
+			case "du", "des":
 				return "definite", true
 			}
 		}
@@ -1077,7 +1077,29 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 
 	switch core.Lower(first) {
 	case "de":
-		if core.Lower(second) != "la" {
+		switch core.Lower(second) {
+		case "la", "le", "les", "du", "des":
+			tok := Token{
+				Raw:        first + " " + second,
+				Lower:      core.Lower(first + " " + second),
+				Type:       TokenArticle,
+				ArtType:    "indefinite",
+				Confidence: 1.0,
+			}
+			if secondPunct != "" {
+				if punctType, ok := matchPunctuation(secondPunct); ok {
+					punctTok := Token{
+						Raw:        secondPunct,
+						Lower:      secondPunct,
+						Type:       TokenPunctuation,
+						PunctType:  punctType,
+						Confidence: 1.0,
+					}
+					return 2, tok, nil, &punctTok
+				}
+			}
+			return 2, tok, nil, nil
+		default:
 			if prefix, rest, ok := t.splitFrenchElision(second); ok && (prefix == "l'" || prefix == "l’") && rest != "" {
 				tok := Token{
 					Raw:        first + " " + prefix,
@@ -1130,26 +1152,6 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 			}
 			return 0, Token{}, nil, nil
 		}
-		tok := Token{
-			Raw:        first + " " + second,
-			Lower:      "de la",
-			Type:       TokenArticle,
-			ArtType:    "indefinite",
-			Confidence: 1.0,
-		}
-		if secondPunct != "" {
-			if punctType, ok := matchPunctuation(secondPunct); ok {
-				punctTok := Token{
-					Raw:        secondPunct,
-					Lower:      secondPunct,
-					Type:       TokenPunctuation,
-					PunctType:  punctType,
-					Confidence: 1.0,
-				}
-				return 2, tok, nil, &punctTok
-			}
-		}
-		return 2, tok, nil, nil
 	}
 
 	return 0, Token{}, nil, nil
