@@ -56,6 +56,11 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 			}
 		}
 
+		// Preserve the same init-time locale registration behaviour used by Init().
+		// Core bootstrap should not bypass packages that registered locale files
+		// before the service was constructed.
+		loadRegisteredLocales(svc)
+
 		if opts.Language != "" {
 			if langErr := svc.SetLanguage(opts.Language); langErr != nil {
 				return nil, core.Wrap(langErr, "NewCoreService", core.Sprintf("i18n: invalid language %q", opts.Language))
