@@ -322,3 +322,8 @@ func (s *CoreService) IsRTL() bool {
 func (s *CoreService) PluralCategory(n int) PluralCategory {
 	return s.svc.PluralCategory(n)
 }
+
+// CurrentPluralCategory returns the plural category for the wrapped service language.
+func (s *CoreService) CurrentPluralCategory(n int) PluralCategory {
+	return s.PluralCategory(n)
+}
