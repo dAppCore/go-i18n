@@ -511,6 +511,9 @@ func TestQuote(t *testing.T) {
 	if got := Quote("hello"); got != `"hello"` {
 		t.Errorf("Quote(%q) = %q, want %q", "hello", got, `"hello"`)
 	}
+	if got := Quote(`a "quoted" path\name`); got != `"a \"quoted\" path\\name"` {
+		t.Errorf("Quote(%q) = %q, want %q", `a "quoted" path\name`, got, `"a \"quoted\" path\\name"`)
+	}
 }
 
 func TestCaseHelpers(t *testing.T) {
