@@ -475,14 +475,22 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		if formality == FormalityNeutral {
 			formality = s.formality
 		}
-		return ctx.ContextString(), ctx.GenderString(), ctx.LocationString(), formality
+		location := ctx.LocationString()
+		if location == "" {
+			location = s.location
+		}
+		return ctx.ContextString(), ctx.GenderString(), location, formality
 	}
 	if subj, ok := data.(*Subject); ok && subj != nil {
 		formality := subj.formality
 		if formality == FormalityNeutral {
 			formality = s.formality
 		}
-		return "", subj.gender, subj.location, formality
+		location := subj.location
+		if location == "" {
+			location = s.location
+		}
+		return "", subj.gender, location, formality
 	}
 	if m, ok := data.(map[string]any); ok {
 		var context string

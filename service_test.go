@@ -626,6 +626,38 @@ func TestServiceDefaultLocationContext(t *testing.T) {
 	}
 }
 
+func TestServiceDefaultLocationAppliesToTranslationContext(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._greeting._workspace": "hello from workspace",
+	})
+	svc.SetLocation("workspace")
+
+	if got := svc.T("welcome", C("greeting")); got != "hello from workspace" {
+		t.Errorf("T(welcome, C(greeting)) with default location = %q, want %q", got, "hello from workspace")
+	}
+}
+
+func TestServiceDefaultLocationAppliesToSubject(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._workspace": "welcome aboard",
+	})
+	svc.SetLocation("workspace")
+
+	if got := svc.T("welcome", S("user", "Alice")); got != "welcome aboard" {
+		t.Errorf("T(welcome, Subject) with default location = %q, want %q", got, "welcome aboard")
+	}
+}
+
 func TestServiceTranslationContextExtrasInTemplates(t *testing.T) {
 	svc, err := New()
 	if err != nil {
