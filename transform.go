@@ -10,12 +10,29 @@ func getCount(data any) int {
 			return 0
 		}
 		return d.CountInt()
+	case *TranslationContext:
+		if d == nil || d.Extra == nil {
+			return 0
+		}
+		if c, ok := d.Extra["Count"]; ok {
+			return toInt(c)
+		}
+		if c, ok := d.Extra["count"]; ok {
+			return toInt(c)
+		}
+		return 0
 	case map[string]any:
 		if c, ok := d["Count"]; ok {
 			return toInt(c)
 		}
+		if c, ok := d["count"]; ok {
+			return toInt(c)
+		}
 	case map[string]int:
 		if c, ok := d["Count"]; ok {
+			return c
+		}
+		if c, ok := d["count"]; ok {
 			return c
 		}
 	}

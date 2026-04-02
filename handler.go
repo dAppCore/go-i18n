@@ -223,11 +223,40 @@ func subjectArgText(arg any) string {
 			return ""
 		}
 		return v.String()
+	case *TranslationContext:
+		if v == nil {
+			return ""
+		}
+		if text := core.Trim(v.String()); text != "" {
+			return text
+		}
+		if v.Extra != nil {
+			if text := contextArgText(v.Extra); text != "" {
+				return text
+			}
+		}
+		return ""
+	case map[string]any:
+		return contextArgText(v)
 	case fmt.Stringer:
 		return v.String()
 	default:
 		return ""
 	}
+}
+
+func contextArgText(values map[string]any) string {
+	if len(values) == 0 {
+		return ""
+	}
+	for _, key := range []string{"Subject", "subject", "Value", "value", "Text", "text", "Context", "context", "Noun", "noun"} {
+		if raw, ok := values[key]; ok {
+			if text := core.Trim(core.Sprintf("%v", raw)); text != "" {
+				return text
+			}
+		}
+	}
+	return ""
 }
 
 // RunHandlerChain executes a chain of handlers for a key.

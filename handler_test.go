@@ -58,6 +58,11 @@ func TestProgressHandler(t *testing.T) {
 	if got != "Building project..." {
 		t.Errorf("ProgressHandler.Handle(build, TranslationContext) = %q, want %q", got, "Building project...")
 	}
+
+	got = h.Handle("i18n.progress.build", []any{map[string]any{"Subject": "project"}}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, map[Subject:project]) = %q, want %q", got, "Building project...")
+	}
 }
 
 func TestCountHandler(t *testing.T) {
@@ -102,6 +107,11 @@ func TestCountHandler(t *testing.T) {
 	if got != "3 files" {
 		t.Errorf("CountHandler.Handle(file, Subject.Count(3)) = %q, want %q", got, "3 files")
 	}
+
+	got = h.Handle("i18n.count.file", []any{C("file").Set("Count", 3)}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, TranslationContext.Count=3) = %q, want %q", got, "3 files")
+	}
 }
 
 func TestDoneHandler(t *testing.T) {
@@ -133,6 +143,11 @@ func TestDoneHandler(t *testing.T) {
 		t.Errorf("DoneHandler.Handle(delete, TranslationContext) = %q, want %q", got, "Config.yaml deleted")
 	}
 
+	got = h.Handle("i18n.done.delete", []any{map[string]any{"Subject": "config.yaml"}}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, map[Subject:config.yaml]) = %q, want %q", got, "Config.yaml deleted")
+	}
+
 	// Without subject — just past tense
 	got = h.Handle("i18n.done.delete", nil, nil)
 	if got != "Deleted" {
@@ -160,6 +175,11 @@ func TestFailHandler(t *testing.T) {
 	got = h.Handle("i18n.fail.push", []any{C("commits")}, nil)
 	if got != "Failed to push commits" {
 		t.Errorf("FailHandler.Handle(push, TranslationContext) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{map[string]any{"Subject": "commits"}}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, map[Subject:commits]) = %q, want %q", got, "Failed to push commits")
 	}
 
 	got = h.Handle("i18n.fail.push", nil, nil)
