@@ -5,6 +5,16 @@ import (
 	"testing/fstest"
 )
 
+type messageBaseFallbackLoader struct{}
+
+func (messageBaseFallbackLoader) Languages() []string {
+	return []string{"en-GB", "en", "fr"}
+}
+
+func (messageBaseFallbackLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	return map[string]Message{}, nil, nil
+}
+
 func TestNewService(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -241,6 +251,29 @@ func TestServiceFallback(t *testing.T) {
 	svc.SetFallback("fr")
 	if svc.Fallback() != "fr" {
 		t.Errorf("Fallback() = %q, want fr", svc.Fallback())
+	}
+}
+
+func TestServiceMessageFallbackUsesBaseLanguageTagBeforeConfiguredFallback(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"greeting": "hello",
+	})
+	svc.AddMessages("fr", map[string]string{
+		"greeting": "bonjour",
+	})
+
+	if err := svc.SetLanguage("en-GB"); err != nil {
+		t.Fatalf("SetLanguage(en-GB) failed: %v", err)
+	}
+	svc.SetFallback("fr")
+
+	if got := svc.T("greeting"); got != "hello" {
+		t.Fatalf("T(greeting) = %q, want %q", got, "hello")
 	}
 }
 

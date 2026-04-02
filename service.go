@@ -375,10 +375,16 @@ func (s *Service) T(messageID string, args ...any) string {
 	return result
 }
 
-// resolveDirect performs exact-key lookup in the current language and fallback language.
+// resolveDirect performs exact-key lookup in the current language, its base
+// language tag, and then the configured fallback language.
 func (s *Service) resolveDirect(messageID string, data any) string {
 	if text := s.tryResolve(s.currentLang, messageID, data); text != "" {
 		return text
+	}
+	if base := baseLanguageTag(s.currentLang); base != "" && base != s.currentLang {
+		if text := s.tryResolve(base, messageID, data); text != "" {
+			return text
+		}
 	}
 	return s.tryResolve(s.fallbackLang, messageID, data)
 }
