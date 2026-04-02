@@ -386,6 +386,22 @@ func TestServiceFallbackNormalisesLanguageTag(t *testing.T) {
 	}
 }
 
+func TestServiceFallbackCanonicalisesLanguageTagCase(t *testing.T) {
+	svc, err := New(WithFallback("FR_ca"))
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if got, want := svc.Fallback(), "fr-CA"; got != want {
+		t.Fatalf("WithFallback(FR_ca) = %q, want %q", got, want)
+	}
+
+	svc.SetFallback("EN_us")
+	if got, want := svc.Fallback(), "en-US"; got != want {
+		t.Fatalf("SetFallback(EN_us) = %q, want %q", got, want)
+	}
+}
+
 func TestServiceMessageFallbackUsesBaseLanguageTagBeforeConfiguredFallback(t *testing.T) {
 	svc, err := NewWithLoader(messageBaseFallbackLoader{})
 	if err != nil {

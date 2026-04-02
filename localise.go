@@ -148,5 +148,9 @@ func normalizeLanguageTag(lang string) string {
 	if lang == "" {
 		return ""
 	}
-	return core.Replace(lang, "_", "-")
+	lang = core.Replace(lang, "_", "-")
+	if tag, err := language.Parse(lang); err == nil {
+		return tag.String()
+	}
+	return lang
 }
