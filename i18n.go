@@ -122,6 +122,13 @@ func PrependHandler(handlers ...KeyHandler) {
 	}
 }
 
+// ClearHandlers removes all handlers from the default service.
+func ClearHandlers() {
+	if svc := Default(); svc != nil {
+		svc.ClearHandlers()
+	}
+}
+
 func executeIntentTemplate(tmplStr string, data templateData) string {
 	if tmplStr == "" {
 		return ""

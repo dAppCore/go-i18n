@@ -250,6 +250,23 @@ func TestPrependHandler_Good_Variadic(t *testing.T) {
 	assert.IsType(t, ProgressHandler{}, handlers[1])
 }
 
+func TestClearHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	AddHandler(LabelHandler{})
+	require.NotEmpty(t, svc.Handlers())
+
+	ClearHandlers()
+	assert.Empty(t, svc.Handlers())
+}
+
 // --- executeIntentTemplate ---
 
 func TestExecuteIntentTemplate_Good(t *testing.T) {
