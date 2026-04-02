@@ -1305,6 +1305,28 @@ func TestDefaultWeights_ReturnsCopy(t *testing.T) {
 	}
 }
 
+func TestTokeniser_LowInformationConfidenceFloor(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("maybe commit")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(maybe commit) produced %d tokens, want 2", len(tokens))
+	}
+	if tokens[1].Type != TokenVerb {
+		t.Fatalf("Tokenise(maybe commit) Type = %v, want TokenVerb", tokens[1].Type)
+	}
+	if tokens[1].Confidence != 0.55 {
+		t.Fatalf("Tokenise(maybe commit) Confidence = %v, want 0.55", tokens[1].Confidence)
+	}
+	if tokens[1].AltType != TokenNoun {
+		t.Fatalf("Tokenise(maybe commit) AltType = %v, want TokenNoun", tokens[1].AltType)
+	}
+	if tokens[1].AltConf != 0.45 {
+		t.Fatalf("Tokenise(maybe commit) AltConf = %v, want 0.45", tokens[1].AltConf)
+	}
+}
+
 // --- Benchmarks ---
 
 func benchSetup(b *testing.B) {
