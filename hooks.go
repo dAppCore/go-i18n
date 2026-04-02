@@ -132,13 +132,19 @@ func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
 
 // OnMissingKey registers a handler for missing translation keys.
 func OnMissingKey(h MissingKeyHandler) {
+	SetMissingKeyHandlers(h)
+}
+
+// SetMissingKeyHandlers replaces the full missing-key handler chain.
+func SetMissingKeyHandlers(handlers ...MissingKeyHandler) {
 	missingKeyHandlerMu.Lock()
 	defer missingKeyHandlerMu.Unlock()
-	if h == nil {
+	handlers = filterNilMissingKeyHandlers(handlers)
+	if len(handlers) == 0 {
 		missingKeyHandler.Store(missingKeyHandlersState{})
 		return
 	}
-	missingKeyHandler.Store(missingKeyHandlersState{handlers: []MissingKeyHandler{h}})
+	missingKeyHandler.Store(missingKeyHandlersState{handlers: handlers})
 }
 
 // ClearMissingKeyHandlers removes all registered missing-key handlers.
@@ -159,6 +165,22 @@ func AddMissingKeyHandler(h MissingKeyHandler) {
 	current := missingKeyHandlers()
 	current.handlers = append(current.handlers, h)
 	missingKeyHandler.Store(current)
+}
+
+func filterNilMissingKeyHandlers(handlers []MissingKeyHandler) []MissingKeyHandler {
+	if len(handlers) == 0 {
+		return nil
+	}
+	filtered := make([]MissingKeyHandler, 0, len(handlers))
+	for _, h := range handlers {
+		if h != nil {
+			filtered = append(filtered, h)
+		}
+	}
+	if len(filtered) == 0 {
+		return nil
+	}
+	return filtered
 }
 
 func missingKeyHandlers() missingKeyHandlersState {
