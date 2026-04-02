@@ -392,7 +392,13 @@ func (s *Service) resolveDirect(messageID string, data any) string {
 			return text
 		}
 	}
-	return s.tryResolve(s.fallbackLang, messageID, data)
+	if text := s.tryResolve(s.fallbackLang, messageID, data); text != "" {
+		return text
+	}
+	if base := baseLanguageTag(s.fallbackLang); base != "" && base != s.fallbackLang {
+		return s.tryResolve(base, messageID, data)
+	}
+	return ""
 }
 
 func (s *Service) resolveWithFallback(messageID string, data any) string {
