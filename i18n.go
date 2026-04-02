@@ -93,14 +93,18 @@ func CurrentDebug() bool {
 	return false
 }
 
-// N formats a number using the i18n.numeric.* namespace.
+// N formats a value using the i18n.numeric.* namespace.
 //
 //	N("number", 1234567)   // "1,234,567"
 //	N("percent", 0.85)     // "85%"
 //	N("bytes", 1536000)    // "1.46 MB"
 //	N("ordinal", 1)        // "1st"
-func N(format string, value any) string {
-	return T("i18n.numeric."+format, value)
+//
+// Multi-argument formats such as "ago" also pass through unchanged:
+//
+//	N("ago", 5, "minutes")  // "5 minutes ago"
+func N(format string, value any, args ...any) string {
+	return T("i18n.numeric."+format, append([]any{value}, args...)...)
 }
 
 // Prompt translates a prompt key from the prompt namespace.

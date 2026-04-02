@@ -142,16 +142,18 @@ func TestN_Good(t *testing.T) {
 		name   string
 		format string
 		value  any
+		args   []any
 		want   string
 	}{
-		{"number", "number", int64(1234567), "1,234,567"},
-		{"percent", "percent", 0.85, "85%"},
-		{"bytes", "bytes", int64(1536000), "1.46 MB"},
-		{"ordinal", "ordinal", 1, "1st"},
+		{"number", "number", int64(1234567), nil, "1,234,567"},
+		{"percent", "percent", 0.85, nil, "85%"},
+		{"bytes", "bytes", int64(1536000), nil, "1.46 MB"},
+		{"ordinal", "ordinal", 1, nil, "1st"},
+		{"ago", "ago", 5, []any{"minutes"}, "5 minutes ago"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := N(tt.format, tt.value)
+			got := N(tt.format, tt.value, tt.args...)
 			assert.Equal(t, tt.want, got)
 		})
 	}
