@@ -56,7 +56,7 @@ func WithLocation(location string) Option {
 // WithHandlers sets custom handlers (replaces default handlers).
 func WithHandlers(handlers ...KeyHandler) Option {
 	return func(s *Service) {
-		s.handlers = append([]KeyHandler(nil), handlers...)
+		s.handlers = filterNilHandlers(append([]KeyHandler(nil), handlers...))
 	}
 }
 
@@ -339,12 +339,13 @@ func (s *Service) PluralCategory(n int) PluralCategory {
 func (s *Service) AddHandler(handlers ...KeyHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	s.handlers = append(s.handlers, handlers...)
+	s.handlers = append(s.handlers, filterNilHandlers(handlers)...)
 }
 
 func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	handlers = filterNilHandlers(handlers)
 	if len(handlers) == 0 {
 		return
 	}

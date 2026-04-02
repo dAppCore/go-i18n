@@ -302,6 +302,20 @@ func TestAddHandler_Good_Variadic(t *testing.T) {
 	assert.IsType(t, ProgressHandler{}, handlers[1])
 }
 
+func TestAddHandler_Good_SkipsNil(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	var nilHandler KeyHandler
+	AddHandler(nilHandler, LabelHandler{})
+
+	handlers := svc.Handlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, LabelHandler{}, handlers[0])
+}
+
 func TestPrependHandler_Good(t *testing.T) {
 	svc, err := New(WithHandlers()) // start with no handlers
 	require.NoError(t, err)
@@ -330,6 +344,20 @@ func TestPrependHandler_Good_Variadic(t *testing.T) {
 	assert.IsType(t, ProgressHandler{}, handlers[1])
 }
 
+func TestPrependHandler_Good_SkipsNil(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	var nilHandler KeyHandler
+	PrependHandler(nilHandler, LabelHandler{})
+
+	handlers := svc.Handlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, LabelHandler{}, handlers[0])
+}
+
 func TestClearHandlers_Good(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
@@ -345,6 +373,15 @@ func TestClearHandlers_Good(t *testing.T) {
 
 	ClearHandlers()
 	assert.Empty(t, svc.Handlers())
+}
+
+func TestNewWithHandlers_SkipsNil(t *testing.T) {
+	svc, err := New(WithHandlers(nil, LabelHandler{}))
+	require.NoError(t, err)
+
+	handlers := svc.Handlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, LabelHandler{}, handlers[0])
 }
 
 // --- executeIntentTemplate ---
