@@ -3,6 +3,8 @@ package i18n
 import (
 	"testing"
 	"testing/fstest"
+
+	"dappco.re/go/core"
 )
 
 type messageBaseFallbackLoader struct{}
@@ -73,6 +75,23 @@ func TestServiceT(t *testing.T) {
 	if got != "Failed to push commits" {
 		t.Errorf("T(i18n.fail.push, commits) = %q, want 'Failed to push commits'", got)
 	}
+}
+
+func TestServiceTranslate(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	result := svc.Translate("prompt.yes")
+	if !result.OK {
+		t.Fatalf("Translate(prompt.yes) returned not OK: %#v", result)
+	}
+	if got := result.Value; got != "y" {
+		t.Fatalf("Translate(prompt.yes) = %#v, want %q", got, "y")
+	}
+
+	var _ core.Translator = (*Service)(nil)
 }
 
 func TestServiceTDirectKeys(t *testing.T) {

@@ -88,6 +88,7 @@ var (
 var localeFS embed.FS
 
 var _ Translator = (*Service)(nil)
+var _ core.Translator = (*Service)(nil)
 
 // New creates a new i18n service with embedded locales.
 func New(opts ...Option) (*Service, error) {
@@ -373,6 +374,11 @@ func (s *Service) T(messageID string, args ...any) string {
 		return debugFormat(messageID, result)
 	}
 	return result
+}
+
+// Translate translates a message by its ID and returns a Core result.
+func (s *Service) Translate(messageID string, args ...any) core.Result {
+	return core.Result{Value: s.T(messageID, args...), OK: true}
 }
 
 // resolveDirect performs exact-key lookup in the current language, its base
