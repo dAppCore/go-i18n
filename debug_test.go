@@ -83,3 +83,20 @@ func TestDebugMode_Good_Integration(t *testing.T) {
 	got = svc.Raw("prompt.yes")
 	assert.Equal(t, "[prompt.yes] y", got)
 }
+
+func TestTranslate_DebugMode_PreservesOK(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	svc.SetDebug(true)
+	defer svc.SetDebug(false)
+
+	translated := svc.Translate("prompt.yes")
+	assert.True(t, translated.OK)
+	assert.Equal(t, "[prompt.yes] y", translated.Value)
+
+	missing := svc.Translate("missing.translation.key")
+	assert.False(t, missing.OK)
+	assert.Equal(t, "[missing.translation.key] missing.translation.key", missing.Value)
+}
