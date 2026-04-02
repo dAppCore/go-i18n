@@ -577,12 +577,7 @@ func (t *Tokeniser) buildSignalIndex() {
 			t.nounDet[core.Lower(w)] = true
 		}
 	} else {
-		for _, w := range []string{
-			"the", "a", "an", "this", "that", "these", "those",
-			"my", "your", "his", "her", "its", "our", "their",
-			"every", "each", "some", "any", "no",
-			"many", "few", "several", "all", "both",
-		} {
+		for _, w := range defaultNounDeterminers() {
 			t.nounDet[w] = true
 		}
 	}
@@ -612,9 +607,18 @@ func (t *Tokeniser) buildSignalIndex() {
 	} else {
 		// Keep the fallback conservative: these are weak cues, not hard
 		// negation parsing.
-		for _, w := range []string{"not", "never"} {
+		for _, w := range defaultVerbNegations() {
 			t.verbNeg[w] = true
 		}
+	}
+}
+
+func defaultNounDeterminers() []string {
+	return []string{
+		"the", "a", "an", "this", "that", "these", "those",
+		"my", "your", "his", "her", "its", "our", "their",
+		"every", "each", "some", "any", "no",
+		"many", "few", "several", "all", "both",
 	}
 }
 
@@ -629,6 +633,10 @@ func defaultVerbAuxiliaries() []string {
 		"doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't",
 		"hasn't", "hadn't", "haven't",
 	}
+}
+
+func defaultVerbNegations() []string {
+	return []string{"not", "never"}
 }
 
 // DefaultWeights returns a copy of the tokeniser's built-in signal weights.
