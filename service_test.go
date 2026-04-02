@@ -1048,6 +1048,7 @@ func TestWithDefaultHandlers_Idempotent(t *testing.T) {
 func TestServiceWithOptions(t *testing.T) {
 	svc, err := New(
 		WithFallback("en"),
+		WithLanguage("fr_CA"),
 		WithFormality(FormalityFormal),
 		WithLocation("workspace"),
 		WithMode(ModeCollect),
@@ -1068,6 +1069,20 @@ func TestServiceWithOptions(t *testing.T) {
 	}
 	if svc.Location() != "workspace" {
 		t.Errorf("Location = %q, want workspace", svc.Location())
+	}
+	if got := svc.Language(); got != "fr" {
+		t.Errorf("Language() = %q, want fr", got)
+	}
+}
+
+func TestWithLanguage(t *testing.T) {
+	svc, err := New(WithLanguage("fr_CA"))
+	if err != nil {
+		t.Fatalf("New() with WithLanguage() failed: %v", err)
+	}
+
+	if got := svc.Language(); got != "fr" {
+		t.Fatalf("Language() = %q, want %q", got, "fr")
 	}
 }
 

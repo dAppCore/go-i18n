@@ -22,6 +22,7 @@ type Service struct {
 	messages         map[string]map[string]Message // lang -> key -> message
 	currentLang      string
 	fallbackLang     string
+	requestedLang    string
 	languageExplicit bool
 	availableLangs   []language.Tag
 	mode             Mode
@@ -40,6 +41,15 @@ type Option func(*Service)
 // WithFallback sets the fallback language for missing translations.
 func WithFallback(lang string) Option {
 	return func(s *Service) { s.fallbackLang = normalizeLanguageTag(lang) }
+}
+
+// WithLanguage sets an explicit initial language for the service.
+//
+// The language is applied after the loader has populated the available
+// languages, so it can resolve to the best supported tag instead of failing
+// during option construction.
+func WithLanguage(lang string) Option {
+	return func(s *Service) { s.requestedLang = normalizeLanguageTag(lang) }
 }
 
 // WithFormality sets the default formality level.
@@ -177,6 +187,12 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 		s.currentLang = detected
 	} else {
 		s.currentLang = s.fallbackLang
+	}
+
+	if s.requestedLang != "" {
+		if err := s.SetLanguage(s.requestedLang); err != nil {
+			return nil, err
+		}
 	}
 
 	return s, nil

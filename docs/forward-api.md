@@ -15,6 +15,7 @@ svc := i18n.Default()
 
 // Option 2: Explicit creation with options
 svc, err := i18n.New(
+    i18n.WithLanguage("en-GB"),
     i18n.WithFallback("en"),
     i18n.WithDefaultHandlers(),
 )
@@ -35,6 +36,7 @@ The service automatically detects the system language from `LANG`, `LC_ALL`, or 
 | Option | Effect |
 |--------|--------|
 | `WithFallback("en")` | Set fallback language for missing translations |
+| `WithLanguage("fr")` | Set the initial language before the service starts serving |
 | `WithDefaultHandlers()` | Register the six built-in `i18n.*` namespace handlers |
 | `WithHandlers(h...)` | Replace handlers entirely |
 | `WithMode(ModeStrict)` | Panic on missing keys (useful in CI) |
