@@ -434,6 +434,25 @@ func TestServicePromptAndLang(t *testing.T) {
 	}
 }
 
+func TestServicePromptAndLangExactMatch(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"prompt.exact": "prompt.exact",
+		"lang.exact":   "lang.exact",
+	})
+
+	if got, want := svc.Prompt("exact"), "prompt.exact"; got != want {
+		t.Fatalf("Prompt(exact) = %q, want %q", got, want)
+	}
+	if got, want := svc.Lang("exact"), "lang.exact"; got != want {
+		t.Fatalf("Lang(exact) = %q, want %q", got, want)
+	}
+}
+
 func TestNewWithLoaderNormalisesLanguageTags(t *testing.T) {
 	svc, err := NewWithLoader(underscoreLangLoader{})
 	if err != nil {
