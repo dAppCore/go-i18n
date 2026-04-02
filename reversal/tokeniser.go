@@ -892,6 +892,12 @@ var clauseBoundaries = map[string]bool{
 	"when": true, "while": true, "if": true, "then": true, "so": true,
 }
 
+const (
+	lowInformationScoreThreshold = 0.10
+	lowInformationVerbConfidence = 0.55
+	lowInformationNounConfidence = 0.45
+)
+
 // Tokenise splits text on whitespace and classifies each word using a
 // two-pass algorithm:
 //
@@ -1519,17 +1525,17 @@ func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, compo
 
 	// If only the default prior fired, keep confidence near chance rather than
 	// pretending the classification is strongly supported.
-	if total < 0.10 {
+	if total < lowInformationScoreThreshold {
 		if verbScore >= nounScore {
 			tok.Type = TokenVerb
-			tok.Confidence = 0.55
+			tok.Confidence = lowInformationVerbConfidence
 			tok.AltType = TokenNoun
-			tok.AltConf = 0.45
+			tok.AltConf = lowInformationNounConfidence
 		} else {
 			tok.Type = TokenNoun
-			tok.Confidence = 0.55
+			tok.Confidence = lowInformationNounConfidence
 			tok.AltType = TokenVerb
-			tok.AltConf = 0.45
+			tok.AltConf = lowInformationVerbConfidence
 		}
 	} else {
 		if verbScore >= nounScore {
