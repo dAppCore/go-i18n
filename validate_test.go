@@ -346,7 +346,7 @@ func TestArticlePromptFrenchLocale(t *testing.T) {
 	if !contains(prompt, "livre") {
 		t.Errorf("prompt should contain the noun: %q", prompt)
 	}
-	if !contains(prompt, "le/la/l'/les/un/une/des") {
+	if !contains(prompt, "le/la/l'/les/du/au/aux/un/une/des") {
 		t.Errorf("prompt should mention French article options: %q", prompt)
 	}
 }

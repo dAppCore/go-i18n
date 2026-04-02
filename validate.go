@@ -51,7 +51,7 @@ func articlePromptForLang(lang, noun string) string {
 	noun = core.Trim(noun)
 	if isFrenchLanguage(lang) {
 		return core.Sprintf(
-			"Complete with the correct article (le/la/l'/les/un/une/des): ___ %s. Answer with just the article:",
+			"Complete with the correct article (le/la/l'/les/du/au/aux/un/une/des): ___ %s. Answer with just the article:",
 			noun,
 		)
 	}
