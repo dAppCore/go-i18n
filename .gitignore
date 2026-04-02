@@ -4,3 +4,9 @@
 # Knowledge base
 KB/
 .core/
+
+# Local Go tooling caches
+.cache/
+.gocache/
+.gomodcache/
+.gopath/
