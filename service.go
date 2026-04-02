@@ -7,8 +7,10 @@ import (
 	"path"
 	"reflect"
 	"slices"
+	"strings"
 	"sync"
 	"sync/atomic"
+	"unicode"
 
 	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
@@ -391,7 +393,8 @@ func (s *Service) resolveWithFallback(messageID string, data any) string {
 
 func (s *Service) tryResolve(lang, key string, data any) string {
 	context, gender, location, formality := s.getEffectiveContextGenderLocationAndFormality(data)
-	for _, lookupKey := range lookupVariants(key, context, gender, location, formality) {
+	extra := s.getEffectiveContextExtra(data)
+	for _, lookupKey := range lookupVariants(key, context, gender, location, formality, extra) {
 		if text := s.resolveMessage(lang, lookupKey, data); text != "" {
 			return text
 		}
@@ -468,6 +471,14 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 	return "", "", s.location, s.getEffectiveFormality(data)
 }
 
+func (s *Service) getEffectiveContextExtra(data any) map[string]any {
+	ctx, ok := data.(*TranslationContext)
+	if !ok || ctx == nil || len(ctx.Extra) == 0 {
+		return nil
+	}
+	return ctx.Extra
+}
+
 func (s *Service) getEffectiveFormality(data any) Formality {
 	if ctx, ok := data.(*TranslationContext); ok && ctx != nil {
 		if ctx.Formality != FormalityNeutral {
@@ -497,7 +508,7 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 	return s.formality
 }
 
-func lookupVariants(key, context, gender, location string, formality Formality) []string {
+func lookupVariants(key, context, gender, location string, formality Formality, extra map[string]any) []string {
 	var variants []string
 	if context != "" {
 		if gender != "" && location != "" && formality != FormalityNeutral {
@@ -544,8 +555,61 @@ func lookupVariants(key, context, gender, location string, formality Formality) 
 	if formality != FormalityNeutral {
 		variants = append(variants, key+"._"+formality.String())
 	}
+	if extraSuffix := lookupExtraSuffix(extra); extraSuffix != "" {
+		base := slices.Clone(variants)
+		var extraVariants []string
+		for _, variant := range base {
+			extraVariants = append(extraVariants, variant+extraSuffix)
+		}
+		variants = append(extraVariants, variants...)
+	}
 	variants = append(variants, key)
 	return variants
+}
+
+func lookupExtraSuffix(extra map[string]any) string {
+	if len(extra) == 0 {
+		return ""
+	}
+	keys := slices.Sorted(maps.Keys(extra))
+	var b strings.Builder
+	for _, key := range keys {
+		name := lookupSegment(key)
+		if name == "" {
+			continue
+		}
+		value := lookupSegment(core.Sprintf("%v", extra[key]))
+		if value == "" {
+			continue
+		}
+		b.WriteString("._")
+		b.WriteString(name)
+		b.WriteString("._")
+		b.WriteString(value)
+	}
+	return b.String()
+}
+
+func lookupSegment(s string) string {
+	s = core.Trim(s)
+	if s == "" {
+		return ""
+	}
+	var b strings.Builder
+	lastUnderscore := false
+	for _, r := range core.Lower(s) {
+		switch {
+		case unicode.IsLetter(r), unicode.IsDigit(r):
+			b.WriteRune(r)
+			lastUnderscore = false
+		case r == '_' || r == '-' || r == '.' || unicode.IsSpace(r):
+			if !lastUnderscore {
+				b.WriteByte('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	return strings.Trim(b.String(), "_")
 }
 
 func (s *Service) handleMissingKey(key string, args []any) string {

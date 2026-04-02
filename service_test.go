@@ -324,6 +324,31 @@ func TestServiceTranslationContextExtrasInTemplates(t *testing.T) {
 	}
 }
 
+func TestServiceTranslationContextExtrasInLookup(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._greeting":                   "hello",
+		"welcome._greeting._region._europe":   "bonjour",
+		"welcome._greeting._region._americas": "howdy",
+	})
+
+	if got := svc.T("welcome", C("greeting")); got != "hello" {
+		t.Errorf("T(welcome, C(greeting)) = %q, want %q", got, "hello")
+	}
+
+	if got := svc.T("welcome", C("greeting").Set("region", "europe")); got != "bonjour" {
+		t.Errorf("T(welcome, C(greeting).Set(region, europe)) = %q, want %q", got, "bonjour")
+	}
+
+	if got := svc.T("welcome", C("greeting").Set("region", "americas")); got != "howdy" {
+		t.Errorf("T(welcome, C(greeting).Set(region, americas)) = %q, want %q", got, "howdy")
+	}
+}
+
 func TestServiceSubjectCountPlurals(t *testing.T) {
 	svc, err := New()
 	if err != nil {
