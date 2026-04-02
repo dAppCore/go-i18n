@@ -632,7 +632,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	}
 	if t.isFrenchLanguage() {
 		switch lower {
-		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "de l'", "de l’", "les", "au", "aux", "du":
+		case "l'", "l’", "d'", "d’", "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’", "de l'", "de l’", "de la", "les", "au", "aux", "du":
 			return "definite", true
 		case "un", "une", "des":
 			return "indefinite", true

@@ -220,6 +220,7 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 		{"la", "definite", true},
 		{"Le", "definite", true},
 		{"La", "definite", true},
+		{"de la", "definite", true},
 		{"de l'", "definite", true},
 		{"de l’", "definite", true},
 		{"un", "indefinite", true},
