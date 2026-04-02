@@ -92,7 +92,8 @@
 			"ssh": "SSH",
 			"ssl": "SSL",
 			"pr": "PR",
-			"ci": "CI"
+			"ci": "CI",
+			"failed_to": "Impossible de"
 		},
 		"punct": {
 			"label": " :",
