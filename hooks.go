@@ -66,13 +66,19 @@ func OnMissingKey(h MissingKeyHandler) {
 	missingKeyHandler.Store(missingKeyHandlersState{handlers: []MissingKeyHandler{h}})
 }
 
-func appendMissingKeyHandler(h MissingKeyHandler) {
+// AddMissingKeyHandler appends a missing-key handler without replacing any
+// existing handlers.
+func AddMissingKeyHandler(h MissingKeyHandler) {
 	if h == nil {
 		return
 	}
 	current := missingKeyHandlers()
 	current.handlers = append(current.handlers, h)
 	missingKeyHandler.Store(current)
+}
+
+func appendMissingKeyHandler(h MissingKeyHandler) {
+	AddMissingKeyHandler(h)
 }
 
 func missingKeyHandlers() missingKeyHandlersState {
