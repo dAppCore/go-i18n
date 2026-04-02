@@ -30,6 +30,8 @@ type Service struct {
 	formality        Formality
 	location         string
 	handlers         []KeyHandler
+	loadedLocales    map[int]struct{}
+	loadedProviders  map[int]struct{}
 	mu               sync.RWMutex
 }
 
@@ -102,10 +104,12 @@ func NewWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 // NewWithLoader creates a new i18n service with a custom loader.
 func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	s := &Service{
-		loader:       loader,
-		messages:     make(map[string]map[string]Message),
-		fallbackLang: "en",
-		handlers:     DefaultHandlers(),
+		loader:          loader,
+		messages:        make(map[string]map[string]Message),
+		fallbackLang:    "en",
+		handlers:        DefaultHandlers(),
+		loadedLocales:   make(map[int]struct{}),
+		loadedProviders: make(map[int]struct{}),
 	}
 	for _, opt := range opts {
 		opt(s)
@@ -192,10 +196,9 @@ func SetDefault(s *Service) {
 		return
 	}
 	registeredLocalesMu.Lock()
-	loaded := localesLoaded
-	hasRegistrations := len(registeredLocales) > 0
+	hasRegistrations := len(registeredLocales) > 0 || len(registeredLocaleProviders) > 0
 	registeredLocalesMu.Unlock()
-	if !loaded && hasRegistrations {
+	if hasRegistrations {
 		loadRegisteredLocales(s)
 	}
 }
@@ -831,6 +834,50 @@ func (s *Service) AddLoader(loader Loader) error {
 	}
 	s.autoDetectLanguage()
 	return nil
+}
+
+func (s *Service) hasLocaleRegistrationLoaded(id int) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.loadedLocales) == 0 {
+		return false
+	}
+	_, ok := s.loadedLocales[id]
+	return ok
+}
+
+func (s *Service) markLocaleRegistrationLoaded(id int) {
+	if id == 0 || s == nil {
+		return
+	}
+	s.mu.Lock()
+	if s.loadedLocales == nil {
+		s.loadedLocales = make(map[int]struct{})
+	}
+	s.loadedLocales[id] = struct{}{}
+	s.mu.Unlock()
+}
+
+func (s *Service) hasLocaleProviderLoaded(id int) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.loadedProviders) == 0 {
+		return false
+	}
+	_, ok := s.loadedProviders[id]
+	return ok
+}
+
+func (s *Service) markLocaleProviderLoaded(id int) {
+	if id == 0 || s == nil {
+		return
+	}
+	s.mu.Lock()
+	if s.loadedProviders == nil {
+		s.loadedProviders = make(map[int]struct{})
+	}
+	s.loadedProviders[id] = struct{}{}
+	s.mu.Unlock()
 }
 
 func translateOK(messageID, value string) bool {

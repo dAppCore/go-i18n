@@ -18,6 +18,12 @@ type missingKeyHandlersState struct {
 type localeRegistration struct {
 	fsys fs.FS
 	dir  string
+	id   int
+}
+
+type localeProviderRegistration struct {
+	provider LocaleProvider
+	id       int
 }
 
 // LocaleProvider supplies one or more locale filesystems to the default service.
@@ -26,10 +32,12 @@ type LocaleProvider interface {
 }
 
 var (
-	registeredLocales        []localeRegistration
-	registeredLocaleProviders []LocaleProvider
-	registeredLocalesMu      sync.Mutex
-	localesLoaded            bool
+	registeredLocales         []localeRegistration
+	registeredLocaleProviders []localeProviderRegistration
+	registeredLocalesMu       sync.Mutex
+	localesLoaded             bool
+	nextLocaleRegistrationID  int
+	nextLocaleProviderID      int
 )
 
 // RegisterLocales registers a filesystem containing locale files.
@@ -42,12 +50,18 @@ var (
 //	    i18n.RegisterLocales(localeFS, "locales")
 //	}
 func RegisterLocales(fsys fs.FS, dir string) {
+	reg := localeRegistration{fsys: fsys, dir: dir}
 	registeredLocalesMu.Lock()
-	defer registeredLocalesMu.Unlock()
-	registeredLocales = append(registeredLocales, localeRegistration{fsys: fsys, dir: dir})
-	if svc := defaultService.Load(); svc != nil {
+	nextLocaleRegistrationID++
+	reg.id = nextLocaleRegistrationID
+	registeredLocales = append(registeredLocales, reg)
+	svc := defaultService.Load()
+	registeredLocalesMu.Unlock()
+	if svc != nil {
 		if err := svc.LoadFS(fsys, dir); err != nil {
 			log.Printf("i18n: RegisterLocales failed to load %q: %v", dir, err)
+		} else {
+			svc.markLocaleRegistrationLoaded(reg.id)
 		}
 	}
 }
@@ -59,26 +73,41 @@ func RegisterLocaleProvider(provider LocaleProvider) {
 	if provider == nil {
 		return
 	}
+	reg := localeProviderRegistration{provider: provider}
 	registeredLocalesMu.Lock()
-	registeredLocaleProviders = append(registeredLocaleProviders, provider)
+	nextLocaleProviderID++
+	reg.id = nextLocaleProviderID
+	registeredLocaleProviders = append(registeredLocaleProviders, reg)
+	svc := defaultService.Load()
 	registeredLocalesMu.Unlock()
-	if svc := defaultService.Load(); svc != nil {
-		loadLocaleProvider(svc, provider)
+	if svc != nil {
+		loadLocaleProvider(svc, reg)
 	}
 }
 
 func loadRegisteredLocales(svc *Service) {
+	if svc == nil {
+		return
+	}
 	registeredLocalesMu.Lock()
 	locales := append([]localeRegistration(nil), registeredLocales...)
-	providers := append([]LocaleProvider(nil), registeredLocaleProviders...)
+	providers := append([]localeProviderRegistration(nil), registeredLocaleProviders...)
 	registeredLocalesMu.Unlock()
 
 	for _, reg := range locales {
+		if svc != nil && svc.hasLocaleRegistrationLoaded(reg.id) {
+			continue
+		}
 		if err := svc.LoadFS(reg.fsys, reg.dir); err != nil {
 			log.Printf("i18n: loadRegisteredLocales failed to load %q: %v", reg.dir, err)
+			continue
 		}
+		svc.markLocaleRegistrationLoaded(reg.id)
 	}
 	for _, provider := range providers {
+		if svc != nil && svc.hasLocaleProviderLoaded(provider.id) {
+			continue
+		}
 		loadLocaleProvider(svc, provider)
 	}
 
@@ -87,15 +116,16 @@ func loadRegisteredLocales(svc *Service) {
 	registeredLocalesMu.Unlock()
 }
 
-func loadLocaleProvider(svc *Service, provider LocaleProvider) {
-	if svc == nil || provider == nil {
+func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
+	if svc == nil || provider.provider == nil {
 		return
 	}
-	for _, src := range provider.LocaleSources() {
+	for _, src := range provider.provider.LocaleSources() {
 		if err := svc.LoadFS(src.FS, src.Dir); err != nil {
 			log.Printf("i18n: loadLocaleProvider failed to load %q: %v", src.Dir, err)
 		}
 	}
+	svc.markLocaleProviderLoaded(provider.id)
 }
 
 // OnMissingKey registers a handler for missing translation keys.

@@ -187,6 +187,43 @@ func TestSetDefault_Good_LoadsQueuedRegisteredLocales(t *testing.T) {
 	assert.Equal(t, "loaded via setdefault", got)
 }
 
+func TestSetDefault_Good_LoadsRegisteredLocalesIntoFreshService(t *testing.T) {
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	registeredLocaleProviders = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"fresh.registration": "fresh value"}`),
+		},
+	}
+	RegisterLocales(fs, "locales")
+
+	first, err := New()
+	require.NoError(t, err)
+	SetDefault(first)
+	require.Equal(t, "fresh value", first.T("fresh.registration"))
+
+	second, err := New()
+	require.NoError(t, err)
+	SetDefault(second)
+
+	got := second.T("fresh.registration")
+	assert.Equal(t, "fresh value", got)
+}
+
 func TestInit_LoadsRegisteredLocales(t *testing.T) {
 	// Save and restore global service state.
 	registeredLocalesMu.Lock()
