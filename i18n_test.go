@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -84,6 +85,27 @@ func TestRaw_Good_BypassesHandlers(t *testing.T) {
 	// i18n.label.status is not in messages, handlers don't apply in Raw
 	got := Raw("i18n.label.status")
 	assert.Equal(t, "i18n.label.status", got)
+}
+
+func TestLoadFS_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	fsys := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"loadfs.key": "loaded via package helper"}`),
+		},
+	}
+
+	LoadFS(fsys, "locales")
+
+	got := T("loadfs.key")
+	assert.Equal(t, "loaded via package helper", got)
 }
 
 // --- SetLanguage / CurrentLanguage ---
