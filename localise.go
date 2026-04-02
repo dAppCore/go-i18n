@@ -97,6 +97,11 @@ func Direction() TextDirection {
 	return DirLTR
 }
 
+// CurrentDirection returns the current default text direction.
+func CurrentDirection() TextDirection {
+	return Direction()
+}
+
 // IsRTL returns true if the current language uses right-to-left text.
 func IsRTL() bool { return Direction() == DirRTL }
 
