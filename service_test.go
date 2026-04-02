@@ -253,6 +253,7 @@ func TestServiceStateString(t *testing.T) {
 		"mode=",
 		"available=",
 		"handlers=",
+		"LabelHandler",
 	} {
 		if !strings.Contains(got, want) {
 			t.Fatalf("ServiceState.String() = %q, want substring %q", got, want)

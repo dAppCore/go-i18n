@@ -25,8 +25,20 @@ func (s ServiceState) String() string {
 	if len(s.AvailableLanguages) > 0 {
 		langs = "[" + core.Join(", ", s.AvailableLanguages...) + "]"
 	}
+	handlers := "[]"
+	if len(s.Handlers) > 0 {
+		names := make([]string, 0, len(s.Handlers))
+		for _, handler := range s.Handlers {
+			if handler == nil {
+				names = append(names, "<nil>")
+				continue
+			}
+			names = append(names, core.Sprintf("%T", handler))
+		}
+		handlers = "[" + core.Join(", ", names...) + "]"
+	}
 	return core.Sprintf(
-		"ServiceState{language=%q fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d}",
+		"ServiceState{language=%q fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d types=%s}",
 		s.Language,
 		s.Fallback,
 		s.Mode,
@@ -37,6 +49,7 @@ func (s ServiceState) String() string {
 		s.Debug,
 		langs,
 		len(s.Handlers),
+		handlers,
 	)
 }
 
