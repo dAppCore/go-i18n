@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"dappco.re/go/core"
+	"slices"
 )
 
 type messageBaseFallbackLoader struct{}
@@ -74,6 +75,17 @@ func TestNewService(t *testing.T) {
 	langs := svc.AvailableLanguages()
 	if len(langs) == 0 {
 		t.Error("AvailableLanguages() is empty")
+	}
+}
+
+func TestServiceAvailableLanguagesSorted(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	if got, want := svc.AvailableLanguages(), []string{"en", "en-GB", "fr"}; !slices.Equal(got, want) {
+		t.Fatalf("AvailableLanguages() = %v, want %v", got, want)
 	}
 }
 
