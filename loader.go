@@ -33,6 +33,9 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 		core.Replace(lang, "-", "_") + ".json",
 		core.Replace(lang, "_", "-") + ".json",
 	}
+	if base := baseLanguageTag(lang); base != "" && base != lang {
+		variants = append(variants, base+".json")
+	}
 
 	var data []byte
 	var err error

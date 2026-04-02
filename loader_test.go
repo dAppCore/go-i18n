@@ -132,6 +132,37 @@ func TestFSLoaderLoadMissing(t *testing.T) {
 	}
 }
 
+func TestFSLoaderLoadFallsBackToBaseLanguage(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"greeting": "hello",
+				"gram": {
+					"article": {
+						"indefinite": { "default": "a", "vowel": "an" },
+						"definite": "the"
+					}
+				}
+			}`),
+		},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	messages, grammar, err := loader.Load("en-GB")
+	if err != nil {
+		t.Fatalf("Load(en-GB) error: %v", err)
+	}
+	if got := messages["greeting"].Text; got != "hello" {
+		t.Fatalf("Load(en-GB) greeting = %q, want %q", got, "hello")
+	}
+	if grammar == nil {
+		t.Fatal("Load(en-GB) returned nil grammar")
+	}
+	if grammar.Articles.Definite != "the" {
+		t.Fatalf("Load(en-GB) grammar article = %q, want %q", grammar.Articles.Definite, "the")
+	}
+}
+
 func TestFlattenWithGrammar(t *testing.T) {
 	messages := make(map[string]Message)
 	grammar := &GrammarData{
