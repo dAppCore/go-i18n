@@ -192,6 +192,31 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	}
 }
 
+func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	langs := svc.CurrentAvailableLanguages()
+	if len(langs) == 0 {
+		t.Fatal("CurrentAvailableLanguages() returned no languages")
+	}
+	langs[0] = "zz"
+	if got := svc.CurrentAvailableLanguages()[0]; got == "zz" {
+		t.Fatalf("CurrentAvailableLanguages() returned a shared slice; first element mutated to %q", got)
+	}
+
+	handlers := svc.CurrentHandlers()
+	if len(handlers) == 0 {
+		t.Fatal("CurrentHandlers() returned no handlers")
+	}
+	handlers[0] = nil
+	if svc.CurrentHandlers()[0] == nil {
+		t.Fatal("CurrentHandlers() returned a shared slice; first handler mutated to nil")
+	}
+}
+
 func TestServiceAvailableLanguagesSorted(t *testing.T) {
 	svc, err := NewWithLoader(messageBaseFallbackLoader{})
 	if err != nil {
