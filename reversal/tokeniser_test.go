@@ -218,13 +218,22 @@ func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
 	}{
 		{"le", "definite", true},
 		{"la", "definite", true},
+		{"le serveur", "definite", true},
+		{"la branche", "definite", true},
+		{"les amis", "definite", true},
 		{"Le", "definite", true},
 		{"La", "definite", true},
+		{"Un enfant", "indefinite", true},
+		{"Une amie", "indefinite", true},
 		{"de la", "indefinite", true},
 		{"de l'", "indefinite", true},
 		{"de l’", "indefinite", true},
+		{"du serveur", "indefinite", true},
+		{"des amis", "indefinite", true},
 		{"un", "indefinite", true},
 		{"une", "indefinite", true},
+		{"l'enfant", "definite", true},
+		{"l’ami", "definite", true},
 	}
 
 	for _, tt := range tests {

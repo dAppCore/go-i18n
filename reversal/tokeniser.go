@@ -683,6 +683,9 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 		}
 	}
 	if t.isFrenchLanguage() {
+		if artType, ok := matchFrenchLeadingArticlePhrase(lower); ok {
+			return artType, true
+		}
 		if artType, ok := matchFrenchArticleText(lower); ok {
 			return artType, true
 		}
@@ -698,6 +701,41 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 			return "definite", true
 		case "un", "une":
 			return "indefinite", true
+		}
+	}
+
+	return "", false
+}
+
+func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
+	switch {
+	case lower == "le", lower == "la", lower == "les",
+		lower == "l'", lower == "l’", lower == "au", lower == "aux":
+		return "definite", true
+	case lower == "un", lower == "une", lower == "du", lower == "des":
+		return "indefinite", true
+	}
+
+	for _, prefix := range []struct {
+		text string
+		kind string
+	}{
+		{text: "le ", kind: "definite"},
+		{text: "la ", kind: "definite"},
+		{text: "les ", kind: "definite"},
+		{text: "un ", kind: "indefinite"},
+		{text: "une ", kind: "indefinite"},
+		{text: "du ", kind: "indefinite"},
+		{text: "des ", kind: "indefinite"},
+		{text: "au ", kind: "definite"},
+		{text: "aux ", kind: "definite"},
+		{text: "l'", kind: "definite"},
+		{text: "l’", kind: "definite"},
+		{text: "d'", kind: "indefinite"},
+		{text: "d’", kind: "indefinite"},
+	} {
+		if strings.HasPrefix(lower, prefix.text) {
+			return prefix.kind, true
 		}
 	}
 
