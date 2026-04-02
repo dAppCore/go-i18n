@@ -16,7 +16,13 @@ func (h LabelHandler) Match(key string) bool {
 
 func (h LabelHandler) Handle(key string, args []any, next func() string) string {
 	word := core.TrimPrefix(key, "i18n.label.")
-	return Label(word)
+	if got := Label(word); got != "" {
+		return got
+	}
+	if next != nil {
+		return next()
+	}
+	return ""
 }
 
 // ProgressHandler handles i18n.progress.{verb} -> "Building..." patterns.
@@ -30,10 +36,18 @@ func (h ProgressHandler) Handle(key string, args []any, next func() string) stri
 	verb := core.TrimPrefix(key, "i18n.progress.")
 	if len(args) > 0 {
 		if subj := subjectArgText(args[0]); subj != "" {
-			return ProgressSubject(verb, subj)
+			if got := ProgressSubject(verb, subj); got != "" {
+				return got
+			}
 		}
 	}
-	return Progress(verb)
+	if got := Progress(verb); got != "" {
+		return got
+	}
+	if next != nil {
+		return next()
+	}
+	return ""
 }
 
 // CountHandler handles i18n.count.{noun} -> "5 files" patterns.
@@ -46,6 +60,12 @@ func (h CountHandler) Match(key string) bool {
 func (h CountHandler) Handle(key string, args []any, next func() string) string {
 	noun := core.TrimPrefix(key, "i18n.count.")
 	lang := currentLangForGrammar()
+	if core.Trim(noun) == "" {
+		if next != nil {
+			return next()
+		}
+		return ""
+	}
 	if len(args) > 0 {
 		count := getCount(args[0])
 		return core.Sprintf("%s %s", FormatNumber(int64(count)), countWordForm(lang, noun, count))
@@ -64,10 +84,18 @@ func (h DoneHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.done.")
 	if len(args) > 0 {
 		if subj := subjectArgText(args[0]); subj != "" {
-			return ActionResult(verb, subj)
+			if got := ActionResult(verb, subj); got != "" {
+				return got
+			}
 		}
 	}
-	return Title(PastTense(verb))
+	if got := Title(PastTense(verb)); got != "" {
+		return got
+	}
+	if next != nil {
+		return next()
+	}
+	return ""
 }
 
 // FailHandler handles i18n.fail.{verb} -> "Failed to delete file" patterns.
@@ -81,10 +109,18 @@ func (h FailHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.fail.")
 	if len(args) > 0 {
 		if subj := subjectArgText(args[0]); subj != "" {
-			return ActionFailed(verb, subj)
+			if got := ActionFailed(verb, subj); got != "" {
+				return got
+			}
 		}
 	}
-	return ActionFailed(verb, "")
+	if got := ActionFailed(verb, ""); got != "" {
+		return got
+	}
+	if next != nil {
+		return next()
+	}
+	return ""
 }
 
 // NumericHandler handles i18n.numeric.{format} -> formatted numbers.
