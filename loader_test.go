@@ -454,6 +454,50 @@ func TestMergeGrammarData(t *testing.T) {
 	}
 }
 
+func TestGrammarDataLanguageTagNormalisation(t *testing.T) {
+	const rawLang = "tl_PH"
+	const canonicalLang = "tl-PH"
+
+	originalRaw := GetGrammarData(rawLang)
+	originalCanonical := GetGrammarData(canonicalLang)
+	t.Cleanup(func() {
+		SetGrammarData(rawLang, originalRaw)
+		SetGrammarData(canonicalLang, originalCanonical)
+	})
+
+	SetGrammarData(rawLang, &GrammarData{
+		Words: map[string]string{
+			"demo": "Demo",
+		},
+	})
+
+	if got := GetGrammarData(rawLang); got == nil || got.Words["demo"] != "Demo" {
+		t.Fatalf("GetGrammarData(%q) = %+v, want demo word", rawLang, got)
+	}
+	if got := GetGrammarData(canonicalLang); got == nil || got.Words["demo"] != "Demo" {
+		t.Fatalf("GetGrammarData(%q) = %+v, want demo word", canonicalLang, got)
+	}
+
+	MergeGrammarData(canonicalLang, &GrammarData{
+		Words: map[string]string{
+			"api": "API",
+		},
+	})
+
+	data := GetGrammarData(rawLang)
+	if data == nil {
+		t.Fatalf("GetGrammarData(%q) returned nil after merge", rawLang)
+	}
+	if data.Words["api"] != "API" {
+		t.Fatalf("merged word normalisation failed: %+v", data.Words)
+	}
+
+	SetGrammarData(rawLang, nil)
+	if got := GetGrammarData(canonicalLang); got != nil {
+		t.Fatalf("SetGrammarData(%q, nil) did not clear entry: %+v", rawLang, got)
+	}
+}
+
 func TestNewWithLoader_LoadsGrammarOnlyLocale(t *testing.T) {
 	loaderFS := fstest.MapFS{
 		"fr.json": &fstest.MapFile{
