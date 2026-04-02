@@ -4,23 +4,51 @@ import (
 	"dappco.re/go/core"
 )
 
+func newServiceStateSnapshot(
+	language string,
+	requestedLanguage string,
+	languageExplicit bool,
+	availableLanguages []string,
+	mode Mode,
+	fallback string,
+	formality Formality,
+	location string,
+	direction TextDirection,
+	debug bool,
+	handlers []KeyHandler,
+) ServiceState {
+	return ServiceState{
+		Language:           language,
+		RequestedLanguage:  requestedLanguage,
+		LanguageExplicit:   languageExplicit,
+		AvailableLanguages: availableLanguages,
+		Mode:               mode,
+		Fallback:           fallback,
+		Formality:          formality,
+		Location:           location,
+		Direction:          direction,
+		IsRTL:              direction == DirRTL,
+		Debug:              debug,
+		Handlers:           handlers,
+	}
+}
+
 func defaultServiceStateSnapshot() ServiceState {
 	// Keep the nil/default snapshot aligned with Service.State() so callers get
 	// the same shape regardless of whether a Service has been initialised.
-	return ServiceState{
-		Language:           "en",
-		RequestedLanguage:  "",
-		LanguageExplicit:   false,
-		AvailableLanguages: []string{},
-		Mode:               ModeNormal,
-		Fallback:           "en",
-		Formality:          FormalityNeutral,
-		Location:           "",
-		Direction:          DirLTR,
-		IsRTL:              false,
-		Debug:              false,
-		Handlers:           []KeyHandler{},
-	}
+	return newServiceStateSnapshot(
+		"en",
+		"",
+		false,
+		[]string{},
+		ModeNormal,
+		"en",
+		FormalityNeutral,
+		"",
+		DirLTR,
+		false,
+		[]KeyHandler{},
+	)
 }
 
 // ServiceState captures the current configuration of a service in one
@@ -96,20 +124,19 @@ func (s *Service) State() ServiceState {
 		dir = DirRTL
 	}
 
-	return ServiceState{
-		Language:           s.currentLang,
-		RequestedLanguage:  s.requestedLang,
-		LanguageExplicit:   s.languageExplicit,
-		AvailableLanguages: langs,
-		Mode:               s.mode,
-		Fallback:           s.fallbackLang,
-		Formality:          s.formality,
-		Location:           s.location,
-		Direction:          dir,
-		IsRTL:              dir == DirRTL,
-		Debug:              s.debug,
-		Handlers:           handlers,
-	}
+	return newServiceStateSnapshot(
+		s.currentLang,
+		s.requestedLang,
+		s.languageExplicit,
+		langs,
+		s.mode,
+		s.fallbackLang,
+		s.formality,
+		s.location,
+		dir,
+		s.debug,
+		handlers,
+	)
 }
 
 // CurrentState is a more explicit alias for State.
