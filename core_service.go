@@ -25,8 +25,16 @@ type CoreService struct {
 type ServiceOptions struct {
 	// Language overrides auto-detection (e.g., "en-GB", "de")
 	Language string
+	// Fallback sets the fallback language for missing translations.
+	Fallback string
+	// Formality sets the default formality level.
+	Formality Formality
+	// Location sets the default location context.
+	Location string
 	// Mode sets the translation mode (Normal, Strict, Collect)
 	Mode Mode
+	// Debug prefixes translated output with the message key.
+	Debug bool
 	// ExtraFS loads additional translation files on top of the embedded defaults.
 	// Each entry is an fs.FS + directory path within it.
 	ExtraFS []FSSource
@@ -67,8 +75,18 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 				return nil, langErr
 			}
 		}
+		if opts.Fallback != "" {
+			svc.SetFallback(opts.Fallback)
+		}
+		if opts.Formality != FormalityNeutral {
+			svc.SetFormality(opts.Formality)
+		}
+		if opts.Location != "" {
+			svc.SetLocation(opts.Location)
+		}
 
 		svc.SetMode(opts.Mode)
+		svc.SetDebug(opts.Debug)
 		SetDefault(svc)
 
 		return &CoreService{
