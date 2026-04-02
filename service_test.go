@@ -236,6 +236,30 @@ func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
 	}
 }
 
+func TestServiceStateString(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	got := svc.State().String()
+	if got == "" {
+		t.Fatal("ServiceState.String() returned an empty string")
+	}
+	for _, want := range []string{
+		"ServiceState{",
+		"language=",
+		"fallback=",
+		"mode=",
+		"available=",
+		"handlers=",
+	} {
+		if !strings.Contains(got, want) {
+			t.Fatalf("ServiceState.String() = %q, want substring %q", got, want)
+		}
+	}
+}
+
 func TestServiceAvailableLanguagesSorted(t *testing.T) {
 	svc, err := NewWithLoader(messageBaseFallbackLoader{})
 	if err != nil {

@@ -1,5 +1,10 @@
 package i18n
 
+import (
+	"fmt"
+	"strings"
+)
+
 // ServiceState captures the current configuration of a service in one
 // copy-safe snapshot.
 type ServiceState struct {
@@ -13,6 +18,27 @@ type ServiceState struct {
 	IsRTL              bool
 	Debug              bool
 	Handlers           []KeyHandler
+}
+
+// String returns a concise, stable summary of the service snapshot.
+func (s ServiceState) String() string {
+	langs := "[]"
+	if len(s.AvailableLanguages) > 0 {
+		langs = "[" + strings.Join(s.AvailableLanguages, ", ") + "]"
+	}
+	return fmt.Sprintf(
+		"ServiceState{language=%q fallback=%q mode=%s formality=%s location=%q direction=%s rtl=%t debug=%t available=%s handlers=%d}",
+		s.Language,
+		s.Fallback,
+		s.Mode,
+		s.Formality,
+		s.Location,
+		s.Direction,
+		s.IsRTL,
+		s.Debug,
+		langs,
+		len(s.Handlers),
+	)
 }
 
 func (s *Service) State() ServiceState {
