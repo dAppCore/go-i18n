@@ -457,6 +457,54 @@ func TestAddMissingKeyHandler_Good(t *testing.T) {
 	assert.Equal(t, 1, second)
 }
 
+func TestSetMissingKeyHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	prevHandlers := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prevHandlers)
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	var first, second int
+	SetMissingKeyHandlers(
+		nil,
+		func(MissingKey) { first++ },
+		func(MissingKey) { second++ },
+	)
+
+	_ = T("missing.set.handlers")
+
+	assert.Equal(t, 1, first)
+	assert.Equal(t, 1, second)
+	assert.Len(t, missingKeyHandlers().handlers, 2)
+}
+
+func TestSetMissingKeyHandlers_Good_Clear(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	prevHandlers := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prevHandlers)
+		SetDefault(prev)
+	})
+	svc.SetMode(ModeCollect)
+
+	var called int
+	SetMissingKeyHandlers(func(MissingKey) { called++ })
+	SetMissingKeyHandlers(nil)
+
+	_ = T("missing.set.handlers.clear")
+
+	assert.Equal(t, 0, called)
+	assert.Empty(t, missingKeyHandlers().handlers)
+}
+
 func TestAddMissingKeyHandler_Good_Concurrent(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
