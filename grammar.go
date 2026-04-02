@@ -455,6 +455,9 @@ func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 	if article, ok := articleForPluralForm(data, lowerWord, lang); ok {
 		return article, true
 	}
+	if article, ok := articleForFrenchPluralGuess(data, lowerWord, originalWord, lang); ok {
+		return article, true
+	}
 	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
 		return article, true
 	}
@@ -487,6 +490,19 @@ func articleForPluralForm(data *GrammarData, lowerWord, lang string) (string, bo
 		return "", false
 	}
 	return "les", true
+}
+
+func articleForFrenchPluralGuess(data *GrammarData, lowerWord, originalWord, lang string) (string, bool) {
+	if !isFrenchLanguage(lang) {
+		return "", false
+	}
+	if isKnownPluralNoun(data, lowerWord) {
+		return "", false
+	}
+	if !looksLikeFrenchPlural(originalWord) {
+		return "", false
+	}
+	return "des", true
 }
 
 func isKnownPluralNoun(data *GrammarData, lowerWord string) bool {
@@ -562,6 +578,18 @@ func usesVowelSoundArticle(word string) bool {
 		return isVowel(r)
 	}
 	return false
+}
+
+func looksLikeFrenchPlural(word string) bool {
+	trimmed := core.Trim(word)
+	if trimmed == "" || strings.ContainsAny(trimmed, " \t") || isInitialism(trimmed) {
+		return false
+	}
+	lower := core.Lower(trimmed)
+	if core.HasSuffix(lower, "aux") || core.HasSuffix(lower, "eaux") {
+		return true
+	}
+	return core.HasSuffix(lower, "s") || core.HasSuffix(lower, "x")
 }
 
 func startsWithVowelSound(word string) bool {

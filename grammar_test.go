@@ -336,6 +336,7 @@ func TestArticleFrenchLocale(t *testing.T) {
 	}{
 		{"branche", "la"},
 		{"branches", "les"},
+		{"amis", "des"},
 		{"enfant", "l'"},
 		{"fichier", "le"},
 		{"inconnu", "un"},
@@ -574,6 +575,7 @@ func TestArticlePhraseFrenchLocale(t *testing.T) {
 	}{
 		{"branche", "la branche"},
 		{"branches", "les branches"},
+		{"amis", "des amis"},
 		{"enfant", "l'enfant"},
 		{"fichier", "le fichier"},
 	}
