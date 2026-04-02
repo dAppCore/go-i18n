@@ -76,10 +76,10 @@ func CurrentLanguage() string {
 //
 //	langs := i18n.AvailableLanguages()
 func AvailableLanguages() []string {
-	return defaultServiceValue([]string(nil), func(svc *Service) []string {
+	return defaultServiceValue([]string{}, func(svc *Service) []string {
 		langs := svc.AvailableLanguages()
 		if len(langs) == 0 {
-			return nil
+			return []string{}
 		}
 		return append([]string(nil), langs...)
 	})
@@ -278,7 +278,7 @@ func PrependHandler(handlers ...KeyHandler) {
 //
 //	handlers := i18n.CurrentHandlers()
 func CurrentHandlers() []KeyHandler {
-	return defaultServiceValue([]KeyHandler(nil), func(svc *Service) []KeyHandler {
+	return defaultServiceValue([]KeyHandler{}, func(svc *Service) []KeyHandler {
 		return svc.Handlers()
 	})
 }
