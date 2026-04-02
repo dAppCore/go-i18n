@@ -771,16 +771,17 @@ func missingKeySubjectArgs(subj *Subject) map[string]any {
 // Raw translates without i18n.* namespace magic.
 func (s *Service) Raw(messageID string, args ...any) string {
 	s.mu.RLock()
-	defer s.mu.RUnlock()
 	var data any
 	if len(args) > 0 {
 		data = args[0]
 	}
 	text := s.resolveDirectLocked(messageID, data)
+	debug := s.debug
+	s.mu.RUnlock()
 	if text == "" {
-		return s.handleMissingKey(messageID, args)
+		text = s.handleMissingKey(messageID, args)
 	}
-	if s.debug {
+	if debug {
 		return debugFormat(messageID, text)
 	}
 	return text

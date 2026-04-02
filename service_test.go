@@ -275,6 +275,45 @@ func TestServiceRaw_DoesNotUseCommonFallbacks(t *testing.T) {
 	}
 }
 
+func TestServiceRaw_MissingKeyHandlersCanMutateService(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	prev := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prev)
+	})
+
+	OnMissingKey(func(m MissingKey) {
+		_ = svc.SetLanguage("fr")
+	})
+	svc.SetMode(ModeCollect)
+	svc.SetDebug(true)
+	t.Cleanup(func() {
+		svc.SetDebug(false)
+	})
+
+	done := make(chan string, 1)
+	go func() {
+		done <- svc.Raw("missing.raw.key")
+	}()
+
+	select {
+	case got := <-done:
+		if got != "[missing.raw.key] [missing.raw.key]" {
+			t.Fatalf("Raw(missing.raw.key) = %q, want %q", got, "[missing.raw.key] [missing.raw.key]")
+		}
+	case <-time.After(2 * time.Second):
+		t.Fatal("Raw(missing.raw.key) timed out while missing-key handler mutated service state")
+	}
+
+	if got := svc.Language(); got != "fr" {
+		t.Fatalf("Language() = %q, want %q", got, "fr")
+	}
+}
+
 func TestServiceModes(t *testing.T) {
 	svc, err := New()
 	if err != nil {
