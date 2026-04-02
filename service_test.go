@@ -1033,6 +1033,18 @@ func TestServiceAddLoader_Nil(t *testing.T) {
 	}
 }
 
+func TestServiceAddLoader_NoLanguages(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	empty := fstest.MapFS{}
+	if err := svc.AddLoader(NewFSLoader(empty, "missing")); err == nil {
+		t.Error("AddLoader() should fail when no languages are available")
+	}
+}
+
 func TestPackageLevelAddLoader(t *testing.T) {
 	svc, err := New()
 	if err != nil {

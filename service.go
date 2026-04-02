@@ -831,6 +831,14 @@ func (s *Service) AddLoader(loader Loader) error {
 		return log.E("Service.AddLoader", "nil loader", nil)
 	}
 	langs := loader.Languages()
+	if len(langs) == 0 {
+		if el, ok := loader.(interface{ LanguagesErr() error }); ok {
+			if langErr := el.LanguagesErr(); langErr != nil {
+				return log.E("Service.AddLoader", "read locales directory", langErr)
+			}
+		}
+		return log.E("Service.AddLoader", "no languages available from loader", nil)
+	}
 	for _, lang := range langs {
 		messages, grammar, err := loader.Load(lang)
 		if err != nil {
