@@ -55,7 +55,9 @@ func WithLocation(location string) Option {
 
 // WithHandlers sets custom handlers (replaces default handlers).
 func WithHandlers(handlers ...KeyHandler) Option {
-	return func(s *Service) { s.handlers = handlers }
+	return func(s *Service) {
+		s.handlers = append([]KeyHandler(nil), handlers...)
+	}
 }
 
 // WithDefaultHandlers adds the default i18n.* namespace handlers.

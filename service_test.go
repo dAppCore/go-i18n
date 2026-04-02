@@ -33,6 +33,16 @@ func (h serviceMutatingHandler) Handle(key string, args []any, next func() strin
 	return "mutated"
 }
 
+type serviceStubHandler struct{}
+
+func (serviceStubHandler) Match(key string) bool {
+	return key == "custom.stub"
+}
+
+func (serviceStubHandler) Handle(key string, args []any, next func() string) string {
+	return "stub"
+}
+
 type underscoreLangLoader struct{}
 
 func (underscoreLangLoader) Languages() []string {
@@ -134,6 +144,20 @@ func TestServiceTranslateMissingKey(t *testing.T) {
 	}
 	if got, want := result.Value, "missing.translation.key"; got != want {
 		t.Fatalf("Translate(missing.translation.key) = %#v, want %q", got, want)
+	}
+}
+
+func TestNewWithHandlersCopiesInputSlice(t *testing.T) {
+	handlers := []KeyHandler{serviceStubHandler{}}
+	svc, err := New(WithHandlers(handlers...))
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	handlers[0] = LabelHandler{}
+
+	if got := svc.T("custom.stub"); got != "stub" {
+		t.Fatalf("T(custom.stub) = %q, want %q", got, "stub")
 	}
 }
 
