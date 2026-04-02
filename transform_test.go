@@ -18,6 +18,7 @@ func TestGetCount_Good(t *testing.T) {
 		{"map_string_any", map[string]any{"Count": 5}, 5},
 		{"map_string_any_float", map[string]any{"Count": 3.7}, 3},
 		{"map_string_int", map[string]int{"Count": 42}, 42},
+		{"map_string_string", map[string]string{"Count": "9"}, 9},
 		{"no_count_key", map[string]any{"Name": "test"}, 0},
 		{"wrong_type", "a string", 0},
 	}
@@ -50,6 +51,7 @@ func TestToInt_Good(t *testing.T) {
 		{"uint8", uint8(50), 50},
 		{"float64", float64(3.14), 3},
 		{"float32", float32(2.71), 2},
+		{"string_int", "123", 123},
 		{"string", "not a number", 0},
 		{"bool", true, 0},
 	}
@@ -82,6 +84,7 @@ func TestToInt64_Good(t *testing.T) {
 		{"uint8", uint8(50), 50},
 		{"float64", float64(3.14), 3},
 		{"float32", float32(2.71), 2},
+		{"string_int64", "123", 123},
 		{"string", "not a number", 0},
 		{"bool", true, 0},
 	}
@@ -114,6 +117,7 @@ func TestToFloat64_Good(t *testing.T) {
 		{"uint32", uint32(30), 30.0},
 		{"uint16", uint16(40), 40.0},
 		{"uint8", uint8(50), 50.0},
+		{"string_float", "3.5", 3.5},
 		{"string", "not a number", 0},
 		{"bool", true, 0},
 	}

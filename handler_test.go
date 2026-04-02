@@ -123,6 +123,11 @@ func TestCountHandler(t *testing.T) {
 		t.Errorf("CountHandler.Handle(file, Subject.Count(3)) = %q, want %q", got, "3 files")
 	}
 
+	got = h.Handle("i18n.count.file", []any{map[string]string{"Count": "3"}}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, map[string]string[Count:3]) = %q, want %q", got, "3 files")
+	}
+
 	got = h.Handle("i18n.count.file", []any{C("file").Set("Count", 3)}, nil)
 	if got != "3 files" {
 		t.Errorf("CountHandler.Handle(file, TranslationContext.Count=3) = %q, want %q", got, "3 files")
@@ -249,6 +254,7 @@ func TestNumericHandler(t *testing.T) {
 		{"i18n.numeric.ordinal", []any{11}, "11th"},
 		{"i18n.numeric.percent", []any{0.85}, "85%"},
 		{"i18n.numeric.bytes", []any{int64(1536000)}, "1.46 MB"},
+		{"i18n.numeric.number", []any{"1234567"}, "1,234,567"},
 		{"i18n.numeric.ago", []any{5, "minutes"}, "5 minutes ago"},
 	}
 
