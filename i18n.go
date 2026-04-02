@@ -54,12 +54,27 @@ func SetMode(m Mode) {
 	}
 }
 
+// SetFallback sets the fallback language for the default service.
+func SetFallback(lang string) {
+	if svc := Default(); svc != nil {
+		svc.SetFallback(lang)
+	}
+}
+
 // CurrentMode returns the current translation mode.
 func CurrentMode() Mode {
 	if svc := Default(); svc != nil {
 		return svc.Mode()
 	}
 	return ModeNormal
+}
+
+// CurrentFallback returns the current fallback language.
+func CurrentFallback() string {
+	if svc := Default(); svc != nil {
+		return svc.Fallback()
+	}
+	return "en"
 }
 
 // CurrentFormality returns the current default formality.

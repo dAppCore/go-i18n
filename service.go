@@ -283,6 +283,12 @@ func (s *Service) SetMode(m Mode)           { s.mu.Lock(); s.mode = m; s.mu.Unlo
 func (s *Service) Mode() Mode               { s.mu.RLock(); defer s.mu.RUnlock(); return s.mode }
 func (s *Service) SetFormality(f Formality) { s.mu.Lock(); s.formality = f; s.mu.Unlock() }
 func (s *Service) Formality() Formality     { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
+func (s *Service) SetFallback(lang string)  { s.mu.Lock(); s.fallbackLang = lang; s.mu.Unlock() }
+func (s *Service) Fallback() string {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.fallbackLang
+}
 
 func (s *Service) SetLocation(location string) {
 	s.mu.Lock()

@@ -120,6 +120,20 @@ func TestSetFormality_Good(t *testing.T) {
 	assert.Equal(t, FormalityNeutral, svc.Formality())
 }
 
+// --- Package-level SetFallback ---
+
+func TestSetFallback_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	SetFallback("fr")
+	assert.Equal(t, "fr", svc.Fallback())
+
+	SetFallback("en")
+	assert.Equal(t, "en", svc.Fallback())
+}
+
 // --- Package-level CurrentFormality ---
 
 func TestCurrentFormality_Good(t *testing.T) {
@@ -131,6 +145,19 @@ func TestCurrentFormality_Good(t *testing.T) {
 
 	SetFormality(FormalityFormal)
 	assert.Equal(t, FormalityFormal, CurrentFormality())
+}
+
+// --- Package-level CurrentFallback ---
+
+func TestCurrentFallback_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, "en", CurrentFallback())
+
+	SetFallback("fr")
+	assert.Equal(t, "fr", CurrentFallback())
 }
 
 // --- Package-level SetLocation ---

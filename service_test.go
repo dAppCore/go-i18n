@@ -228,6 +228,22 @@ func TestServiceModes(t *testing.T) {
 	svc.T("nonexistent.key")
 }
 
+func TestServiceFallback(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	if svc.Fallback() != "en" {
+		t.Errorf("default Fallback() = %q, want en", svc.Fallback())
+	}
+
+	svc.SetFallback("fr")
+	if svc.Fallback() != "fr" {
+		t.Errorf("Fallback() = %q, want fr", svc.Fallback())
+	}
+}
+
 func TestServiceDebug(t *testing.T) {
 	svc, err := New()
 	if err != nil {
