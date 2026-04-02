@@ -1323,6 +1323,18 @@ func TestTokeniserSignalWeights_ReturnsCopy(t *testing.T) {
 	}
 }
 
+func TestLowInformationConfidenceConstants(t *testing.T) {
+	if LowInformationScoreThreshold != 0.10 {
+		t.Fatalf("LowInformationScoreThreshold = %v, want 0.10", LowInformationScoreThreshold)
+	}
+	if LowInformationVerbConfidence != 0.55 {
+		t.Fatalf("LowInformationVerbConfidence = %v, want 0.55", LowInformationVerbConfidence)
+	}
+	if LowInformationNounConfidence != 0.45 {
+		t.Fatalf("LowInformationNounConfidence = %v, want 0.45", LowInformationNounConfidence)
+	}
+}
+
 func TestTokeniser_LowInformationConfidenceFloor(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
