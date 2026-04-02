@@ -33,6 +33,18 @@ func (h serviceMutatingHandler) Handle(key string, args []any, next func() strin
 	return "mutated"
 }
 
+type underscoreLangLoader struct{}
+
+func (underscoreLangLoader) Languages() []string {
+	return []string{"en_US"}
+}
+
+func (underscoreLangLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	return map[string]Message{
+		"greeting": {Text: "hello"},
+	}, nil, nil
+}
+
 func TestNewService(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -145,6 +157,28 @@ func TestServiceTDirectKeys(t *testing.T) {
 	got = svc.T("lang.de")
 	if got != "German" {
 		t.Errorf("T(lang.de) = %q, want 'German'", got)
+	}
+}
+
+func TestNewWithLoaderNormalisesLanguageTags(t *testing.T) {
+	svc, err := NewWithLoader(underscoreLangLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	langs := svc.AvailableLanguages()
+	if len(langs) != 1 || langs[0] != "en-US" {
+		t.Fatalf("AvailableLanguages() = %v, want [en-US]", langs)
+	}
+
+	if err := svc.SetLanguage("en_US"); err != nil {
+		t.Fatalf("SetLanguage(en_US) failed: %v", err)
+	}
+	if got, want := svc.Language(), "en-US"; got != want {
+		t.Fatalf("Language() after SetLanguage(en_US) = %q, want %q", got, want)
+	}
+	if got := svc.T("greeting"); got != "hello" {
+		t.Fatalf("T(greeting) after SetLanguage(en_US) = %q, want %q", got, "hello")
 	}
 }
 

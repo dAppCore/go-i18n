@@ -131,6 +131,7 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 		if err != nil {
 			return nil, log.E("NewWithLoader", "load locale: "+lang, err)
 		}
+		lang = normalizeLanguageTag(lang)
 		s.messages[lang] = messages
 		if grammarDataHasContent(grammar) {
 			SetGrammarData(lang, grammar)
@@ -290,7 +291,11 @@ func (s *Service) SetMode(m Mode)           { s.mu.Lock(); s.mode = m; s.mu.Unlo
 func (s *Service) Mode() Mode               { s.mu.RLock(); defer s.mu.RUnlock(); return s.mode }
 func (s *Service) SetFormality(f Formality) { s.mu.Lock(); s.formality = f; s.mu.Unlock() }
 func (s *Service) Formality() Formality     { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
-func (s *Service) SetFallback(lang string)  { s.mu.Lock(); s.fallbackLang = normalizeLanguageTag(lang); s.mu.Unlock() }
+func (s *Service) SetFallback(lang string) {
+	s.mu.Lock()
+	s.fallbackLang = normalizeLanguageTag(lang)
+	s.mu.Unlock()
+}
 func (s *Service) Fallback() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
@@ -829,6 +834,7 @@ func (s *Service) AddLoader(loader Loader) error {
 		if err != nil {
 			return log.E("Service.AddLoader", "load locale: "+lang, err)
 		}
+		lang = normalizeLanguageTag(lang)
 
 		s.mu.Lock()
 		if s.messages[lang] == nil {
