@@ -340,6 +340,15 @@ func TestPrompt_Good(t *testing.T) {
 	}
 }
 
+func TestCurrentPrompt_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	assert.Equal(t, Prompt("confirm"), CurrentPrompt("confirm"))
+}
+
 // --- Lang() language label shorthand ---
 
 func TestLang_Good(t *testing.T) {

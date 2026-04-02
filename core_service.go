@@ -198,6 +198,11 @@ func (s *CoreService) Prompt(key string) string {
 	return s.svc.Prompt(key)
 }
 
+// CurrentPrompt is a short alias for Prompt.
+func (s *CoreService) CurrentPrompt(key string) string {
+	return s.Prompt(key)
+}
+
 // Lang translates a language label from the lang namespace using the wrapped service.
 func (s *CoreService) Lang(key string) string {
 	return s.svc.Lang(key)

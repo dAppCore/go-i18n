@@ -238,6 +238,15 @@ func Prompt(key string) string {
 	return T("prompt." + key)
 }
 
+// CurrentPrompt is a short alias for Prompt.
+//
+// Example:
+//
+//	prompt := i18n.CurrentPrompt("confirm")
+func CurrentPrompt(key string) string {
+	return Prompt(key)
+}
+
 // Lang translates a language label from the lang namespace.
 //
 // Example:

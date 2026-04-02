@@ -367,6 +367,11 @@ func (s *Service) Prompt(key string) string {
 	return s.T("prompt." + key)
 }
 
+// CurrentPrompt is a short alias for Prompt.
+func (s *Service) CurrentPrompt(key string) string {
+	return s.Prompt(key)
+}
+
 // Lang translates a language label from the lang namespace using this service.
 func (s *Service) Lang(key string) string {
 	key = normalizeLookupKey(key)

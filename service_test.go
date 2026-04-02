@@ -340,6 +340,9 @@ func TestServicePromptAndLang(t *testing.T) {
 	if got, want := svc.Prompt("confirm"), "Are you sure?"; got != want {
 		t.Fatalf("Prompt(confirm) = %q, want %q", got, want)
 	}
+	if got, want := svc.CurrentPrompt("confirm"), "Are you sure?"; got != want {
+		t.Fatalf("CurrentPrompt(confirm) = %q, want %q", got, want)
+	}
 	if got, want := svc.Lang("fr"), "French"; got != want {
 		t.Fatalf("Lang(fr) = %q, want %q", got, want)
 	}
