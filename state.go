@@ -1,6 +1,8 @@
 package i18n
 
 import (
+	"strings"
+
 	"dappco.re/go/core"
 )
 
@@ -82,7 +84,7 @@ func (s ServiceState) String() string {
 				names = append(names, "<nil>")
 				continue
 			}
-			names = append(names, core.Sprintf("%T", handler))
+			names = append(names, shortHandlerTypeName(handler))
 		}
 		handlers = "[" + core.Join(", ", names...) + "]"
 	}
@@ -102,6 +104,14 @@ func (s ServiceState) String() string {
 		len(s.Handlers),
 		handlers,
 	)
+}
+
+func shortHandlerTypeName(handler KeyHandler) string {
+	name := core.Sprintf("%T", handler)
+	if idx := strings.LastIndex(name, "."); idx >= 0 {
+		name = name[idx+1:]
+	}
+	return strings.TrimPrefix(name, "*")
 }
 
 func (s *Service) State() ServiceState {
