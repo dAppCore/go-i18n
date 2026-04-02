@@ -118,161 +118,33 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 
 		switch v := value.(type) {
 		case string:
-			if grammar != nil && core.HasPrefix(fullKey, "gram.word.") {
-				wordKey := core.TrimPrefix(fullKey, "gram.word.")
-				if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
-					continue
-				}
-				grammar.Words[core.Lower(wordKey)] = v
+			if grammar != nil && loadGrammarWord(fullKey, v, grammar) {
 				continue
 			}
 			out[fullKey] = Message{Text: v}
 
 		case map[string]any:
-			// Verb form object (has base/past/gerund keys)
-			if grammar != nil && isVerbFormObject(v) {
-				verbName := key
-				if base, ok := v["base"].(string); ok && base != "" {
-					verbName = base
-				}
-				if core.HasPrefix(fullKey, "gram.verb.") {
-					after := core.TrimPrefix(fullKey, "gram.verb.")
-					if base, ok := v["base"].(string); !ok || base == "" {
-						verbName = after
-					}
-				}
-				forms := VerbForms{}
-				if past, ok := v["past"].(string); ok {
-					forms.Past = past
-				}
-				if gerund, ok := v["gerund"].(string); ok {
-					forms.Gerund = gerund
-				}
-				grammar.Verbs[core.Lower(verbName)] = forms
+			if grammar != nil && loadGrammarVerb(fullKey, key, v, grammar) {
 				continue
 			}
 
-			// Noun form object (under gram.noun.* or has gender field)
-			if grammar != nil && (core.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
-				nounName := key
-				if core.HasPrefix(fullKey, "gram.noun.") {
-					after := core.TrimPrefix(fullKey, "gram.noun.")
-					nounName = after
-				}
-				if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
-					continue
-				}
-				_, hasOne := v["one"]
-				_, hasOther := v["other"]
-				if hasOne && hasOther {
-					forms := NounForms{}
-					if one, ok := v["one"].(string); ok {
-						forms.One = one
-					}
-					if other, ok := v["other"].(string); ok {
-						forms.Other = other
-					}
-					if gender, ok := v["gender"].(string); ok {
-						forms.Gender = gender
-					}
-					grammar.Nouns[core.Lower(nounName)] = forms
-					continue
-				}
-			}
-
-			// Signal data for disambiguation
-			if grammar != nil && fullKey == "gram.signal" {
-				if nd, ok := v["noun_determiner"]; ok {
-					if arr, ok := nd.([]any); ok {
-						for _, item := range arr {
-							if s, ok := item.(string); ok {
-								grammar.Signals.NounDeterminers = append(grammar.Signals.NounDeterminers, core.Lower(s))
-							}
-						}
-					}
-				}
-				if va, ok := v["verb_auxiliary"]; ok {
-					if arr, ok := va.([]any); ok {
-						for _, item := range arr {
-							if s, ok := item.(string); ok {
-								grammar.Signals.VerbAuxiliaries = append(grammar.Signals.VerbAuxiliaries, core.Lower(s))
-							}
-						}
-					}
-				}
-				if vi, ok := v["verb_infinitive"]; ok {
-					if arr, ok := vi.([]any); ok {
-						for _, item := range arr {
-							if s, ok := item.(string); ok {
-								grammar.Signals.VerbInfinitive = append(grammar.Signals.VerbInfinitive, core.Lower(s))
-							}
-						}
-					}
-				}
-				if vn, ok := v["verb_negation"]; ok {
-					if arr, ok := vn.([]any); ok {
-						for _, item := range arr {
-							if s, ok := item.(string); ok {
-								grammar.Signals.VerbNegation = append(grammar.Signals.VerbNegation, core.Lower(s))
-							}
-						}
-					}
-				}
-				if priors, ok := v["prior"].(map[string]any); ok {
-					loadSignalPriors(grammar, priors)
-				}
-				if priors, ok := v["priors"].(map[string]any); ok {
-					loadSignalPriors(grammar, priors)
-				}
+			if grammar != nil && loadGrammarNoun(fullKey, key, v, grammar) {
 				continue
 			}
 
-			// Article configuration
-			if grammar != nil && fullKey == "gram.article" {
-				if indef, ok := v["indefinite"].(map[string]any); ok {
-					if def, ok := indef["default"].(string); ok {
-						grammar.Articles.IndefiniteDefault = def
-					}
-					if vowel, ok := indef["vowel"].(string); ok {
-						grammar.Articles.IndefiniteVowel = vowel
-					}
-				}
-				if def, ok := v["definite"].(string); ok {
-					grammar.Articles.Definite = def
-				}
-				if bg, ok := v["by_gender"].(map[string]any); ok {
-					grammar.Articles.ByGender = make(map[string]string, len(bg))
-					for g, art := range bg {
-						if s, ok := art.(string); ok {
-							grammar.Articles.ByGender[g] = s
-						}
-					}
-				}
+			if grammar != nil && loadGrammarSignals(fullKey, v, grammar) {
 				continue
 			}
 
-			// Punctuation rules
-			if grammar != nil && fullKey == "gram.punct" {
-				if label, ok := v["label"].(string); ok {
-					grammar.Punct.LabelSuffix = label
-				}
-				if progress, ok := v["progress"].(string); ok {
-					grammar.Punct.ProgressSuffix = progress
-				}
+			if grammar != nil && loadGrammarArticle(fullKey, v, grammar) {
 				continue
 			}
 
-			// Number formatting rules
-			if grammar != nil && fullKey == "gram.number" {
-				if thousands, ok := v["thousands"].(string); ok {
-					grammar.Number.ThousandsSep = thousands
-				}
-				if decimal, ok := v["decimal"].(string); ok {
-					grammar.Number.DecimalSep = decimal
-				}
-				if percent, ok := v["percent"].(string); ok {
-					grammar.Number.PercentFmt = percent
-				}
+			if grammar != nil && loadGrammarPunctuation(fullKey, v, grammar) {
+				continue
+			}
+
+			if grammar != nil && loadGrammarNumber(fullKey, v, grammar) {
 				continue
 			}
 
@@ -303,6 +175,156 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 			}
 		}
 	}
+}
+
+func loadGrammarWord(fullKey, value string, grammar *GrammarData) bool {
+	if grammar == nil || !core.HasPrefix(fullKey, "gram.word.") {
+		return false
+	}
+	wordKey := core.TrimPrefix(fullKey, "gram.word.")
+	if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
+		return true
+	}
+	grammar.Words[core.Lower(wordKey)] = value
+	return true
+}
+
+func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || !isVerbFormObject(v) {
+		return false
+	}
+	verbName := key
+	if base, ok := v["base"].(string); ok && base != "" {
+		verbName = base
+	}
+	if core.HasPrefix(fullKey, "gram.verb.") {
+		after := core.TrimPrefix(fullKey, "gram.verb.")
+		if base, ok := v["base"].(string); !ok || base == "" {
+			verbName = after
+		}
+	}
+	forms := VerbForms{}
+	if past, ok := v["past"].(string); ok {
+		forms.Past = past
+	}
+	if gerund, ok := v["gerund"].(string); ok {
+		forms.Gerund = gerund
+	}
+	grammar.Verbs[core.Lower(verbName)] = forms
+	return true
+}
+
+func loadGrammarNoun(fullKey, key string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || !(core.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
+		return false
+	}
+	nounName := key
+	if core.HasPrefix(fullKey, "gram.noun.") {
+		nounName = core.TrimPrefix(fullKey, "gram.noun.")
+	}
+	if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
+		return true
+	}
+	_, hasOne := v["one"]
+	_, hasOther := v["other"]
+	if !hasOne || !hasOther {
+		return false
+	}
+	forms := NounForms{}
+	if one, ok := v["one"].(string); ok {
+		forms.One = one
+	}
+	if other, ok := v["other"].(string); ok {
+		forms.Other = other
+	}
+	if gender, ok := v["gender"].(string); ok {
+		forms.Gender = gender
+	}
+	grammar.Nouns[core.Lower(nounName)] = forms
+	return true
+}
+
+func loadGrammarSignals(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || fullKey != "gram.signal" {
+		return false
+	}
+	loadSignalStringList := func(dst *[]string, raw any) {
+		arr, ok := raw.([]any)
+		if !ok {
+			return
+		}
+		for _, item := range arr {
+			if s, ok := item.(string); ok {
+				*dst = append(*dst, core.Lower(s))
+			}
+		}
+	}
+	loadSignalStringList(&grammar.Signals.NounDeterminers, v["noun_determiner"])
+	loadSignalStringList(&grammar.Signals.VerbAuxiliaries, v["verb_auxiliary"])
+	loadSignalStringList(&grammar.Signals.VerbInfinitive, v["verb_infinitive"])
+	loadSignalStringList(&grammar.Signals.VerbNegation, v["verb_negation"])
+	if priors, ok := v["prior"].(map[string]any); ok {
+		loadSignalPriors(grammar, priors)
+	}
+	if priors, ok := v["priors"].(map[string]any); ok {
+		loadSignalPriors(grammar, priors)
+	}
+	return true
+}
+
+func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || fullKey != "gram.article" {
+		return false
+	}
+	if indef, ok := v["indefinite"].(map[string]any); ok {
+		if def, ok := indef["default"].(string); ok {
+			grammar.Articles.IndefiniteDefault = def
+		}
+		if vowel, ok := indef["vowel"].(string); ok {
+			grammar.Articles.IndefiniteVowel = vowel
+		}
+	}
+	if def, ok := v["definite"].(string); ok {
+		grammar.Articles.Definite = def
+	}
+	if bg, ok := v["by_gender"].(map[string]any); ok {
+		grammar.Articles.ByGender = make(map[string]string, len(bg))
+		for g, art := range bg {
+			if s, ok := art.(string); ok {
+				grammar.Articles.ByGender[g] = s
+			}
+		}
+	}
+	return true
+}
+
+func loadGrammarPunctuation(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || fullKey != "gram.punct" {
+		return false
+	}
+	if label, ok := v["label"].(string); ok {
+		grammar.Punct.LabelSuffix = label
+	}
+	if progress, ok := v["progress"].(string); ok {
+		grammar.Punct.ProgressSuffix = progress
+	}
+	return true
+}
+
+func loadGrammarNumber(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || fullKey != "gram.number" {
+		return false
+	}
+	if thousands, ok := v["thousands"].(string); ok {
+		grammar.Number.ThousandsSep = thousands
+	}
+	if decimal, ok := v["decimal"].(string); ok {
+		grammar.Number.DecimalSep = decimal
+	}
+	if percent, ok := v["percent"].(string); ok {
+		grammar.Number.PercentFmt = percent
+	}
+	return true
 }
 
 func isVerbFormObject(m map[string]any) bool {
