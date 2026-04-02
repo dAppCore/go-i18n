@@ -1542,35 +1542,7 @@ func (t *Tokeniser) checkInflectionEcho(tokens []Token, idx int) (bool, bool) {
 // resolveToken assigns the final classification to an ambiguous token
 // based on verb and noun scores from disambiguation signals.
 func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, components []SignalComponent) {
-	total := verbScore + nounScore
-
-	// If only the default prior fired, keep confidence near chance rather than
-	// pretending the classification is strongly supported.
-	if total < LowInformationScoreThreshold {
-		if verbScore >= nounScore {
-			tok.Type = TokenVerb
-			tok.Confidence = LowInformationVerbConfidence
-			tok.AltType = TokenNoun
-			tok.AltConf = LowInformationNounConfidence
-		} else {
-			tok.Type = TokenNoun
-			tok.Confidence = LowInformationNounConfidence
-			tok.AltType = TokenVerb
-			tok.AltConf = LowInformationVerbConfidence
-		}
-	} else {
-		if verbScore >= nounScore {
-			tok.Type = TokenVerb
-			tok.Confidence = verbScore / total
-			tok.AltType = TokenNoun
-			tok.AltConf = nounScore / total
-		} else {
-			tok.Type = TokenNoun
-			tok.Confidence = nounScore / total
-			tok.AltType = TokenVerb
-			tok.AltConf = verbScore / total
-		}
-	}
+	tok.Type, tok.Confidence, tok.AltType, tok.AltConf = classifyAmbiguousToken(verbScore, nounScore)
 
 	if t.withSignals {
 		tok.Signals = &SignalBreakdown{
@@ -1579,6 +1551,23 @@ func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, compo
 			Components: components,
 		}
 	}
+}
+
+func classifyAmbiguousToken(verbScore, nounScore float64) (TokenType, float64, TokenType, float64) {
+	total := verbScore + nounScore
+
+	// Keep the fallback close to chance when only the default prior fired.
+	if total < LowInformationScoreThreshold {
+		if verbScore >= nounScore {
+			return TokenVerb, LowInformationVerbConfidence, TokenNoun, LowInformationNounConfidence
+		}
+		return TokenNoun, LowInformationNounConfidence, TokenVerb, LowInformationVerbConfidence
+	}
+
+	if verbScore >= nounScore {
+		return TokenVerb, verbScore / total, TokenNoun, nounScore / total
+	}
+	return TokenNoun, nounScore / total, TokenVerb, verbScore / total
 }
 
 // splitTrailingPunct separates a word from its trailing punctuation.
