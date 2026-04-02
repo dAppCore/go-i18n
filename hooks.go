@@ -64,6 +64,7 @@ func RegisterLocales(fsys fs.FS, dir string) {
 			log.Error("i18n: RegisterLocales failed to load", "dir", dir, "err", err)
 		} else {
 			svc.markLocaleRegistrationLoaded(reg.id)
+			markLocalesLoaded()
 		}
 	}
 }
@@ -113,9 +114,7 @@ func loadRegisteredLocales(svc *Service) {
 		loadLocaleProvider(svc, provider)
 	}
 
-	registeredLocalesMu.Lock()
-	localesLoaded = true
-	registeredLocalesMu.Unlock()
+	markLocalesLoaded()
 }
 
 func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
@@ -128,6 +127,13 @@ func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
 		}
 	}
 	svc.markLocaleProviderLoaded(provider.id)
+	markLocalesLoaded()
+}
+
+func markLocalesLoaded() {
+	registeredLocalesMu.Lock()
+	localesLoaded = true
+	registeredLocalesMu.Unlock()
 }
 
 // OnMissingKey registers a handler for missing translation keys.
