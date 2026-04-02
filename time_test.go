@@ -173,6 +173,15 @@ func TestFormatAgo_Good_MorePluralUnitAliases(t *testing.T) {
 	}
 }
 
+func TestFormatAgo_Good_NormalisesUnitInput(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	got := FormatAgo(2, " Hours ")
+	assert.Equal(t, "2 hours ago", got)
+}
+
 func TestFormatAgo_Bad_UnknownUnit(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
