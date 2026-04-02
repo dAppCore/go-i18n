@@ -936,6 +936,7 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 	if err != nil {
 		return log.E("Service.LoadFS", "read locales directory", err)
 	}
+	seen := make(map[string]struct{}, len(entries))
 	for _, entry := range entries {
 		if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") {
 			continue
@@ -946,7 +947,14 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 			return log.E("Service.LoadFS", "read locale: "+entry.Name(), err)
 		}
 		lang := core.TrimSuffix(entry.Name(), ".json")
-		lang = core.Replace(lang, "_", "-")
+		lang = normalizeLanguageTag(core.Replace(lang, "_", "-"))
+		if lang == "" {
+			continue
+		}
+		if _, ok := seen[lang]; ok {
+			continue
+		}
+		seen[lang] = struct{}{}
 		if err := s.loadJSON(lang, data); err != nil {
 			return log.E("Service.LoadFS", "parse locale: "+entry.Name(), err)
 		}

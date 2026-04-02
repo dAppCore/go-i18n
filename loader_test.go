@@ -19,6 +19,22 @@ func TestFSLoaderLanguages(t *testing.T) {
 	}
 }
 
+func TestFSLoaderLanguagesCanonicalAndUnique(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en.json":    &fstest.MapFile{Data: []byte(`{}`)},
+		"locales/en_US.json": &fstest.MapFile{Data: []byte(`{}`)},
+		"locales/es-MX.json": &fstest.MapFile{Data: []byte(`{}`)},
+		"locales/fr.json":    &fstest.MapFile{Data: []byte(`{}`)},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	langs := loader.Languages()
+	want := []string{"en", "en-US", "es-MX", "fr"}
+	if !slices.Equal(langs, want) {
+		t.Fatalf("Languages() = %v, want %v", langs, want)
+	}
+}
+
 func TestFSLoaderLoad(t *testing.T) {
 	loader := NewFSLoader(localeFS, "locales")
 	messages, grammar, err := loader.Load("en")

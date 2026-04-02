@@ -3,6 +3,7 @@ package i18n
 import (
 	"io/fs"
 	"path"
+	"slices"
 	"strings"
 	"sync"
 
@@ -71,14 +72,23 @@ func (l *FSLoader) Languages() []string {
 			l.langErr = log.E("FSLoader.Languages", "read locale directory: "+l.dir, err)
 			return
 		}
+		seen := make(map[string]struct{}, len(entries))
 		for _, entry := range entries {
 			if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") {
 				continue
 			}
 			lang := core.TrimSuffix(entry.Name(), ".json")
-			lang = core.Replace(lang, "_", "-")
+			lang = normalizeLanguageTag(core.Replace(lang, "_", "-"))
+			if lang == "" {
+				continue
+			}
+			if _, ok := seen[lang]; ok {
+				continue
+			}
+			seen[lang] = struct{}{}
 			l.languages = append(l.languages, lang)
 		}
+		slices.Sort(l.languages)
 	})
 	return l.languages
 }
