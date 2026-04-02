@@ -31,7 +31,7 @@ func getCount(data any) int {
 				return toInt(c)
 			}
 		}
-		return 0
+		return d.count
 	case map[string]any:
 		if c, ok := d["Count"]; ok {
 			return toInt(c)

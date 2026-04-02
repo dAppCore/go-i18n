@@ -30,6 +30,16 @@ func TestGetCount_Good(t *testing.T) {
 	}
 }
 
+func TestGetCount_Good_TranslationContextDefault(t *testing.T) {
+	ctx := C("test")
+	assert.Equal(t, 1, getCount(ctx))
+}
+
+func TestGetCount_Good_TranslationContextExtraCount(t *testing.T) {
+	ctx := C("test").Set("Count", 3)
+	assert.Equal(t, 3, getCount(ctx))
+}
+
 // --- toInt ---
 
 func TestToInt_Good(t *testing.T) {

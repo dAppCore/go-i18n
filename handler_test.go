@@ -133,6 +133,11 @@ func TestCountHandler(t *testing.T) {
 		t.Errorf("CountHandler.Handle(file, TranslationContext.Count=3) = %q, want %q", got, "3 files")
 	}
 
+	got = h.Handle("i18n.count.file", []any{C("file")}, nil)
+	if got != "1 file" {
+		t.Errorf("CountHandler.Handle(file, TranslationContext default count) = %q, want %q", got, "1 file")
+	}
+
 	got = h.Handle("i18n.count.", nil, func() string { return "fallback" })
 	if got != "fallback" {
 		t.Errorf("CountHandler.Handle(empty) = %q, want %q", got, "fallback")
