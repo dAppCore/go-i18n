@@ -4,7 +4,6 @@ import (
 	"embed"
 	"io/fs"
 	"maps"
-	"path"
 	"reflect"
 	"slices"
 	"strings"
@@ -931,51 +930,15 @@ func translateOK(messageID, value string) bool {
 // LoadFS loads additional locale files from a filesystem.
 // Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
 func (s *Service) LoadFS(fsys fs.FS, dir string) error {
-	s.mu.Lock()
-	defer func() {
-		s.mu.Unlock()
-		if s.languageExplicit {
-			return
+	loader := NewFSLoader(fsys, dir)
+	langs := loader.Languages()
+	if len(langs) == 0 {
+		if langErr := loader.LanguagesErr(); langErr != nil {
+			return log.E("Service.LoadFS", "read locales directory", langErr)
 		}
-		if detected := detectLanguage(s.availableLangs); detected != "" {
-			s.mu.Lock()
-			s.currentLang = detected
-			s.mu.Unlock()
-		}
-	}()
-	entries, err := fs.ReadDir(fsys, dir)
-	if err != nil {
-		return log.E("Service.LoadFS", "read locales directory", err)
+		return log.E("Service.LoadFS", "no languages available", nil)
 	}
-	seen := make(map[string]struct{}, len(entries))
-	for _, entry := range entries {
-		if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") {
-			continue
-		}
-		filePath := path.Join(dir, entry.Name())
-		data, err := fs.ReadFile(fsys, filePath)
-		if err != nil {
-			return log.E("Service.LoadFS", "read locale: "+entry.Name(), err)
-		}
-		lang := core.TrimSuffix(entry.Name(), ".json")
-		lang = normalizeLanguageTag(core.Replace(lang, "_", "-"))
-		if lang == "" {
-			continue
-		}
-		if _, ok := seen[lang]; ok {
-			continue
-		}
-		seen[lang] = struct{}{}
-		if err := s.loadJSON(lang, data); err != nil {
-			return log.E("Service.LoadFS", "parse locale: "+entry.Name(), err)
-		}
-		tag := language.Make(lang)
-		found := slices.Contains(s.availableLangs, tag)
-		if !found {
-			s.availableLangs = append(s.availableLangs, tag)
-		}
-	}
-	return nil
+	return s.AddLoader(loader)
 }
 
 func (s *Service) autoDetectLanguage() {
