@@ -440,7 +440,7 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 	if m, ok := data.(map[string]any); ok {
 		var context string
 		var gender string
-		var location string
+		location := s.location
 		formality := s.formality
 		if v, ok := m["Context"].(string); ok {
 			context = core.Trim(v)

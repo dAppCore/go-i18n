@@ -349,6 +349,22 @@ func TestServiceTranslationContextExtrasInLookup(t *testing.T) {
 	}
 }
 
+func TestServiceDefaultLocationAppliesToMapData(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._workspace": "welcome aboard",
+	})
+	svc.SetLocation("workspace")
+
+	if got := svc.T("welcome", map[string]any{}); got != "welcome aboard" {
+		t.Errorf("T(welcome, map[]) with default location = %q, want %q", got, "welcome aboard")
+	}
+}
+
 func TestServiceSubjectCountPlurals(t *testing.T) {
 	svc, err := New()
 	if err != nil {
