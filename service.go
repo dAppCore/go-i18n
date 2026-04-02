@@ -105,7 +105,8 @@ var _ core.Translator = (*Service)(nil)
 // New creates a new i18n service with embedded locales.
 //
 // Example:
-//   svc, err := i18n.New(i18n.WithLanguage("en"))
+//
+//	svc, err := i18n.New(i18n.WithLanguage("en"))
 func New(opts ...Option) (*Service, error) {
 	return NewWithLoader(NewFSLoader(localeFS, "locales"), opts...)
 }
@@ -113,7 +114,8 @@ func New(opts ...Option) (*Service, error) {
 // NewService creates a new i18n service with embedded locales.
 //
 // Example:
-//   svc, err := i18n.NewService(i18n.WithFallback("en"))
+//
+//	svc, err := i18n.NewService(i18n.WithFallback("en"))
 //
 // This is a named alias for New that keeps the constructor intent explicit
 // for callers that prefer service-oriented naming.
@@ -124,7 +126,8 @@ func NewService(opts ...Option) (*Service, error) {
 // NewWithFS creates a new i18n service loading locales from the given filesystem.
 //
 // Example:
-//   svc, err := i18n.NewWithFS(os.DirFS("."), "locales")
+//
+//	svc, err := i18n.NewWithFS(os.DirFS("."), "locales")
 func NewWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 	return NewWithLoader(NewFSLoader(fsys, dir), opts...)
 }
@@ -132,7 +135,8 @@ func NewWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 // NewServiceWithFS creates a new i18n service loading locales from the given filesystem.
 //
 // Example:
-//   svc, err := i18n.NewServiceWithFS(os.DirFS("."), "locales")
+//
+//	svc, err := i18n.NewServiceWithFS(os.DirFS("."), "locales")
 func NewServiceWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) {
 	return NewWithFS(fsys, dir, opts...)
 }
@@ -140,7 +144,8 @@ func NewServiceWithFS(fsys fs.FS, dir string, opts ...Option) (*Service, error) 
 // NewWithLoader creates a new i18n service with a custom loader.
 //
 // Example:
-//   svc, err := i18n.NewWithLoader(loader)
+//
+//	svc, err := i18n.NewWithLoader(loader)
 func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	if loader == nil {
 		return nil, log.E("NewWithLoader", "nil loader", nil)
@@ -174,24 +179,7 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 			return nil, log.E("NewWithLoader", "load locale: "+lang, err)
 		}
 		lang = normalizeLanguageTag(lang)
-		_, seen := s.messages[lang]
-
-		if existing, ok := s.messages[lang]; ok {
-			if existing == nil {
-				existing = make(map[string]Message)
-				s.messages[lang] = existing
-			}
-			maps.Copy(existing, messages)
-		} else {
-			s.messages[lang] = messages
-		}
-		if grammarDataHasContent(grammar) {
-			if seen {
-				MergeGrammarData(lang, grammar)
-			} else {
-				SetGrammarData(lang, grammar)
-			}
-		}
+		s.ingestLocaleData(lang, messages, grammar)
 		tag := language.Make(lang)
 		if !slices.Contains(s.availableLangs, tag) {
 			s.availableLangs = append(s.availableLangs, tag)
@@ -216,7 +204,8 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 // NewServiceWithLoader creates a new i18n service with a custom loader.
 //
 // Example:
-//   svc, err := i18n.NewServiceWithLoader(loader)
+//
+//	svc, err := i18n.NewServiceWithLoader(loader)
 func NewServiceWithLoader(loader Loader, opts ...Option) (*Service, error) {
 	return NewWithLoader(loader, opts...)
 }
@@ -224,7 +213,8 @@ func NewServiceWithLoader(loader Loader, opts ...Option) (*Service, error) {
 // Init initialises the default global service if none has been set via SetDefault.
 //
 // Example:
-//   if err := i18n.Init(); err != nil { return err }
+//
+//	if err := i18n.Init(); err != nil { return err }
 func Init() error {
 	if defaultService.Load() != nil {
 		return nil
@@ -255,7 +245,9 @@ func Init() error {
 // Default returns the global i18n service, initialising if needed.
 //
 // Example:
-//   svc := i18n.Default()
+//
+//	svc := i18n.Default()
+//
 // Returns nil if initialisation fails (error is logged).
 func Default() *Service {
 	if svc := defaultService.Load(); svc != nil {
@@ -270,7 +262,9 @@ func Default() *Service {
 // SetDefault sets the global i18n service.
 //
 // Example:
-//   i18n.SetDefault(svc)
+//
+//	i18n.SetDefault(svc)
+//
 // Passing nil clears the default service.
 func SetDefault(s *Service) {
 	defaultService.Store(s)
@@ -288,7 +282,9 @@ func SetDefault(s *Service) {
 // AddLoader loads translations from a Loader into the default service.
 //
 // Example:
-//   i18n.AddLoader(loader)
+//
+//	i18n.AddLoader(loader)
+//
 // Call this from init() in packages that ship their own locale files:
 //
 //	//go:embed *.json
@@ -320,14 +316,7 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 		Words: make(map[string]string),
 	}
 	flattenWithGrammar("", raw, messages, grammarData)
-	if existing, ok := s.messages[lang]; ok {
-		maps.Copy(existing, messages)
-	} else {
-		s.messages[lang] = messages
-	}
-	if grammarDataHasContent(grammarData) {
-		MergeGrammarData(lang, grammarData)
-	}
+	s.ingestLocaleData(lang, messages, grammarData)
 	return nil
 }
 
@@ -946,29 +935,39 @@ func (s *Service) AddLoader(loader Loader) error {
 			return log.E("Service.AddLoader", "load locale: "+lang, err)
 		}
 		lang = normalizeLanguageTag(lang)
-
-		s.mu.Lock()
-		if s.messages[lang] == nil {
-			s.messages[lang] = make(map[string]Message)
-		}
-		for k, v := range messages {
-			s.messages[lang][k] = v
-		}
-
-		// Merge grammar data into the global grammar store (merge, not replace,
-		// so that multiple loaders contribute entries for the same language).
-		if grammarDataHasContent(grammar) {
-			MergeGrammarData(lang, grammar)
-		}
-
-		tag := language.Make(lang)
-		if !slices.Contains(s.availableLangs, tag) {
-			s.availableLangs = append(s.availableLangs, tag)
-		}
-		s.mu.Unlock()
+		s.ingestLocaleData(lang, messages, grammar)
 	}
 	s.autoDetectLanguage()
 	return nil
+}
+
+func (s *Service) ingestLocaleData(lang string, messages map[string]Message, grammar *GrammarData) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" {
+		return
+	}
+
+	s.mu.Lock()
+	existing := s.messages[lang]
+	if existing == nil {
+		s.messages[lang] = make(map[string]Message, len(messages))
+	}
+	maps.Copy(s.messages[lang], messages)
+	tag := language.Make(lang)
+	if !slices.Contains(s.availableLangs, tag) {
+		s.availableLangs = append(s.availableLangs, tag)
+	}
+	s.mu.Unlock()
+
+	// Keep grammar merges outside the service mutex. Message-store updates are
+	// the only part that need to be serialized here.
+	if grammarDataHasContent(grammar) {
+		if existing != nil {
+			MergeGrammarData(lang, grammar)
+		} else {
+			SetGrammarData(lang, grammar)
+		}
+	}
 }
 
 func (s *Service) hasLocaleRegistrationLoaded(id int) bool {
@@ -1040,7 +1039,9 @@ func translateOK(messageID, value string) bool {
 // LoadFS loads additional locale files from a filesystem.
 //
 // Example:
-//   _ = svc.LoadFS(os.DirFS("."), "locales")
+//
+//	_ = svc.LoadFS(os.DirFS("."), "locales")
+//
 // Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
 func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 	loader := NewFSLoader(fsys, dir)
