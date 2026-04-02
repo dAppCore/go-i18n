@@ -252,11 +252,21 @@ func templateDataForRendering(data any) any {
 		if v == nil {
 			return nil
 		}
+		count, explicit := v.countValue()
+		if !explicit && v.Extra != nil {
+			if c, ok := v.Extra["Count"]; ok {
+				count = toInt(c)
+			} else if c, ok := v.Extra["count"]; ok {
+				count = toInt(c)
+			}
+		}
 		rendered := map[string]any{
 			"Context":   v.Context,
 			"Gender":    v.Gender,
 			"Location":  v.Location,
 			"Formality": v.Formality,
+			"Count":     count,
+			"IsPlural":  count != 1,
 			"Extra":     v.Extra,
 		}
 		for key, value := range v.Extra {
