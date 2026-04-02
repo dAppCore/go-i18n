@@ -138,7 +138,11 @@ func markLocalesLoaded() {
 
 // OnMissingKey registers a handler for missing translation keys.
 func OnMissingKey(h MissingKeyHandler) {
-	SetMissingKeyHandlers(h)
+	if h == nil {
+		ClearMissingKeyHandlers()
+		return
+	}
+	AddMissingKeyHandler(h)
 }
 
 // SetMissingKeyHandlers replaces the full missing-key handler chain.

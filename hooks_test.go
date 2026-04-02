@@ -543,6 +543,33 @@ func TestOnMissingKey_Good(t *testing.T) {
 	assert.Equal(t, "hooks_test.go", filepath.Base(captured.CallerFile))
 }
 
+func TestOnMissingKey_Good_AppendsHandlers(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	prevHandlers := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prevHandlers)
+		SetDefault(prev)
+	})
+
+	svc.SetMode(ModeCollect)
+	ClearMissingKeyHandlers()
+	t.Cleanup(func() {
+		ClearMissingKeyHandlers()
+	})
+
+	var first, second int
+	OnMissingKey(func(MissingKey) { first++ })
+	OnMissingKey(func(MissingKey) { second++ })
+
+	_ = T("missing.on.handler.append")
+
+	assert.Equal(t, 1, first)
+	assert.Equal(t, 1, second)
+}
+
 func TestAddMissingKeyHandler_Good(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
