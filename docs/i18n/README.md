@@ -390,6 +390,7 @@ Use functional options when creating a service:
 
 ```go
 svc, err := i18n.New(
+    i18n.WithLanguage("de-DE"),       // Initial language
     i18n.WithFallback("de-DE"),           // Fallback language
     i18n.WithFormality(i18n.FormalityFormal),  // Default formality
     i18n.WithMode(i18n.ModeStrict),       // Missing key mode
