@@ -454,6 +454,49 @@ func TestMergeGrammarData(t *testing.T) {
 	}
 }
 
+func TestMergeGrammarData_DeduplicatesSignals(t *testing.T) {
+	const lang = "zy"
+	original := GetGrammarData(lang)
+	t.Cleanup(func() {
+		SetGrammarData(lang, original)
+	})
+
+	SetGrammarData(lang, &GrammarData{
+		Signals: SignalData{
+			NounDeterminers: []string{"the", "a"},
+			VerbAuxiliaries: []string{"will"},
+			VerbInfinitive:  []string{"to"},
+			VerbNegation:    []string{"not"},
+		},
+	})
+
+	MergeGrammarData(lang, &GrammarData{
+		Signals: SignalData{
+			NounDeterminers: []string{"a", "some"},
+			VerbAuxiliaries: []string{"will", "can"},
+			VerbInfinitive:  []string{"to", "de"},
+			VerbNegation:    []string{"not", "never"},
+		},
+	})
+
+	data := GetGrammarData(lang)
+	if data == nil {
+		t.Fatal("GetGrammarData returned nil")
+	}
+	if got, want := data.Signals.NounDeterminers, []string{"the", "a", "some"}; !slices.Equal(got, want) {
+		t.Fatalf("NounDeterminers = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbAuxiliaries, []string{"will", "can"}; !slices.Equal(got, want) {
+		t.Fatalf("VerbAuxiliaries = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbInfinitive, []string{"to", "de"}; !slices.Equal(got, want) {
+		t.Fatalf("VerbInfinitive = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbNegation, []string{"not", "never"}; !slices.Equal(got, want) {
+		t.Fatalf("VerbNegation = %v, want %v", got, want)
+	}
+}
+
 func TestGrammarDataLanguageTagNormalisation(t *testing.T) {
 	const rawLang = "tl_PH"
 	const canonicalLang = "tl-PH"

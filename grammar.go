@@ -122,18 +122,10 @@ func mergeSignalData(dst *SignalData, src SignalData) {
 	if dst == nil {
 		return
 	}
-	if len(src.NounDeterminers) > 0 {
-		dst.NounDeterminers = append(dst.NounDeterminers, src.NounDeterminers...)
-	}
-	if len(src.VerbAuxiliaries) > 0 {
-		dst.VerbAuxiliaries = append(dst.VerbAuxiliaries, src.VerbAuxiliaries...)
-	}
-	if len(src.VerbInfinitive) > 0 {
-		dst.VerbInfinitive = append(dst.VerbInfinitive, src.VerbInfinitive...)
-	}
-	if len(src.VerbNegation) > 0 {
-		dst.VerbNegation = append(dst.VerbNegation, src.VerbNegation...)
-	}
+	dst.NounDeterminers = appendUniqueStrings(dst.NounDeterminers, src.NounDeterminers...)
+	dst.VerbAuxiliaries = appendUniqueStrings(dst.VerbAuxiliaries, src.VerbAuxiliaries...)
+	dst.VerbInfinitive = appendUniqueStrings(dst.VerbInfinitive, src.VerbInfinitive...)
+	dst.VerbNegation = appendUniqueStrings(dst.VerbNegation, src.VerbNegation...)
 	if len(src.Priors) == 0 {
 		return
 	}
@@ -146,6 +138,27 @@ func mergeSignalData(dst *SignalData, src SignalData) {
 		}
 		maps.Copy(dst.Priors[word], priors)
 	}
+}
+
+func appendUniqueStrings(dst []string, values ...string) []string {
+	if len(values) == 0 {
+		return dst
+	}
+	seen := make(map[string]struct{}, len(dst))
+	for _, value := range dst {
+		seen[value] = struct{}{}
+	}
+	for _, value := range values {
+		if value == "" {
+			continue
+		}
+		if _, ok := seen[value]; ok {
+			continue
+		}
+		seen[value] = struct{}{}
+		dst = append(dst, value)
+	}
+	return dst
 }
 
 func grammarDataHasContent(data *GrammarData) bool {
