@@ -5,6 +5,8 @@ import (
 )
 
 func defaultServiceStateSnapshot() ServiceState {
+	// Keep the nil/default snapshot aligned with Service.State() so callers get
+	// the same shape regardless of whether a Service has been initialised.
 	return ServiceState{
 		Language:           "en",
 		RequestedLanguage:  "",
@@ -13,6 +15,7 @@ func defaultServiceStateSnapshot() ServiceState {
 		Mode:               ModeNormal,
 		Fallback:           "en",
 		Formality:          FormalityNeutral,
+		Location:           "",
 		Direction:          DirLTR,
 		IsRTL:              false,
 		Debug:              false,
