@@ -289,6 +289,7 @@ func (s *Service) AvailableLanguages() []string {
 	for i, tag := range s.availableLangs {
 		langs[i] = tag.String()
 	}
+	slices.Sort(langs)
 	return langs
 }
 
