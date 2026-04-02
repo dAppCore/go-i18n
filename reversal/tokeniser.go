@@ -707,16 +707,18 @@ func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, b
 	}
 	lower = normalizeFrenchApostrophes(lower)
 
-	if lower == core.Lower(data.Articles.IndefiniteDefault) ||
-		lower == core.Lower(data.Articles.IndefiniteVowel) {
-		return "indefinite", true
+	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.IndefiniteDefault, "indefinite"); ok {
+		return artType, true
 	}
-	if lower == core.Lower(data.Articles.Definite) {
-		return "definite", true
+	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.IndefiniteVowel, "indefinite"); ok {
+		return artType, true
+	}
+	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.Definite, "definite"); ok {
+		return artType, true
 	}
 	for _, article := range data.Articles.ByGender {
-		if lower == core.Lower(article) {
-			return "definite", true
+		if artType, ok := matchConfiguredArticleCandidate(lower, article, "definite"); ok {
+			return artType, true
 		}
 	}
 
@@ -725,21 +727,51 @@ func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, b
 		if prefix == "" {
 			return "", false
 		}
-		if prefix == core.Lower(data.Articles.IndefiniteDefault) ||
-			prefix == core.Lower(data.Articles.IndefiniteVowel) {
-			return "indefinite", true
+		if artType, ok := matchConfiguredArticleCandidate(prefix, data.Articles.IndefiniteDefault, "indefinite"); ok {
+			return artType, true
 		}
-		if prefix == core.Lower(data.Articles.Definite) {
-			return "definite", true
+		if artType, ok := matchConfiguredArticleCandidate(prefix, data.Articles.IndefiniteVowel, "indefinite"); ok {
+			return artType, true
+		}
+		if artType, ok := matchConfiguredArticleCandidate(prefix, data.Articles.Definite, "definite"); ok {
+			return artType, true
 		}
 		for _, article := range data.Articles.ByGender {
-			if prefix == core.Lower(article) {
-				return "definite", true
+			if artType, ok := matchConfiguredArticleCandidate(prefix, article, "definite"); ok {
+				return artType, true
 			}
 		}
 	}
 
 	return "", false
+}
+
+func matchConfiguredArticleCandidate(lower, article, kind string) (string, bool) {
+	article = normalizeFrenchApostrophes(core.Lower(article))
+	if article == "" {
+		return "", false
+	}
+	if lower == article {
+		return kind, true
+	}
+
+	if !strings.HasPrefix(lower, article) {
+		return "", false
+	}
+	rest := strings.TrimPrefix(lower, article)
+	if rest == "" {
+		return "", false
+	}
+	if strings.HasSuffix(article, "'") {
+		return kind, true
+	}
+	r, _ := utf8.DecodeRuneInString(rest)
+	switch r {
+	case ' ', '\t', '\'', '’', 'ʼ':
+		return kind, true
+	default:
+		return "", false
+	}
 }
 
 func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
@@ -897,6 +929,21 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 
 		raw := parts[i]
 		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
+			if artType, ok := t.MatchArticle(prefix); ok {
+				tokens = append(tokens, Token{
+					Raw:        prefix,
+					Lower:      normalizeFrenchApostrophes(core.Lower(prefix)),
+					Type:       TokenArticle,
+					ArtType:    artType,
+					Confidence: 1.0,
+				})
+			}
+			raw = rest
+			if raw == "" {
+				continue
+			}
+		}
+		if prefix, rest, ok := t.splitConfiguredElision(raw); ok {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
 					Raw:        prefix,
@@ -1556,6 +1603,43 @@ func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
 				return raw[:idx+size], raw[idx+size:], true
 			}
 		}
+	}
+
+	return "", raw, false
+}
+
+func (t *Tokeniser) splitConfiguredElision(raw string) (string, string, bool) {
+	if len(raw) == 0 {
+		return "", raw, false
+	}
+
+	data := i18n.GetGrammarData(t.lang)
+	if data == nil {
+		return "", raw, false
+	}
+
+	candidates := []string{data.Articles.IndefiniteDefault, data.Articles.IndefiniteVowel, data.Articles.Definite}
+	for _, article := range data.Articles.ByGender {
+		candidates = append(candidates, article)
+	}
+
+	lower := normalizeFrenchApostrophes(core.Lower(raw))
+	for _, article := range candidates {
+		article = normalizeFrenchApostrophes(core.Lower(article))
+		if article == "" || !strings.Contains(article, "'") {
+			continue
+		}
+		if !strings.HasPrefix(lower, article) {
+			continue
+		}
+		if len(raw) <= len(article) {
+			continue
+		}
+		rest := raw[len(article):]
+		if rest == "" {
+			continue
+		}
+		return raw[:len(article)], rest, true
 	}
 
 	return "", raw, false

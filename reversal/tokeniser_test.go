@@ -380,6 +380,66 @@ func TestTokeniser_MatchArticle_ConfiguredPhrasePrefix(t *testing.T) {
 	}
 }
 
+func TestTokeniser_MatchArticle_ConfiguredElisionPrefix(t *testing.T) {
+	setup(t)
+
+	const lang = "xy"
+	prev := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, prev)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Articles: i18n.ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "l'",
+			ByGender: map[string]string{
+				"m": "le",
+				"f": "la",
+			},
+		},
+		Nouns: map[string]i18n.NounForms{
+			"ami": {One: "ami", Other: "amis", Gender: "m"},
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"l'ami", "definite", true},
+		{"l’ami", "definite", true},
+		{"lʼami", "definite", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+
+	tokens := tok.Tokenise("l'ami")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "l'ami", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle || tokens[0].ArtType != "definite" {
+		t.Fatalf("Tokenise(%q)[0] = %#v, want definite article", "l'ami", tokens[0])
+	}
+	if tokens[1].Type != TokenNoun || tokens[1].Lower != "ami" {
+		t.Fatalf("Tokenise(%q)[1] = %#v, want noun ami", "l'ami", tokens[1])
+	}
+}
+
 func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
 	setup(t)
 	tok := NewTokeniserForLang("fr")
