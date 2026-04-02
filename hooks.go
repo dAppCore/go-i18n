@@ -11,6 +11,10 @@ import (
 
 var missingKeyHandler atomic.Value
 
+type missingKeyHandlersState struct {
+	handlers []MissingKeyHandler
+}
+
 type localeRegistration struct {
 	fsys fs.FS
 	dir  string
@@ -55,20 +59,46 @@ func loadRegisteredLocales(svc *Service) {
 
 // OnMissingKey registers a handler for missing translation keys.
 func OnMissingKey(h MissingKeyHandler) {
-	missingKeyHandler.Store(h)
+	if h == nil {
+		missingKeyHandler.Store(missingKeyHandlersState{})
+		return
+	}
+	missingKeyHandler.Store(missingKeyHandlersState{handlers: []MissingKeyHandler{h}})
+}
+
+func appendMissingKeyHandler(h MissingKeyHandler) {
+	if h == nil {
+		return
+	}
+	current := missingKeyHandlers()
+	current.handlers = append(current.handlers, h)
+	missingKeyHandler.Store(current)
+}
+
+func missingKeyHandlers() missingKeyHandlersState {
+	v := missingKeyHandler.Load()
+	if v == nil {
+		return missingKeyHandlersState{}
+	}
+	state, ok := v.(missingKeyHandlersState)
+	if !ok {
+		return missingKeyHandlersState{}
+	}
+	return state
 }
 
 func dispatchMissingKey(key string, args map[string]any) {
-	v := missingKeyHandler.Load()
-	if v == nil {
-		return
-	}
-	h, ok := v.(MissingKeyHandler)
-	if !ok || h == nil {
+	state := missingKeyHandlers()
+	if len(state.handlers) == 0 {
 		return
 	}
 	file, line := missingKeyCaller()
-	h(MissingKey{Key: key, Args: args, CallerFile: file, CallerLine: line})
+	mk := MissingKey{Key: key, Args: args, CallerFile: file, CallerLine: line}
+	for _, h := range state.handlers {
+		if h != nil {
+			h(mk)
+		}
+	}
 }
 
 func missingKeyCaller() (string, int) {

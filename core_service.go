@@ -18,6 +18,7 @@ type CoreService struct {
 
 	missingKeys   []MissingKey
 	missingKeysMu sync.Mutex
+	hookInstalled bool
 }
 
 // ServiceOptions configures the i18n Core service.
@@ -81,9 +82,17 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 // OnStartup initialises the i18n service.
 func (s *CoreService) OnStartup(_ context.Context) error {
 	if s.svc.Mode() == ModeCollect {
-		OnMissingKey(s.handleMissingKey)
+		s.ensureMissingKeyCollector()
 	}
 	return nil
+}
+
+func (s *CoreService) ensureMissingKeyCollector() {
+	if s.hookInstalled {
+		return
+	}
+	appendMissingKeyHandler(s.handleMissingKey)
+	s.hookInstalled = true
 }
 
 func (s *CoreService) handleMissingKey(mk MissingKey) {
@@ -112,9 +121,7 @@ func (s *CoreService) ClearMissingKeys() {
 func (s *CoreService) SetMode(mode Mode) {
 	s.svc.SetMode(mode)
 	if mode == ModeCollect {
-		OnMissingKey(s.handleMissingKey)
-	} else {
-		OnMissingKey(nil)
+		s.ensureMissingKeyCollector()
 	}
 }
 

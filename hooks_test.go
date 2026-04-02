@@ -324,9 +324,44 @@ func TestOnMissingKey_Good_TranslationContextArgs(t *testing.T) {
 }
 
 func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
-	// Store nil handler (using correct type)
-	missingKeyHandler.Store(MissingKeyHandler(nil))
+	// Reset to the empty handler set.
+	OnMissingKey(nil)
 
 	// Should not panic when dispatching with nil handler
 	dispatchMissingKey("test.key", nil)
+}
+
+func TestCoreServiceSetMode_Good_PreservesMissingKeyHandlers(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+
+	prev := missingKeyHandlers()
+	t.Cleanup(func() {
+		missingKeyHandler.Store(prev)
+	})
+
+	var observed int
+	OnMissingKey(func(MissingKey) {
+		observed++
+	})
+	t.Cleanup(func() {
+		OnMissingKey(nil)
+	})
+
+	coreSvc := &CoreService{svc: svc}
+	coreSvc.SetMode(ModeCollect)
+
+	_ = svc.T("missing.core.service.key")
+
+	if observed != 1 {
+		t.Fatalf("custom missing key handler called %d times, want 1", observed)
+	}
+
+	missing := coreSvc.MissingKeys()
+	if len(missing) != 1 {
+		t.Fatalf("CoreService captured %d missing keys, want 1", len(missing))
+	}
+	if missing[0].Key != "missing.core.service.key" {
+		t.Fatalf("captured missing key = %q, want %q", missing[0].Key, "missing.core.service.key")
+	}
 }
