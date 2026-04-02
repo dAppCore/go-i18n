@@ -2,7 +2,6 @@ package i18n
 
 import (
 	"path/filepath"
-	"sync"
 	"testing"
 	"testing/fstest"
 
@@ -199,7 +198,6 @@ func TestInit_LoadsRegisteredLocales(t *testing.T) {
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 
-	defaultOnce = sync.Once{}
 	defaultService.Store(nil)
 
 	defer func() {
@@ -209,7 +207,6 @@ func TestInit_LoadsRegisteredLocales(t *testing.T) {
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 		defaultService.Store(nil)
-		defaultOnce = sync.Once{}
 	}()
 
 	fs := fstest.MapFS{
@@ -275,7 +272,6 @@ func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 	localesLoaded = false
 	registeredLocalesMu.Unlock()
 
-	defaultOnce = sync.Once{}
 	defaultService.Store(nil)
 
 	defer func() {
@@ -285,7 +281,6 @@ func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 		localesLoaded = savedLoaded
 		registeredLocalesMu.Unlock()
 		defaultService.Store(nil)
-		defaultOnce = sync.Once{}
 	}()
 
 	fs := fstest.MapFS{
@@ -301,6 +296,21 @@ func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 	require.NotNil(t, svc)
 	assert.Contains(t, svc.Language(), "de")
 	assert.Equal(t, "hallo", svc.T("hello"))
+}
+
+func TestDefault_ReinitialisesAfterClear(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	SetDefault(nil)
+
+	require.NoError(t, Init())
+
+	svc := Default()
+	require.NotNil(t, svc)
+	assert.Equal(t, "y", svc.T("prompt.yes"))
 }
 
 func TestLoadRegisteredLocales_Good(t *testing.T) {

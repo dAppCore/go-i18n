@@ -80,8 +80,7 @@ func WithDebug(enabled bool) Option {
 
 var (
 	defaultService atomic.Pointer[Service]
-	defaultOnce    sync.Once
-	defaultErr     error
+	defaultInitMu  sync.Mutex
 )
 
 //go:embed locales/*.json
@@ -147,26 +146,30 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 
 // Init initialises the default global service if none has been set via SetDefault.
 func Init() error {
-	defaultOnce.Do(func() {
-		// If SetDefault was already called, don't overwrite
-		if defaultService.Load() != nil {
-			return
-		}
-		svc, err := New()
-		if err == nil {
-			// Register and load any locales queued before initialisation.
-			loadRegisteredLocales(svc)
-			// CAS prevents overwriting a concurrent SetDefault call that
-			// raced between the Load check above and this store.
-			if !defaultService.CompareAndSwap(nil, svc) {
-				// If a concurrent caller already installed a service, load
-				// registered locales into that active default service instead.
-				loadRegisteredLocales(defaultService.Load())
-			}
-		}
-		defaultErr = err
-	})
-	return defaultErr
+	if defaultService.Load() != nil {
+		return nil
+	}
+	defaultInitMu.Lock()
+	defer defaultInitMu.Unlock()
+	// Re-check after taking the lock so concurrent callers do not create
+	// duplicate services.
+	if defaultService.Load() != nil {
+		return nil
+	}
+	svc, err := New()
+	if err != nil {
+		return err
+	}
+	// Register and load any locales queued before initialisation.
+	loadRegisteredLocales(svc)
+	// CAS prevents overwriting a concurrent SetDefault call that raced between
+	// the Load check above and this store.
+	if !defaultService.CompareAndSwap(nil, svc) {
+		// If a concurrent caller already installed a service, load registered
+		// locales into that active default service instead.
+		loadRegisteredLocales(defaultService.Load())
+	}
+	return nil
 }
 
 // Default returns the global i18n service, initialising if needed.
