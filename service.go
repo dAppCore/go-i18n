@@ -511,20 +511,8 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		if v, ok := mapValueString(m, "Location"); ok {
 			location = v
 		}
-		if v, ok := m["Formality"]; ok {
-			switch f := v.(type) {
-			case Formality:
-				if f != FormalityNeutral {
-					formality = f
-				}
-			case string:
-				switch core.Lower(f) {
-				case "formal":
-					formality = FormalityFormal
-				case "informal":
-					formality = FormalityInformal
-				}
-			}
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			formality = f
 		}
 		return context, gender, location, formality
 	}
@@ -542,13 +530,8 @@ func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (strin
 		if v, ok := mapValueString(m, "Location"); ok {
 			location = v
 		}
-		if v, ok := mapValueString(m, "Formality"); ok {
-			switch core.Lower(v) {
-			case "formal":
-				formality = FormalityFormal
-			case "informal":
-				formality = FormalityInformal
-			}
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			formality = f
 		}
 		return context, gender, location, formality
 	}
@@ -606,31 +589,33 @@ func (s *Service) getEffectiveFormality(data any) Formality {
 		}
 	}
 	if m, ok := data.(map[string]any); ok {
-		switch f := m["Formality"].(type) {
-		case Formality:
-			if f != FormalityNeutral {
-				return f
-			}
-		case string:
-			switch core.Lower(f) {
-			case "formal":
-				return FormalityFormal
-			case "informal":
-				return FormalityInformal
-			}
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			return f
 		}
 	}
 	if m, ok := data.(map[string]string); ok {
-		if f, ok := mapValueString(m, "Formality"); ok {
-			switch core.Lower(f) {
-			case "formal":
-				return FormalityFormal
-			case "informal":
-				return FormalityInformal
-			}
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			return f
 		}
 	}
 	return s.formality
+}
+
+func parseFormalityValue(value any) (Formality, bool) {
+	switch f := value.(type) {
+	case Formality:
+		if f != FormalityNeutral {
+			return f, true
+		}
+	case string:
+		switch core.Lower(f) {
+		case "formal":
+			return FormalityFormal, true
+		case "informal":
+			return FormalityInformal, true
+		}
+	}
+	return FormalityNeutral, false
 }
 
 func lookupVariants(key, context, gender, location string, formality Formality, extra map[string]any) []string {
