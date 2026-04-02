@@ -677,6 +677,25 @@ func TestServiceAddMessages(t *testing.T) {
 	}
 }
 
+func TestServiceAddMessages_RegistersLanguage(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+
+	svc.AddMessages("fr_CA", map[string]string{
+		"custom.greeting": "Salut!",
+	})
+
+	if err := svc.SetLanguage("fr_CA"); err != nil {
+		t.Fatalf("SetLanguage(fr_CA) failed: %v", err)
+	}
+
+	if got := svc.T("custom.greeting"); got != "Salut!" {
+		t.Fatalf("T(custom.greeting) = %q, want %q", got, "Salut!")
+	}
+}
+
 func TestServiceHandlers(t *testing.T) {
 	svc, err := New()
 	if err != nil {

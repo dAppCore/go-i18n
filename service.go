@@ -791,14 +791,25 @@ func (s *Service) getMessage(lang, key string) (Message, bool) {
 
 // AddMessages adds messages for a language at runtime.
 func (s *Service) AddMessages(lang string, messages map[string]string) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" {
+		return
+	}
+
 	s.mu.Lock()
-	defer s.mu.Unlock()
 	if s.messages[lang] == nil {
 		s.messages[lang] = make(map[string]Message)
 	}
 	for key, text := range messages {
 		s.messages[lang][key] = Message{Text: text}
 	}
+	tag := language.Make(lang)
+	if !slices.Contains(s.availableLangs, tag) {
+		s.availableLangs = append(s.availableLangs, tag)
+	}
+	s.mu.Unlock()
+
+	s.autoDetectLanguage()
 }
 
 // AddLoader loads translations from an additional Loader, merging messages
