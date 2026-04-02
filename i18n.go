@@ -16,6 +16,14 @@ func T(messageID string, args ...any) string {
 	return messageID
 }
 
+// Translate translates a message using the default service and returns a Core result.
+func Translate(messageID string, args ...any) core.Result {
+	if svc := Default(); svc != nil {
+		return svc.Translate(messageID, args...)
+	}
+	return core.Result{Value: messageID, OK: true}
+}
+
 // Raw translates without i18n.* namespace magic.
 func Raw(messageID string, args ...any) string {
 	if svc := Default(); svc != nil {
