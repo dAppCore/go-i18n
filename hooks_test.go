@@ -340,6 +340,38 @@ func TestNewCoreService_AppliesOptions(t *testing.T) {
 	assert.True(t, svc.Debug())
 }
 
+func TestCoreService_DelegatesToWrappedService(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+
+	coreSvc := &CoreService{svc: svc}
+
+	assert.Equal(t, svc.T("i18n.label.status"), coreSvc.T("i18n.label.status"))
+	assert.Equal(t, svc.Raw("i18n.label.status"), coreSvc.Raw("i18n.label.status"))
+	assert.Equal(t, svc.Translate("i18n.label.status"), coreSvc.Translate("i18n.label.status"))
+	assert.Equal(t, svc.AvailableLanguages(), coreSvc.AvailableLanguages())
+	assert.Equal(t, svc.Direction(), coreSvc.Direction())
+	assert.Equal(t, svc.IsRTL(), coreSvc.IsRTL())
+	assert.Equal(t, svc.PluralCategory(2), coreSvc.PluralCategory(2))
+
+	require.NoError(t, coreSvc.SetLanguage("en"))
+	assert.Equal(t, "en", coreSvc.Language())
+
+	coreSvc.SetFallback("fr")
+	assert.Equal(t, "fr", coreSvc.Fallback())
+
+	coreSvc.SetFormality(FormalityFormal)
+	assert.Equal(t, FormalityFormal, coreSvc.Formality())
+
+	coreSvc.SetLocation("workspace")
+	assert.Equal(t, "workspace", coreSvc.Location())
+
+	coreSvc.SetDebug(true)
+	assert.True(t, coreSvc.Debug())
+	coreSvc.SetDebug(false)
+	assert.False(t, coreSvc.Debug())
+}
+
 func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 	t.Setenv("LANG", "de_DE.UTF-8")
 
