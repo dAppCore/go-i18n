@@ -180,10 +180,6 @@ func NewWithLoader(loader Loader, opts ...Option) (*Service, error) {
 		}
 		lang = normalizeLanguageTag(lang)
 		s.ingestLocaleData(lang, messages, grammar)
-		tag := language.Make(lang)
-		if !slices.Contains(s.availableLangs, tag) {
-			s.availableLangs = append(s.availableLangs, tag)
-		}
 	}
 
 	if detected := detectLanguage(s.availableLangs); detected != "" {
@@ -369,7 +365,6 @@ func (s *Service) AvailableLanguages() []string {
 	for i, tag := range s.availableLangs {
 		langs[i] = tag.String()
 	}
-	slices.Sort(langs)
 	return langs
 }
 
@@ -969,10 +964,7 @@ func (s *Service) AddMessages(lang string, messages map[string]string) {
 	for key, text := range messages {
 		s.messages[lang][key] = Message{Text: text}
 	}
-	tag := language.Make(lang)
-	if !slices.Contains(s.availableLangs, tag) {
-		s.availableLangs = append(s.availableLangs, tag)
-	}
+	s.addAvailableLanguageLocked(language.Make(lang))
 	s.mu.Unlock()
 
 	s.autoDetectLanguage()
@@ -1018,10 +1010,7 @@ func (s *Service) ingestLocaleData(lang string, messages map[string]Message, gra
 		s.messages[lang] = make(map[string]Message, len(messages))
 	}
 	maps.Copy(s.messages[lang], messages)
-	tag := language.Make(lang)
-	if !slices.Contains(s.availableLangs, tag) {
-		s.availableLangs = append(s.availableLangs, tag)
-	}
+	s.addAvailableLanguageLocked(language.Make(lang))
 	s.mu.Unlock()
 
 	// Keep grammar merges outside the service mutex. Message-store updates are
@@ -1077,6 +1066,18 @@ func (s *Service) markLocaleProviderLoaded(id int) {
 	}
 	s.loadedProviders[id] = struct{}{}
 	s.mu.Unlock()
+}
+
+func (s *Service) addAvailableLanguageLocked(tag language.Tag) {
+	if s == nil || tag == (language.Tag{}) {
+		return
+	}
+	if !slices.Contains(s.availableLangs, tag) {
+		s.availableLangs = append(s.availableLangs, tag)
+		slices.SortFunc(s.availableLangs, func(a, b language.Tag) int {
+			return strings.Compare(a.String(), b.String())
+		})
+	}
 }
 
 func translateOK(messageID, value string) bool {
