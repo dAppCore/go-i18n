@@ -600,6 +600,9 @@ func looksLikeFrenchPlural(word string) bool {
 		return false
 	}
 	lower := core.Lower(trimmed)
+	if isFrenchAspiratedHWord(lower) {
+		return false
+	}
 	if core.HasSuffix(lower, "aux") || core.HasSuffix(lower, "eaux") {
 		return true
 	}
@@ -607,8 +610,12 @@ func looksLikeFrenchPlural(word string) bool {
 }
 
 func startsWithVowelSound(word string) bool {
-	lower := core.Lower(core.Trim(word))
+	trimmed := core.Trim(word)
+	lower := core.Lower(trimmed)
 	if lower == "" {
+		return false
+	}
+	if isFrenchAspiratedHWord(lower) {
 		return false
 	}
 	r := []rune(lower)
@@ -619,6 +626,15 @@ func startsWithVowelSound(word string) bool {
 		return true
 	}
 	return false
+}
+
+func isFrenchAspiratedHWord(word string) bool {
+	switch word {
+	case "haricot", "héron", "héros", "honte", "hache", "hasard", "hibou", "houx", "hurluberlu":
+		return true
+	default:
+		return false
+	}
 }
 
 func isFrenchLanguage(lang string) bool {

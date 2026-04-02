@@ -377,6 +377,7 @@ func TestArticleFrenchElisionKeepsLeadingConsonant(t *testing.T) {
 			"amie":   {One: "amie", Other: "amies", Gender: "f"},
 			"accord": {One: "accord", Other: "accords", Gender: "d"},
 			"homme":  {One: "homme", Other: "hommes", Gender: "m"},
+			"héros":  {One: "héros", Other: "héros", Gender: "m"},
 			"idole":  {One: "idole", Other: "idoles", Gender: "j"},
 		},
 		Articles: ArticleForms{
@@ -397,6 +398,7 @@ func TestArticleFrenchElisionKeepsLeadingConsonant(t *testing.T) {
 		want string
 	}{
 		{"homme", "l'"},
+		{"héros", "le"},
 		{"amie", "l'"},
 		{"accord", "d'"},
 		{"idole", "j'"},
@@ -643,6 +645,7 @@ func TestDefinitePhraseFrenchLocale(t *testing.T) {
 		{"amis", "les amis"},
 		{"enfant", "l'enfant"},
 		{"fichier", "le fichier"},
+		{"héros", "le héros"},
 	}
 
 	for _, tt := range tests {
