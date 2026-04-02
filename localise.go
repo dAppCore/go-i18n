@@ -114,7 +114,12 @@ func CurrentPluralCategory(n int) PluralCategory {
 }
 
 func detectLanguage(supported []language.Tag) string {
-	for _, langEnv := range []string{os.Getenv("LC_ALL"), os.Getenv("LC_MESSAGES"), os.Getenv("LANG")} {
+	for _, langEnv := range []string{
+		os.Getenv("LC_ALL"),
+		firstLocaleFromList(os.Getenv("LANGUAGE")),
+		os.Getenv("LC_MESSAGES"),
+		os.Getenv("LANG"),
+	} {
 		if langEnv == "" {
 			continue
 		}
@@ -143,6 +148,18 @@ func detectLanguageFromEnv(langEnv string, supported []language.Tag) string {
 		return supported[bestIndex].String()
 	}
 	return bestMatch.String()
+}
+
+func firstLocaleFromList(langList string) string {
+	if langList == "" {
+		return ""
+	}
+	for _, lang := range core.Split(langList, ":") {
+		if trimmed := core.Trim(lang); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func normalizeLanguageTag(lang string) string {

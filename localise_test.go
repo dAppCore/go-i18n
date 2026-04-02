@@ -279,6 +279,20 @@ func TestDetectLanguage_SkipsInvalidHigherPriorityLocale(t *testing.T) {
 	assert.Equal(t, "fr", result, "invalid LC_ALL should not block a valid lower-priority locale")
 }
 
+func TestDetectLanguage_PrefersLanguageList(t *testing.T) {
+	t.Setenv("LANGUAGE", "fr_FR.UTF-8:de_DE.UTF-8")
+	t.Setenv("LANG", "en_US.UTF-8")
+
+	supported := []language.Tag{
+		language.AmericanEnglish,
+		language.French,
+		language.German,
+	}
+
+	result := detectLanguage(supported)
+	assert.Equal(t, "fr", result, "LANGUAGE should be considered before LANG")
+}
+
 // --- Mode.String() ---
 
 func TestMode_String_Good(t *testing.T) {
