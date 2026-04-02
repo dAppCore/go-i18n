@@ -487,6 +487,9 @@ func (s *Service) getEffectiveContextExtra(data any) map[string]any {
 			switch key {
 			case "Context", "Gender", "Location", "Formality":
 				continue
+			case "Extra", "extra", "Extras", "extras":
+				mergeContextExtra(extra, value)
+				continue
 			default:
 				extra[key] = value
 			}
@@ -497,6 +500,29 @@ func (s *Service) getEffectiveContextExtra(data any) map[string]any {
 		return extra
 	default:
 		return nil
+	}
+}
+
+func mergeContextExtra(dst map[string]any, value any) {
+	if dst == nil || value == nil {
+		return
+	}
+	switch extra := value.(type) {
+	case map[string]any:
+		for key, item := range extra {
+			dst[key] = item
+		}
+	case map[string]string:
+		for key, item := range extra {
+			dst[key] = item
+		}
+	case *TranslationContext:
+		if extra == nil || len(extra.Extra) == 0 {
+			return
+		}
+		for key, item := range extra.Extra {
+			dst[key] = item
+		}
 	}
 }
 

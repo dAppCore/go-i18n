@@ -106,6 +106,28 @@ func TestServiceTPluralMessage(t *testing.T) {
 	}
 }
 
+func TestServiceTMapContextNestedExtra(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	svc.AddMessages("en", map[string]string{
+		"welcome._nav._scope._admin": "Admin navigation",
+	})
+
+	got := svc.T("welcome", map[string]any{
+		"Context": "nav",
+		"Extra": map[string]any{
+			"Scope": "admin",
+		},
+	})
+	if got != "Admin navigation" {
+		t.Fatalf("T(welcome, nested extra) = %q, want %q", got, "Admin navigation")
+	}
+}
+
 func TestServiceRaw(t *testing.T) {
 	svc, err := New()
 	if err != nil {
