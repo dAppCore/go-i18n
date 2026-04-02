@@ -455,6 +455,11 @@ func (s *Service) CurrentPluralCategory(n int) PluralCategory {
 	return s.PluralCategory(n)
 }
 
+// PluralCategoryOf is a short alias for CurrentPluralCategory.
+func (s *Service) PluralCategoryOf(n int) PluralCategory {
+	return s.CurrentPluralCategory(n)
+}
+
 func joinAvailableLanguagesLocked(tags []language.Tag) string {
 	if len(tags) == 0 {
 		return ""

@@ -347,3 +347,8 @@ func (s *CoreService) PluralCategory(n int) PluralCategory {
 func (s *CoreService) CurrentPluralCategory(n int) PluralCategory {
 	return s.PluralCategory(n)
 }
+
+// PluralCategoryOf is a short alias for CurrentPluralCategory.
+func (s *CoreService) PluralCategoryOf(n int) PluralCategory {
+	return s.CurrentPluralCategory(n)
+}

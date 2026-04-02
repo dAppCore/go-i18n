@@ -172,6 +172,9 @@ func TestServiceCurrentStateAliases(t *testing.T) {
 	if got, want := svc.CurrentPluralCategory(2), svc.PluralCategory(2); got != want {
 		t.Fatalf("CurrentPluralCategory() = %v, want %v", got, want)
 	}
+	if got, want := svc.PluralCategoryOf(2), svc.PluralCategory(2); got != want {
+		t.Fatalf("PluralCategoryOf() = %v, want %v", got, want)
+	}
 	if got, want := svc.CurrentDebug(), svc.Debug(); got != want {
 		t.Fatalf("CurrentDebug() = %v, want %v", got, want)
 	}
