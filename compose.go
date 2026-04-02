@@ -1,6 +1,10 @@
 package i18n
 
-import "fmt"
+import (
+	"fmt"
+
+	"dappco.re/go/core"
+)
 
 // S creates a new Subject with the given noun and value.
 //
@@ -82,7 +86,7 @@ func (s *Subject) String() string {
 	if stringer, ok := s.Value.(fmt.Stringer); ok {
 		return stringer.String()
 	}
-	return fmt.Sprint(s.Value)
+	return core.Sprintf("%v", s.Value)
 }
 
 func (s *Subject) IsPlural() bool { return s != nil && s.count != 1 }
@@ -96,7 +100,7 @@ func (s *Subject) CountString() string {
 	if s == nil {
 		return "1"
 	}
-	return fmt.Sprint(s.count)
+	return core.Sprintf("%d", s.count)
 }
 func (s *Subject) GenderString() string {
 	if s == nil {

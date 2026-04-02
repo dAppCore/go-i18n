@@ -2,11 +2,12 @@ package i18n
 
 import (
 	"io/fs"
-	"log"
 	"runtime"
-	"strings"
 	"sync"
 	"sync/atomic"
+
+	"dappco.re/go/core"
+	log "dappco.re/go/core/log"
 )
 
 var missingKeyHandler atomic.Value
@@ -59,7 +60,7 @@ func RegisterLocales(fsys fs.FS, dir string) {
 	registeredLocalesMu.Unlock()
 	if svc != nil {
 		if err := svc.LoadFS(fsys, dir); err != nil {
-			log.Printf("i18n: RegisterLocales failed to load %q: %v", dir, err)
+			log.Error("i18n: RegisterLocales failed to load", "dir", dir, "err", err)
 		} else {
 			svc.markLocaleRegistrationLoaded(reg.id)
 		}
@@ -99,7 +100,7 @@ func loadRegisteredLocales(svc *Service) {
 			continue
 		}
 		if err := svc.LoadFS(reg.fsys, reg.dir); err != nil {
-			log.Printf("i18n: loadRegisteredLocales failed to load %q: %v", reg.dir, err)
+			log.Error("i18n: loadRegisteredLocales failed to load", "dir", reg.dir, "err", err)
 			continue
 		}
 		svc.markLocaleRegistrationLoaded(reg.id)
@@ -122,7 +123,7 @@ func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
 	}
 	for _, src := range provider.provider.LocaleSources() {
 		if err := svc.LoadFS(src.FS, src.Dir); err != nil {
-			log.Printf("i18n: loadLocaleProvider failed to load %q: %v", src.Dir, err)
+			log.Error("i18n: loadLocaleProvider failed to load", "dir", src.Dir, "err", err)
 		}
 	}
 	svc.markLocaleProviderLoaded(provider.id)
@@ -191,7 +192,7 @@ func missingKeyCaller() (string, int) {
 	frames := runtime.CallersFrames(pcs[:n])
 	for {
 		frame, more := frames.Next()
-		if !strings.HasPrefix(frame.Function, packagePrefix) || strings.HasSuffix(frame.File, "_test.go") {
+		if !core.HasPrefix(frame.Function, packagePrefix) || core.HasSuffix(frame.File, "_test.go") {
 			return frame.File, frame.Line
 		}
 		if !more {
