@@ -187,6 +187,33 @@ func TestLocaleFilenameCandidates(t *testing.T) {
 	}
 }
 
+func TestLocaleFilenameCandidatesNormalisesCase(t *testing.T) {
+	got := localeFilenameCandidates("en-us")
+	want := []string{"en-us.json", "en_us.json", "en-US.json", "en_US.json", "en.json"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("localeFilenameCandidates(en-us) = %v, want %v", got, want)
+	}
+}
+
+func TestFSLoaderLoadUsesCanonicalVariant(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en-US.json": &fstest.MapFile{
+			Data: []byte(`{
+				"greeting": "hello"
+			}`),
+		},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	messages, _, err := loader.Load("en-us")
+	if err != nil {
+		t.Fatalf("Load(en-us) error: %v", err)
+	}
+	if got := messages["greeting"].Text; got != "hello" {
+		t.Fatalf("Load(en-us) greeting = %q, want %q", got, "hello")
+	}
+}
+
 func TestFlattenWithGrammar(t *testing.T) {
 	messages := make(map[string]Message)
 	grammar := &GrammarData{

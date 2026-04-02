@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"errors"
 	"io/fs"
 	"path"
 	"slices"
@@ -30,14 +31,21 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 	variants := localeFilenameCandidates(lang)
 	var data []byte
 	var err error
+	var firstNonMissingErr error
 	for _, filename := range variants {
 		filePath := path.Join(l.dir, filename)
 		data, err = fs.ReadFile(l.fsys, filePath)
 		if err == nil {
 			break
 		}
+		if firstNonMissingErr == nil && !errors.Is(err, fs.ErrNotExist) {
+			firstNonMissingErr = err
+		}
 	}
 	if err != nil {
+		if firstNonMissingErr != nil {
+			err = firstNonMissingErr
+		}
 		return nil, nil, log.E("FSLoader.Load", "locale not found: "+lang, err)
 	}
 
@@ -70,11 +78,21 @@ func localeFilenameCandidates(lang string) []string {
 		}
 		variants = append(variants, candidate)
 	}
-	addVariant(lang + ".json")
-	addVariant(core.Replace(lang, "-", "_") + ".json")
-	addVariant(core.Replace(lang, "_", "-") + ".json")
-	if base := baseLanguageTag(lang); base != "" && base != lang {
-		addVariant(base + ".json")
+	canonical := normalizeLanguageTag(lang)
+	addTag := func(tag string) {
+		if tag == "" {
+			return
+		}
+		addVariant(tag + ".json")
+		addVariant(core.Replace(tag, "-", "_") + ".json")
+		addVariant(core.Replace(tag, "_", "-") + ".json")
+	}
+	addTag(lang)
+	if canonical != "" && canonical != lang {
+		addTag(canonical)
+	}
+	if base := baseLanguageTag(canonical); base != "" && base != canonical {
+		addTag(base)
 	}
 	return variants
 }
