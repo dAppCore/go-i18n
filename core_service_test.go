@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"testing"
+	"testing/fstest"
 
 	"dappco.re/go/core"
 	"github.com/stretchr/testify/assert"
@@ -74,4 +75,30 @@ func TestCoreServiceMissingKeysReturnsCopies(t *testing.T) {
 	again := coreSvc.MissingKeys()
 	require.Len(t, again, 1)
 	assert.Equal(t, "bar", again[0].Args["foo"])
+}
+
+func TestServiceOptionsAndFSSourceString(t *testing.T) {
+	opts := ServiceOptions{
+		Language:  "en-GB",
+		Fallback:  "en",
+		Formality: FormalityFormal,
+		Location:  "workspace",
+		Mode:      ModeCollect,
+		Debug:     true,
+		ExtraFS: []FSSource{
+			{FS: fstest.MapFS{}, Dir: "locales"},
+		},
+	}
+
+	got := opts.String()
+	assert.Contains(t, got, `language="en-GB"`)
+	assert.Contains(t, got, `fallback="en"`)
+	assert.Contains(t, got, `formality=formal`)
+	assert.Contains(t, got, `location="workspace"`)
+	assert.Contains(t, got, `mode=collect`)
+	assert.Contains(t, got, `debug=true`)
+	assert.Contains(t, got, `FSSource{fs=fstest.MapFS dir="locales"}`)
+
+	src := FSSource{FS: fstest.MapFS{}, Dir: "translations"}
+	assert.Equal(t, `FSSource{fs=fstest.MapFS dir="translations"}`, src.String())
 }

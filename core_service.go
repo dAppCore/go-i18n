@@ -53,6 +53,36 @@ type FSSource struct {
 	Dir string
 }
 
+// String returns a compact summary of the filesystem source.
+func (s FSSource) String() string {
+	if s.Dir == "" {
+		return core.Sprintf("FSSource{fs=%T}", s.FS)
+	}
+	return core.Sprintf("FSSource{fs=%T dir=%q}", s.FS, s.Dir)
+}
+
+// String returns a compact summary of the service options.
+func (o ServiceOptions) String() string {
+	extraFS := "[]"
+	if len(o.ExtraFS) > 0 {
+		parts := make([]string, len(o.ExtraFS))
+		for i, src := range o.ExtraFS {
+			parts[i] = src.String()
+		}
+		extraFS = "[" + core.Join(", ", parts...) + "]"
+	}
+	return core.Sprintf(
+		"ServiceOptions{language=%q fallback=%q formality=%s location=%q mode=%s debug=%t extraFS=%s}",
+		o.Language,
+		o.Fallback,
+		o.Formality,
+		o.Location,
+		o.Mode,
+		o.Debug,
+		extraFS,
+	)
+}
+
 // NewCoreService creates an i18n Core service factory.
 // Automatically loads locale filesystems from:
 // 1. Embedded go-i18n base translations (grammar, verbs, nouns)
