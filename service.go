@@ -318,6 +318,9 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 
 // SetLanguage sets the language for translations.
 func (s *Service) SetLanguage(lang string) error {
+	if s == nil {
+		return ErrServiceNotInitialised
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	lang = normalizeLanguageTag(lang)
@@ -343,6 +346,9 @@ func (s *Service) SetLanguage(lang string) error {
 }
 
 func (s *Service) Language() string {
+	if s == nil {
+		return "en"
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.currentLang
@@ -360,6 +366,13 @@ func (s *Service) CurrentLang() string {
 
 // Prompt translates a prompt key from the prompt namespace using this service.
 func (s *Service) Prompt(key string) string {
+	if s == nil {
+		key = normalizeLookupKey(key)
+		if key == "" {
+			return ""
+		}
+		return namespaceLookupKey("prompt", key)
+	}
 	key = normalizeLookupKey(key)
 	if key == "" {
 		return ""
@@ -378,6 +391,13 @@ func (s *Service) CurrentPrompt(key string) string {
 
 // Lang translates a language label from the lang namespace using this service.
 func (s *Service) Lang(key string) string {
+	if s == nil {
+		key = normalizeLookupKey(key)
+		if key == "" {
+			return ""
+		}
+		return namespaceLookupKey("lang", key)
+	}
 	key = normalizeLookupKey(key)
 	if key == "" {
 		return ""
@@ -398,6 +418,9 @@ func (s *Service) Lang(key string) string {
 }
 
 func (s *Service) AvailableLanguages() []string {
+	if s == nil {
+		return []string{}
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	langs := make([]string, len(s.availableLangs))
@@ -412,20 +435,58 @@ func (s *Service) CurrentAvailableLanguages() []string {
 	return s.AvailableLanguages()
 }
 
-func (s *Service) SetMode(m Mode)           { s.mu.Lock(); s.mode = m; s.mu.Unlock() }
-func (s *Service) Mode() Mode               { s.mu.RLock(); defer s.mu.RUnlock(); return s.mode }
-func (s *Service) CurrentMode() Mode        { return s.Mode() }
-func (s *Service) SetFormality(f Formality) { s.mu.Lock(); s.formality = f; s.mu.Unlock() }
-func (s *Service) Formality() Formality     { s.mu.RLock(); defer s.mu.RUnlock(); return s.formality }
+func (s *Service) SetMode(m Mode) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.mode = m
+	s.mu.Unlock()
+}
+
+func (s *Service) Mode() Mode {
+	if s == nil {
+		return ModeNormal
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.mode
+}
+
+func (s *Service) CurrentMode() Mode { return s.Mode() }
+func (s *Service) SetFormality(f Formality) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.formality = f
+	s.mu.Unlock()
+}
+
+func (s *Service) Formality() Formality {
+	if s == nil {
+		return FormalityNeutral
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.formality
+}
+
 func (s *Service) CurrentFormality() Formality {
 	return s.Formality()
 }
 func (s *Service) SetFallback(lang string) {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	s.fallbackLang = normalizeLanguageTag(lang)
 	s.mu.Unlock()
 }
 func (s *Service) Fallback() string {
+	if s == nil {
+		return "en"
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.fallbackLang
@@ -433,12 +494,18 @@ func (s *Service) Fallback() string {
 func (s *Service) CurrentFallback() string { return s.Fallback() }
 
 func (s *Service) SetLocation(location string) {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.location = location
 }
 
 func (s *Service) Location() string {
+	if s == nil {
+		return ""
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.location
@@ -450,6 +517,9 @@ func (s *Service) CurrentLocation() string {
 }
 
 func (s *Service) Direction() TextDirection {
+	if s == nil {
+		return DirLTR
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	if IsRTLLanguage(s.currentLang) {
@@ -468,10 +538,8 @@ func (s *Service) CurrentTextDirection() TextDirection {
 	return s.CurrentDirection()
 }
 
-func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
-func (s *Service) CurrentIsRTL() bool {
-	return s.IsRTL()
-}
+func (s *Service) IsRTL() bool        { return s.Direction() == DirRTL }
+func (s *Service) CurrentIsRTL() bool { return s.IsRTL() }
 
 // RTL is a short alias for IsRTL.
 func (s *Service) RTL() bool { return s.IsRTL() }
@@ -484,6 +552,9 @@ func (s *Service) CurrentDebug() bool {
 }
 
 func (s *Service) PluralCategory(n int) PluralCategory {
+	if s == nil {
+		return PluralOther
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return GetPluralCategory(s.currentLang, n)
@@ -512,6 +583,9 @@ func joinAvailableLanguagesLocked(tags []language.Tag) string {
 }
 
 func (s *Service) AddHandler(handlers ...KeyHandler) {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.handlers = append(s.handlers, filterNilHandlers(handlers)...)
@@ -519,12 +593,18 @@ func (s *Service) AddHandler(handlers ...KeyHandler) {
 
 // SetHandlers replaces the current handler chain.
 func (s *Service) SetHandlers(handlers ...KeyHandler) {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.handlers = filterNilHandlers(handlers)
 }
 
 func (s *Service) PrependHandler(handlers ...KeyHandler) {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	handlers = filterNilHandlers(handlers)
@@ -535,6 +615,9 @@ func (s *Service) PrependHandler(handlers ...KeyHandler) {
 }
 
 func (s *Service) ClearHandlers() {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.handlers = nil
@@ -542,12 +625,18 @@ func (s *Service) ClearHandlers() {
 
 // ResetHandlers restores the built-in default handler chain.
 func (s *Service) ResetHandlers() {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.handlers = DefaultHandlers()
 }
 
 func (s *Service) Handlers() []KeyHandler {
+	if s == nil {
+		return []KeyHandler{}
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	result := make([]KeyHandler, len(s.handlers))
@@ -568,6 +657,9 @@ func (s *Service) CurrentHandlers() []KeyHandler {
 //	T("i18n.done.delete", "file")       // "File deleted"
 //	T("i18n.fail.delete", "file")       // "Failed to delete file"
 func (s *Service) T(messageID string, args ...any) string {
+	if s == nil {
+		return messageID
+	}
 	result, _ := s.translateWithStatus(messageID, args...)
 	s.mu.RLock()
 	debug := s.debug
@@ -580,6 +672,9 @@ func (s *Service) T(messageID string, args ...any) string {
 
 // Translate translates a message by its ID and returns a Core result.
 func (s *Service) Translate(messageID string, args ...any) core.Result {
+	if s == nil {
+		return core.Result{Value: messageID, OK: false}
+	}
 	value, ok := s.translateWithStatus(messageID, args...)
 	s.mu.RLock()
 	debug := s.debug
@@ -591,6 +686,9 @@ func (s *Service) Translate(messageID string, args ...any) core.Result {
 }
 
 func (s *Service) translateWithStatus(messageID string, args ...any) (string, bool) {
+	if s == nil {
+		return messageID, false
+	}
 	s.mu.RLock()
 	handlers := append([]KeyHandler(nil), s.handlers...)
 	s.mu.RUnlock()
@@ -1001,6 +1099,9 @@ func missingKeySubjectArgs(subj *Subject) map[string]any {
 
 // Raw translates without i18n.* namespace magic.
 func (s *Service) Raw(messageID string, args ...any) string {
+	if s == nil {
+		return messageID
+	}
 	s.mu.RLock()
 	var data any
 	if len(args) > 0 {
@@ -1029,6 +1130,9 @@ func (s *Service) getMessage(lang, key string) (Message, bool) {
 
 // AddMessages adds messages for a language at runtime.
 func (s *Service) AddMessages(lang string, messages map[string]string) {
+	if s == nil {
+		return
+	}
 	lang = normalizeLanguageTag(lang)
 	if lang == "" {
 		return
@@ -1051,6 +1155,9 @@ func (s *Service) AddMessages(lang string, messages map[string]string) {
 // and grammar data into the existing service. This is the correct way to
 // add package-specific translations at runtime.
 func (s *Service) AddLoader(loader Loader) error {
+	if s == nil {
+		return ErrServiceNotInitialised
+	}
 	if loader == nil {
 		return log.E("Service.AddLoader", "nil loader", nil)
 	}
@@ -1165,6 +1272,9 @@ func (s *Service) addAvailableLanguageLocked(tag language.Tag) {
 //
 // Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
 func (s *Service) LoadFS(fsys fs.FS, dir string) error {
+	if s == nil {
+		return ErrServiceNotInitialised
+	}
 	loader := NewFSLoader(fsys, dir)
 	langs := loader.Languages()
 	if len(langs) == 0 {
@@ -1177,6 +1287,9 @@ func (s *Service) LoadFS(fsys fs.FS, dir string) error {
 }
 
 func (s *Service) autoDetectLanguage() {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.languageExplicit {

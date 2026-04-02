@@ -8,12 +8,18 @@ func SetDebug(enabled bool) {
 }
 
 func (s *Service) SetDebug(enabled bool) {
+	if s == nil {
+		return
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	s.debug = enabled
 }
 
 func (s *Service) Debug() bool {
+	if s == nil {
+		return false
+	}
 	s.mu.RLock()
 	defer s.mu.RUnlock()
 	return s.debug

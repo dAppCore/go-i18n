@@ -242,6 +242,75 @@ func TestServiceCurrentStateAliasesReturnCopies(t *testing.T) {
 	}
 }
 
+func TestServiceNilReceiverIsSafe(t *testing.T) {
+	var svc *Service
+
+	if got, want := svc.Language(), "en"; got != want {
+		t.Fatalf("nil Service.Language() = %q, want %q", got, want)
+	}
+	if got, want := svc.Fallback(), "en"; got != want {
+		t.Fatalf("nil Service.Fallback() = %q, want %q", got, want)
+	}
+	if got, want := svc.Mode(), ModeNormal; got != want {
+		t.Fatalf("nil Service.Mode() = %v, want %v", got, want)
+	}
+	if got, want := svc.Formality(), FormalityNeutral; got != want {
+		t.Fatalf("nil Service.Formality() = %v, want %v", got, want)
+	}
+	if got, want := svc.Direction(), DirLTR; got != want {
+		t.Fatalf("nil Service.Direction() = %v, want %v", got, want)
+	}
+	if got, want := svc.PluralCategory(2), PluralOther; got != want {
+		t.Fatalf("nil Service.PluralCategory(2) = %v, want %v", got, want)
+	}
+	if got, want := svc.AvailableLanguages(), []string{}; len(got) != len(want) {
+		t.Fatalf("nil Service.AvailableLanguages() = %v, want %v", got, want)
+	}
+	if got, want := svc.Handlers(), []KeyHandler{}; len(got) != len(want) {
+		t.Fatalf("nil Service.Handlers() = %v, want %v", got, want)
+	}
+	if got, want := svc.State(), defaultServiceStateSnapshot(); got.Language != want.Language || got.Mode != want.Mode || got.Fallback != want.Fallback || got.Formality != want.Formality || got.Location != want.Location || got.Direction != want.Direction || got.IsRTL != want.IsRTL || got.Debug != want.Debug || len(got.AvailableLanguages) != len(want.AvailableLanguages) || len(got.Handlers) != len(want.Handlers) {
+		t.Fatalf("nil Service.State() = %+v, want %+v", got, want)
+	}
+	if got, want := svc.T("prompt.yes"), "prompt.yes"; got != want {
+		t.Fatalf("nil Service.T(prompt.yes) = %q, want %q", got, want)
+	}
+	if got, want := svc.Raw("prompt.yes"), "prompt.yes"; got != want {
+		t.Fatalf("nil Service.Raw(prompt.yes) = %q, want %q", got, want)
+	}
+	if got, want := svc.Translate("prompt.yes"), (core.Result{Value: "prompt.yes", OK: false}); got != want {
+		t.Fatalf("nil Service.Translate(prompt.yes) = %#v, want %#v", got, want)
+	}
+	if got, want := svc.Prompt("confirm"), "prompt.confirm"; got != want {
+		t.Fatalf("nil Service.Prompt(confirm) = %q, want %q", got, want)
+	}
+	if got, want := svc.Lang("fr"), "lang.fr"; got != want {
+		t.Fatalf("nil Service.Lang(fr) = %q, want %q", got, want)
+	}
+
+	svc.SetMode(ModeStrict)
+	svc.SetFallback("fr")
+	svc.SetFormality(FormalityFormal)
+	svc.SetLocation("workspace")
+	svc.SetDebug(true)
+	svc.SetHandlers(LabelHandler{})
+	svc.AddHandler(ProgressHandler{})
+	svc.PrependHandler(CountHandler{})
+	svc.ClearHandlers()
+	svc.ResetHandlers()
+	svc.AddMessages("en", map[string]string{"x": "y"})
+
+	if err := svc.SetLanguage("en"); err != ErrServiceNotInitialised {
+		t.Fatalf("nil Service.SetLanguage() error = %v, want ErrServiceNotInitialised", err)
+	}
+	if err := svc.AddLoader(nil); err != ErrServiceNotInitialised {
+		t.Fatalf("nil Service.AddLoader() error = %v, want ErrServiceNotInitialised", err)
+	}
+	if err := svc.LoadFS(fstest.MapFS{}, "locales"); err != ErrServiceNotInitialised {
+		t.Fatalf("nil Service.LoadFS() error = %v, want ErrServiceNotInitialised", err)
+	}
+}
+
 func TestServiceStateString(t *testing.T) {
 	svc, err := NewWithLoader(messageBaseFallbackLoader{})
 	if err != nil {
