@@ -21,7 +21,7 @@ func GetGrammarData(lang string) *GrammarData {
 func SetGrammarData(lang string, data *GrammarData) {
 	grammarCacheMu.Lock()
 	defer grammarCacheMu.Unlock()
-	grammarCache[lang] = data
+	grammarCache[lang] = cloneGrammarData(data)
 }
 
 // MergeGrammarData merges grammar data into the existing data for a language.
@@ -31,7 +31,7 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	defer grammarCacheMu.Unlock()
 	existing := grammarCache[lang]
 	if existing == nil {
-		grammarCache[lang] = data
+		grammarCache[lang] = cloneGrammarData(data)
 		return
 	}
 	if existing.Verbs == nil {
@@ -148,6 +148,54 @@ func grammarDataHasContent(data *GrammarData) bool {
 		return true
 	}
 	return data.Number != (NumberFormat{})
+}
+
+func cloneGrammarData(data *GrammarData) *GrammarData {
+	if data == nil {
+		return nil
+	}
+	clone := &GrammarData{
+		Articles: ArticleForms{
+			IndefiniteDefault: data.Articles.IndefiniteDefault,
+			IndefiniteVowel:   data.Articles.IndefiniteVowel,
+			Definite:          data.Articles.Definite,
+		},
+		Punct: data.Punct,
+		Signals: SignalData{
+			NounDeterminers: append([]string(nil), data.Signals.NounDeterminers...),
+			VerbAuxiliaries: append([]string(nil), data.Signals.VerbAuxiliaries...),
+			VerbInfinitive:  append([]string(nil), data.Signals.VerbInfinitive...),
+			VerbNegation:    append([]string(nil), data.Signals.VerbNegation...),
+			Priors:          make(map[string]map[string]float64, len(data.Signals.Priors)),
+		},
+		Number: data.Number,
+	}
+	if len(data.Verbs) > 0 {
+		clone.Verbs = make(map[string]VerbForms, len(data.Verbs))
+		maps.Copy(clone.Verbs, data.Verbs)
+	}
+	if len(data.Nouns) > 0 {
+		clone.Nouns = make(map[string]NounForms, len(data.Nouns))
+		maps.Copy(clone.Nouns, data.Nouns)
+	}
+	if len(data.Words) > 0 {
+		clone.Words = make(map[string]string, len(data.Words))
+		maps.Copy(clone.Words, data.Words)
+	}
+	if len(data.Articles.ByGender) > 0 {
+		clone.Articles.ByGender = make(map[string]string, len(data.Articles.ByGender))
+		maps.Copy(clone.Articles.ByGender, data.Articles.ByGender)
+	}
+	if len(data.Signals.Priors) > 0 {
+		for word, priors := range data.Signals.Priors {
+			if len(priors) == 0 {
+				continue
+			}
+			clone.Signals.Priors[word] = make(map[string]float64, len(priors))
+			maps.Copy(clone.Signals.Priors[word], priors)
+		}
+	}
+	return clone
 }
 
 // IrregularVerbs returns a copy of the irregular verb forms map.
