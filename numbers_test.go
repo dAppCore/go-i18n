@@ -147,6 +147,39 @@ func TestFormatOrdinal(t *testing.T) {
 	}
 }
 
+func TestFormatOrdinalFromLocale(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	tests := []struct {
+		n    int
+		want string
+	}{
+		{1, "1er"},
+		{2, "2e"},
+		{3, "3e"},
+		{11, "11e"},
+	}
+
+	for _, tt := range tests {
+		got := FormatOrdinal(tt.n)
+		if got != tt.want {
+			t.Errorf("FormatOrdinal(fr, %d) = %q, want %q", tt.n, got, tt.want)
+		}
+	}
+}
+
 func TestFormatNumberFromLocale(t *testing.T) {
 	svc, err := New()
 	if err != nil {

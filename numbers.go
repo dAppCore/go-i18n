@@ -129,11 +129,20 @@ func FormatOrdinal(n int) string {
 		lang = lang[:idx]
 	}
 	switch lang {
+	case "fr":
+		return formatFrenchOrdinal(n)
 	case "en":
 		return formatEnglishOrdinal(n)
 	default:
 		return core.Sprintf("%d.", n)
 	}
+}
+
+func formatFrenchOrdinal(n int) string {
+	if n == 1 || n == -1 {
+		return core.Sprintf("%der", n)
+	}
+	return core.Sprintf("%de", n)
 }
 
 func formatEnglishOrdinal(n int) string {
