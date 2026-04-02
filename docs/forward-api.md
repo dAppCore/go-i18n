@@ -37,6 +37,7 @@ The service automatically detects the system language from `LANG`, `LC_ALL`, or 
 |--------|--------|
 | `WithFallback("en")` | Set fallback language for missing translations |
 | `WithLanguage("fr")` | Set the initial language before the service starts serving |
+| `WithLocation("workspace")` | Set the default location context |
 | `WithDefaultHandlers()` | Register the six built-in `i18n.*` namespace handlers |
 | `WithHandlers(h...)` | Replace handlers entirely |
 | `WithMode(ModeStrict)` | Panic on missing keys (useful in CI) |

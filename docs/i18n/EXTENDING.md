@@ -149,6 +149,27 @@ func (l *FallbackLoader) Load(lang string) (map[string]i18n.Message, *i18n.Gramm
 }
 ```
 
+### Locale Providers
+
+Packages that want to contribute more than one locale source can implement `LocaleProvider` and register it once:
+
+```go
+type Provider struct{}
+
+func (Provider) LocaleSources() []i18n.FSSource {
+    return []i18n.FSSource{
+        {FS: embedFS, Dir: "locales"},
+        {FS: sharedFS, Dir: "translations"},
+    }
+}
+
+func init() {
+    i18n.RegisterLocaleProvider(Provider{})
+}
+```
+
+This is the preferred path when a package needs to contribute translations to the default service without manually sequencing multiple `RegisterLocales()` calls.
+
 ## Custom Handlers
 
 Handlers process keys before standard lookup. Use for dynamic patterns.
