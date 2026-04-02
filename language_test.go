@@ -85,6 +85,11 @@ func TestGetPluralRule(t *testing.T) {
 		t.Error("English-US rule(1) should be PluralOne")
 	}
 
+	rule = GetPluralRule("fr-Latn-CA")
+	if rule(0) != PluralOne {
+		t.Error("French multi-part tag rule(0) should be PluralOne")
+	}
+
 	rule = GetPluralRule("cy-GB")
 	if rule(2) != PluralTwo {
 		t.Error("Welsh-GB rule(2) should be PluralTwo")
