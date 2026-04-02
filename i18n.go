@@ -65,9 +65,7 @@ func SetLanguage(lang string) error {
 //
 //	lang := i18n.CurrentLanguage()
 func CurrentLanguage() string {
-	return defaultServiceValue("en", func(svc *Service) string {
-		return svc.Language()
-	})
+	return Language()
 }
 
 // Language returns the current language code.
@@ -103,13 +101,7 @@ func AvailableLanguages() []string {
 //
 //	langs := i18n.CurrentAvailableLanguages()
 func CurrentAvailableLanguages() []string {
-	return defaultServiceValue([]string{}, func(svc *Service) []string {
-		langs := svc.AvailableLanguages()
-		if len(langs) == 0 {
-			return []string{}
-		}
-		return append([]string(nil), langs...)
-	})
+	return AvailableLanguages()
 }
 
 // SetMode sets the translation mode for the default service.
@@ -156,7 +148,7 @@ func CurrentMode() Mode {
 //
 //	fallback := i18n.CurrentFallback()
 func CurrentFallback() string {
-	return defaultServiceValue("en", func(svc *Service) string { return svc.Fallback() })
+	return Fallback()
 }
 
 // CurrentFormality returns the current default formality.
@@ -174,7 +166,7 @@ func CurrentFormality() Formality {
 //
 //	debug := i18n.CurrentDebug()
 func CurrentDebug() bool {
-	return defaultServiceValue(false, func(svc *Service) bool { return svc.Debug() })
+	return Debug()
 }
 
 // Debug reports whether debug mode is enabled on the default service.
@@ -328,7 +320,7 @@ func PrependHandler(handlers ...KeyHandler) {
 //
 //	handlers := i18n.CurrentHandlers()
 func CurrentHandlers() []KeyHandler {
-	return defaultServiceValue([]KeyHandler{}, func(svc *Service) []KeyHandler { return svc.Handlers() })
+	return Handlers()
 }
 
 // Handlers returns a copy of the default service's handler chain.

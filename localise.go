@@ -91,7 +91,7 @@ func SetLocation(location string) {
 //
 //	location := i18n.CurrentLocation()
 func CurrentLocation() string {
-	return defaultServiceValue("", func(svc *Service) string { return svc.Location() })
+	return Location()
 }
 
 // Location returns the current default location context.
@@ -122,7 +122,7 @@ func Direction() TextDirection {
 //
 //	dir := i18n.CurrentDirection()
 func CurrentDirection() TextDirection {
-	return defaultServiceValue(DirLTR, func(svc *Service) TextDirection { return svc.Direction() })
+	return Direction()
 }
 
 // IsRTL returns true if the current language uses right-to-left text.
@@ -146,7 +146,7 @@ func RTL() bool { return IsRTL() }
 //
 //	rtl := i18n.CurrentIsRTL()
 func CurrentIsRTL() bool {
-	return defaultServiceValue(false, func(svc *Service) bool { return svc.IsRTL() })
+	return IsRTL()
 }
 
 // CurrentRTL is a short alias for CurrentIsRTL.
