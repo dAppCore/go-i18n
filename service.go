@@ -364,7 +364,7 @@ func (s *Service) Prompt(key string) string {
 	if key == "" {
 		return ""
 	}
-	return s.T("prompt." + key)
+	return s.T(namespaceLookupKey("prompt", key))
 }
 
 // CurrentPrompt is a short alias for Prompt.
@@ -378,17 +378,17 @@ func (s *Service) Lang(key string) string {
 	if key == "" {
 		return ""
 	}
-	if got := s.T("lang." + key); got != "lang."+key {
+	if got := s.T(namespaceLookupKey("lang", key)); got != namespaceLookupKey("lang", key) {
 		return got
 	}
 	if idx := indexAny(key, "-_"); idx > 0 {
 		if base := key[:idx]; base != "" {
-			if got := s.T("lang." + base); got != "lang."+base {
+			if got := s.T(namespaceLookupKey("lang", base)); got != namespaceLookupKey("lang", base) {
 				return got
 			}
 		}
 	}
-	return "lang." + key
+	return namespaceLookupKey("lang", key)
 }
 
 func (s *Service) AvailableLanguages() []string {

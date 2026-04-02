@@ -356,7 +356,9 @@ func TestPrompt_Good(t *testing.T) {
 	}{
 		{"yes", "yes", "y"},
 		{"yes_trimmed", " yes ", "y"},
+		{"yes_prefixed", "prompt.yes", "y"},
 		{"confirm", "confirm", "Are you sure?"},
+		{"confirm_prefixed", "prompt.confirm", "Are you sure?"},
 		{"empty", "", ""},
 	}
 	for _, tt := range tests {
@@ -392,6 +394,7 @@ func TestLang_Good(t *testing.T) {
 		{"de", "de", "German"},
 		{"fr", "fr", "French"},
 		{"fr_ca", "fr_CA", "French"},
+		{"fr_prefixed", "lang.fr", "French"},
 		{"empty", "", ""},
 	}
 	for _, tt := range tests {

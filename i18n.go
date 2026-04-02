@@ -3,6 +3,7 @@ package i18n
 import (
 	"bytes"
 	"io/fs"
+	"strings"
 	"text/template"
 
 	"dappco.re/go/core"
@@ -257,7 +258,7 @@ func Prompt(key string) string {
 	if key == "" {
 		return ""
 	}
-	return T("prompt." + key)
+	return T(namespaceLookupKey("prompt", key))
 }
 
 // CurrentPrompt is a short alias for Prompt.
@@ -281,21 +282,39 @@ func Lang(key string) string {
 	if key == "" {
 		return ""
 	}
-	if got := T("lang." + key); got != "lang."+key {
+	if got := T(namespaceLookupKey("lang", key)); got != namespaceLookupKey("lang", key) {
 		return got
 	}
 	if idx := indexAny(key, "-_"); idx > 0 {
 		if base := key[:idx]; base != "" {
-			if got := T("lang." + base); got != "lang."+base {
+			if got := T(namespaceLookupKey("lang", base)); got != namespaceLookupKey("lang", base) {
 				return got
 			}
 		}
 	}
-	return "lang." + key
+	return namespaceLookupKey("lang", key)
 }
 
 func normalizeLookupKey(key string) string {
 	return core.Lower(core.Trim(key))
+}
+
+func namespaceLookupKey(namespace, key string) string {
+	key = normalizeLookupKey(key)
+	namespace = normalizeLookupKey(namespace)
+	if key == "" {
+		return namespace
+	}
+	if namespace != "" && key == namespace {
+		return key
+	}
+	if namespace != "" && strings.HasPrefix(key, namespace+".") {
+		return key
+	}
+	if namespace == "" {
+		return key
+	}
+	return namespace + "." + key
 }
 
 // AddHandler appends one or more handlers to the default service's handler chain.
