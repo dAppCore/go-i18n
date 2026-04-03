@@ -403,18 +403,24 @@ func (s *Service) Lang(key string) string {
 		return ""
 	}
 	lookupKey := namespaceLookupKey("lang", key)
-	if text, ok := s.translateWithStatus(lookupKey); ok {
+	s.mu.RLock()
+	text := s.resolveDirectLocked(lookupKey, nil)
+	s.mu.RUnlock()
+	if text != "" {
 		return text
 	}
 	if idx := indexAny(key, "-_"); idx > 0 {
 		if base := key[:idx]; base != "" {
 			baseLookupKey := namespaceLookupKey("lang", base)
-			if text, ok := s.translateWithStatus(baseLookupKey); ok {
+			s.mu.RLock()
+			text = s.resolveDirectLocked(baseLookupKey, nil)
+			s.mu.RUnlock()
+			if text != "" {
 				return text
 			}
 		}
 	}
-	return lookupKey
+	return s.handleMissingKey(lookupKey, nil)
 }
 
 func (s *Service) AvailableLanguages() []string {

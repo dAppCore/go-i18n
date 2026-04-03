@@ -239,11 +239,9 @@ func N(format string, value any, args ...any) string {
 //		Prompt("yes")      // "y"
 //		Prompt("confirm")  // "Are you sure?"
 func Prompt(key string) string {
-	key = normalizeLookupKey(key)
-	if key == "" {
-		return ""
-	}
-	return T(namespaceLookupKey("prompt", key))
+	return defaultServiceValue("", func(svc *Service) string {
+		return svc.Prompt(key)
+	})
 }
 
 // CurrentPrompt is a short alias for Prompt.
@@ -263,21 +261,9 @@ func CurrentPrompt(key string) string {
 //
 //		Lang("de")  // "German"
 func Lang(key string) string {
-	key = normalizeLookupKey(key)
-	if key == "" {
-		return ""
-	}
-	if got := T(namespaceLookupKey("lang", key)); got != namespaceLookupKey("lang", key) {
-		return got
-	}
-	if idx := indexAny(key, "-_"); idx > 0 {
-		if base := key[:idx]; base != "" {
-			if got := T(namespaceLookupKey("lang", base)); got != namespaceLookupKey("lang", base) {
-				return got
-			}
-		}
-	}
-	return namespaceLookupKey("lang", key)
+	return defaultServiceValue("", func(svc *Service) string {
+		return svc.Lang(key)
+	})
 }
 
 func normalizeLookupKey(key string) string {
