@@ -165,10 +165,15 @@ func formatIntWithSep(n int64, sep string) string {
 		return strconv.FormatInt(n, 10)
 	}
 	negative := n < 0
+	var abs uint64
 	if negative {
-		n = -n
+		// Convert via n+1 to avoid overflowing on math.MinInt64.
+		abs = uint64(-(n + 1))
+		abs++
+	} else {
+		abs = uint64(n)
 	}
-	str := strconv.FormatInt(n, 10)
+	str := strconv.FormatUint(abs, 10)
 	if len(str) <= 3 {
 		if negative {
 			return "-" + str

@@ -1,6 +1,9 @@
 package i18n
 
-import "testing"
+import (
+	"math"
+	"testing"
+)
 
 func TestFormatNumber(t *testing.T) {
 	// Ensure service is initialised for English locale
@@ -28,6 +31,20 @@ func TestFormatNumber(t *testing.T) {
 		if got != tt.want {
 			t.Errorf("FormatNumber(%d) = %q, want %q", tt.n, got, tt.want)
 		}
+	}
+}
+
+func TestFormatNumber_MinInt64(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	got := FormatNumber(math.MinInt64)
+	want := "-9,223,372,036,854,775,808"
+	if got != want {
+		t.Fatalf("FormatNumber(math.MinInt64) = %q, want %q", got, want)
 	}
 }
 
