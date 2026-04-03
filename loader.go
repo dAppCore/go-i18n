@@ -277,7 +277,7 @@ func loadGrammarNoun(fullKey, key string, v map[string]any, grammar *GrammarData
 }
 
 func loadGrammarSignals(fullKey string, v map[string]any, grammar *GrammarData) bool {
-	if grammar == nil || fullKey != "gram.signal" {
+	if grammar == nil || (fullKey != "gram.signal" && fullKey != "gram.signals") {
 		return false
 	}
 	loadSignalStringList := func(dst *[]string, raw any) {
@@ -320,6 +320,14 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 		grammar.Articles.Definite = def
 	}
 	if bg, ok := v["by_gender"].(map[string]any); ok {
+		grammar.Articles.ByGender = make(map[string]string, len(bg))
+		for g, art := range bg {
+			if s, ok := art.(string); ok {
+				grammar.Articles.ByGender[g] = s
+			}
+		}
+	}
+	if bg, ok := v["byGender"].(map[string]any); ok {
 		grammar.Articles.ByGender = make(map[string]string, len(bg))
 		for g, art := range bg {
 			if s, ok := art.(string); ok {

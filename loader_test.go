@@ -683,6 +683,62 @@ func TestNewWithLoader_LoadsGrammarOnlyLocale(t *testing.T) {
 	}
 }
 
+func TestNewWithLoader_AcceptsGrammarAliases(t *testing.T) {
+	loaderFS := fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"article": {
+						"byGender": { "f": "la", "m": "le" }
+					},
+					"noun": {
+						"user": { "one": "user", "other": "users", "gender": "f" }
+					},
+					"signals": {
+						"noun_determiner": ["the"],
+						"verb_auxiliary": ["will"],
+						"verb_infinitive": ["to"],
+						"verb_negation": ["never"]
+					}
+				}
+			}`),
+		},
+	}
+
+	svc, err := NewWithLoader(NewFSLoader(loaderFS, "."))
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("alias grammar data was not loaded")
+	}
+	if data.Articles.ByGender["f"] != "la" || data.Articles.ByGender["m"] != "le" {
+		t.Fatalf("article byGender alias not loaded: %+v", data.Articles.ByGender)
+	}
+	if got, want := data.Signals.NounDeterminers, []string{"the"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias noun_determiner = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbAuxiliaries, []string{"will"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias verb_auxiliary = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbInfinitive, []string{"to"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias verb_infinitive = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbNegation, []string{"never"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias verb_negation = %v, want %v", got, want)
+	}
+
+	if err := svc.SetLanguage("en"); err != nil {
+		t.Fatalf("SetLanguage(en) failed: %v", err)
+	}
+	SetDefault(svc)
+	if got := DefinitePhrase("user"); got != "la user" && got != "la User" {
+		t.Fatalf("DefinitePhrase(user) = %q, want article from byGender alias", got)
+	}
+}
+
 func TestFlattenPluralObject(t *testing.T) {
 	messages := make(map[string]Message)
 	raw := map[string]any{
