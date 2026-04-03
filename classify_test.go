@@ -67,11 +67,11 @@ func (m *mockModel) BatchGenerate(_ context.Context, _ []string, _ ...inference.
 	return nil, nil
 }
 
-func (m *mockModel) ModelType() string              { return "mock" }
-func (m *mockModel) Info() inference.ModelInfo       { return inference.ModelInfo{} }
+func (m *mockModel) ModelType() string                  { return "mock" }
+func (m *mockModel) Info() inference.ModelInfo          { return inference.ModelInfo{} }
 func (m *mockModel) Metrics() inference.GenerateMetrics { return inference.GenerateMetrics{} }
-func (m *mockModel) Err() error                     { return nil }
-func (m *mockModel) Close() error                   { return nil }
+func (m *mockModel) Err() error                         { return nil }
+func (m *mockModel) Close() error                       { return nil }
 
 func TestClassifyCorpus_Basic(t *testing.T) {
 	model := &mockModel{
@@ -181,5 +181,33 @@ func TestClassifyCorpus_DomainMapping(t *testing.T) {
 	}
 	if stats.ByDomain["ethical"] != 1 {
 		t.Errorf("ByDomain[ethical] = %d, want 1", stats.ByDomain["ethical"])
+	}
+}
+
+func TestClassifyCorpus_ResultCountMismatch(t *testing.T) {
+	model := &mockModel{
+		classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			if len(prompts) == 0 {
+				return nil, nil
+			}
+			return []inference.ClassifyResult{{Token: inference.Token{Text: "technical"}}}, nil
+		},
+	}
+
+	input := core.NewReader(
+		`{"prompt":"Delete the file now"}` + "\n" +
+			`{"prompt":"Create the repo"}` + "\n",
+	)
+
+	var output bytes.Buffer
+	stats, err := ClassifyCorpus(context.Background(), model, input, &output, WithBatchSize(16))
+	if err == nil {
+		t.Fatal("ClassifyCorpus returned nil error, want mismatch failure")
+	}
+	if stats.Total != 0 {
+		t.Errorf("Total = %d, want 0", stats.Total)
+	}
+	if output.Len() != 0 {
+		t.Errorf("output len = %d, want 0", output.Len())
 	}
 }

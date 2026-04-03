@@ -111,6 +111,13 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 		if err != nil {
 			return log.E("ClassifyCorpus", "classify batch", err)
 		}
+		if len(results) != len(batch) {
+			return log.E(
+				"ClassifyCorpus",
+				core.Sprintf("classify batch returned %d results for %d prompts", len(results), len(batch)),
+				nil,
+			)
+		}
 		for i, r := range results {
 			domain := mapTokenToDomain(r.Token.Text)
 			batch[i].record["domain_1b"] = domain
