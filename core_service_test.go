@@ -40,7 +40,8 @@ func TestCoreServiceNilSafe(t *testing.T) {
 	})
 	assert.Nil(t, defaultService.Load())
 
-	assert.NoError(t, svc.OnStartup(nil))
+	assert.Equal(t, core.Result{OK: true}, svc.OnStartup(nil))
+	assert.Equal(t, core.Result{OK: true}, svc.OnShutdown(nil))
 	svc.SetMode(ModeCollect)
 	svc.SetFallback("fr")
 	svc.SetFormality(FormalityFormal)

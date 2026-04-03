@@ -21,6 +21,9 @@ type CoreService struct {
 	hookInstalled bool
 }
 
+var _ core.Startable = (*CoreService)(nil)
+var _ core.Stoppable = (*CoreService)(nil)
+
 func (s *CoreService) wrapped() *Service {
 	if s == nil {
 		return nil
@@ -135,11 +138,16 @@ func NewCoreService(opts ServiceOptions) func(*core.Core) (any, error) {
 }
 
 // OnStartup initialises the i18n service.
-func (s *CoreService) OnStartup(_ context.Context) error {
+func (s *CoreService) OnStartup(_ context.Context) core.Result {
 	if svc := s.wrapped(); svc != nil && svc.Mode() == ModeCollect {
 		s.ensureMissingKeyCollector()
 	}
-	return nil
+	return core.Result{OK: true}
+}
+
+// OnShutdown finalises the i18n service.
+func (s *CoreService) OnShutdown(_ context.Context) core.Result {
+	return core.Result{OK: true}
 }
 
 func (s *CoreService) ensureMissingKeyCollector() {
