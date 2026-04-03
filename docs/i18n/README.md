@@ -214,8 +214,9 @@ i18n.Pluralize("file", 5)  // "files"
 i18n.Pluralize("child", 2) // "children" (irregular)
 
 // Articles
-i18n.Article("apple")      // "an apple"
-i18n.Article("banana")     // "a banana"
+i18n.Article("apple")       // "an"
+i18n.ArticlePhrase("apple") // "an apple"
+i18n.ArticlePhrase("banana") // "a banana"
 
 // Composed messages
 i18n.Label("status")               // "Status:"
