@@ -519,9 +519,11 @@ func applyRegularPlural(noun string) string {
 	return noun + "s"
 }
 
-// Article returns the appropriate article for the current language.
+// Article returns the appropriate article token for the current language.
 // English falls back to phonetic "a"/"an" heuristics. Locale grammar data
 // can override this with language-specific article forms.
+//
+// Use ArticlePhrase when you want the noun phrase prefixed with the article.
 //
 //	Article("file")     // "a"
 //	Article("error")    // "an"
@@ -556,6 +558,11 @@ func Article(word string) string {
 		return "an"
 	}
 	return "a"
+}
+
+// ArticleToken is an explicit alias for Article.
+func ArticleToken(word string) string {
+	return Article(word)
 }
 
 func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
@@ -849,7 +856,7 @@ func ArticlePhrase(word string) string {
 	return prefixWithArticle(article, word)
 }
 
-// DefiniteArticle returns the language-specific definite article for a word.
+// DefiniteArticle returns the language-specific definite article token for a word.
 // For languages such as French, this respects gendered articles, plural forms,
 // and elision rules when grammar data is available.
 func DefiniteArticle(word string) string {
@@ -867,6 +874,11 @@ func DefiniteArticle(word string) string {
 		return data.Articles.Definite
 	}
 	return "the"
+}
+
+// DefiniteToken is an explicit alias for DefiniteArticle.
+func DefiniteToken(word string) string {
+	return DefiniteArticle(word)
 }
 
 // DefinitePhrase prefixes a noun phrase with the correct definite article.
@@ -949,8 +961,10 @@ func TemplateFuncs() template.FuncMap {
 		"plural":          Pluralize,
 		"pluralForm":      PluralForm,
 		"article":         ArticlePhrase,
+		"articleToken":    ArticleToken,
 		"articlePhrase":   ArticlePhrase,
 		"definiteArticle": DefiniteArticle,
+		"definiteToken":   DefiniteToken,
 		"definite":        DefinitePhrase,
 		"definitePhrase":  DefinitePhrase,
 		"quote":           Quote,

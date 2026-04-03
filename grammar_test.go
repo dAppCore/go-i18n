@@ -354,6 +354,15 @@ func TestArticle(t *testing.T) {
 	}
 }
 
+func TestArticleTokenAliases(t *testing.T) {
+	if got, want := ArticleToken("apple"), Article("apple"); got != want {
+		t.Fatalf("ArticleToken(apple) = %q, want %q", got, want)
+	}
+	if got, want := DefiniteToken("apple"), DefiniteArticle("apple"); got != want {
+		t.Fatalf("DefiniteToken(apple) = %q, want %q", got, want)
+	}
+}
+
 func TestArticleFrenchLocale(t *testing.T) {
 	prev := Default()
 	svc, err := New()
@@ -1159,7 +1168,7 @@ func TestTemplateFuncs_Article(t *testing.T) {
 		t.Fatalf("template article = %q, want %q", got, want)
 	}
 
-	tmpl, err = template.New("").Funcs(TemplateFuncs()).Parse(`{{articlePhrase "apple"}}|{{definitePhrase "apple"}}`)
+	tmpl, err = template.New("").Funcs(TemplateFuncs()).Parse(`{{articleToken "apple"}}|{{articlePhrase "apple"}}|{{definiteToken "apple"}}|{{definitePhrase "apple"}}`)
 	if err != nil {
 		t.Fatalf("Parse() alias helpers failed: %v", err)
 	}
@@ -1169,7 +1178,7 @@ func TestTemplateFuncs_Article(t *testing.T) {
 		t.Fatalf("Execute() alias helpers failed: %v", err)
 	}
 
-	if got, want := buf.String(), "an apple|the apple"; got != want {
+	if got, want := buf.String(), "an|an apple|the|the apple"; got != want {
 		t.Fatalf("template article aliases = %q, want %q", got, want)
 	}
 
