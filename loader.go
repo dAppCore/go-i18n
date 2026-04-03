@@ -3,6 +3,7 @@ package i18n
 import (
 	"errors"
 	"io/fs"
+	"math"
 	"path"
 	"slices"
 	"sync"
@@ -407,12 +408,16 @@ func loadSignalPriors(grammar *GrammarData, priors map[string]any) {
 		}
 		for role, value := range bucket {
 			score, ok := float64Value(value)
-			if !ok {
+			if !ok || !validSignalPriorScore(score) {
 				continue
 			}
 			grammar.Signals.Priors[key][core.Lower(role)] = score
 		}
 	}
+}
+
+func validSignalPriorScore(score float64) bool {
+	return !math.IsNaN(score) && !math.IsInf(score, 0) && score >= 0
 }
 
 func float64Value(v any) (float64, bool) {

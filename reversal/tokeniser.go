@@ -17,6 +17,7 @@ package reversal
 
 import (
 	"maps"
+	"math"
 	"strings"
 	"unicode/utf8"
 
@@ -1485,11 +1486,18 @@ func (t *Tokeniser) corpusPrior(word string) (float64, float64, bool) {
 	}
 	verb := bucket["verb"]
 	noun := bucket["noun"]
+	if !validSignalPriorScore(verb) || !validSignalPriorScore(noun) {
+		return 0, 0, false
+	}
 	total := verb + noun
 	if total <= 0 {
 		return 0, 0, false
 	}
 	return verb / total, noun / total, true
+}
+
+func validSignalPriorScore(score float64) bool {
+	return !math.IsNaN(score) && !math.IsInf(score, 0) && score >= 0
 }
 
 // hasConfidentVerbInClause scans for a confident verb (Confidence >= 1.0)

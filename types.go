@@ -261,7 +261,7 @@ type SignalData struct {
 	VerbAuxiliaries []string                      // Auxiliaries/modals before verbs: "is", "was", "will", ...
 	VerbInfinitive  []string                      // Infinitive markers: "to"
 	VerbNegation    []string                      // Negation cues that weakly signal a verb: "not", "never", ...
-	Priors          map[string]map[string]float64 // Corpus-derived verb/noun priors for ambiguous words.
+	Priors          map[string]map[string]float64 // Corpus-derived verb/noun priors for ambiguous words, consumed by the reversal tokeniser.
 }
 
 // --- Number Formatting ---
