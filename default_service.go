@@ -15,3 +15,11 @@ func defaultServiceValue[T any](fallback T, fn func(*Service) T) T {
 	}
 	return fallback
 }
+
+// defaultServiceNamespaceValue resolves a namespace key against the default
+// service when available, or returns the namespace-qualified key otherwise.
+func defaultServiceNamespaceValue(namespace, key string, lookup func(*Service, string) string) string {
+	return defaultServiceValue(namespaceLookupKey(namespace, key), func(svc *Service) string {
+		return lookup(svc, key)
+	})
+}

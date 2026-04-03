@@ -243,8 +243,8 @@ func N(format string, value any, args ...any) string {
 //		Prompt("yes")      // "y"
 //		Prompt("confirm")  // "Are you sure?"
 func Prompt(key string) string {
-	return defaultServiceValue("", func(svc *Service) string {
-		return svc.Prompt(key)
+	return defaultServiceNamespaceValue("prompt", key, func(svc *Service, resolved string) string {
+		return svc.Prompt(resolved)
 	})
 }
 
@@ -265,8 +265,8 @@ func CurrentPrompt(key string) string {
 //
 //		Lang("de")  // "German"
 func Lang(key string) string {
-	return defaultServiceValue("", func(svc *Service) string {
-		return svc.Lang(key)
+	return defaultServiceNamespaceValue("lang", key, func(svc *Service, resolved string) string {
+		return svc.Lang(resolved)
 	})
 }
 
