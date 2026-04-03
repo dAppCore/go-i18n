@@ -163,6 +163,8 @@ func (h NumericHandler) Handle(key string, args []any, next func() string) strin
 }
 
 // DefaultHandlers returns the built-in i18n.* namespace handlers.
+//
+//	handlers := i18n.DefaultHandlers()
 func DefaultHandlers() []KeyHandler {
 	return []KeyHandler{
 		LabelHandler{},

@@ -29,6 +29,8 @@ type localeProviderRegistration struct {
 }
 
 // LocaleProvider supplies one or more locale filesystems to the default service.
+//
+//	i18n.RegisterLocaleProvider(myProvider)
 type LocaleProvider interface {
 	LocaleSources() []FSSource
 }
@@ -72,6 +74,8 @@ func RegisterLocales(fsys fs.FS, dir string) {
 // RegisterLocaleProvider registers a provider that can contribute locale files.
 // This is useful for packages that need to expose multiple locale sources as a
 // single unit.
+//
+//	i18n.RegisterLocaleProvider(myProvider)
 func RegisterLocaleProvider(provider LocaleProvider) {
 	if provider == nil {
 		return

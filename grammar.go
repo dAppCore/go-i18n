@@ -3,7 +3,6 @@ package i18n
 import (
 	"maps"
 	"strconv"
-	"strings"
 	"text/template"
 	"unicode"
 
@@ -702,7 +701,7 @@ func usesVowelSoundArticle(word string) bool {
 
 func looksLikeFrenchPlural(word string) bool {
 	trimmed := core.Trim(word)
-	if trimmed == "" || strings.ContainsAny(trimmed, " \t") || isInitialism(trimmed) {
+	if trimmed == "" || core.Contains(trimmed, " ") || core.Contains(trimmed, "\t") || isInitialism(trimmed) {
 		return false
 	}
 	lower := core.Lower(trimmed)
@@ -1014,7 +1013,7 @@ func prefixWithArticle(article, word string) string {
 	if article == "" || word == "" {
 		return ""
 	}
-	if strings.HasSuffix(article, "'") {
+	if core.HasSuffix(article, "'") {
 		return article + word
 	}
 	return article + " " + word

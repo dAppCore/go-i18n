@@ -17,6 +17,9 @@ import (
 )
 
 // Service provides grammar-aware internationalisation.
+//
+//	svc, err := i18n.New()
+//	i18n.SetDefault(svc)
 type Service struct {
 	loader           Loader
 	messages         map[string]map[string]Message // lang -> key -> message
@@ -36,6 +39,8 @@ type Service struct {
 }
 
 // Option configures a Service during construction.
+//
+//	svc, err := i18n.New(i18n.WithLanguage("en"))
 type Option func(*Service)
 
 // WithFallback sets the fallback language for missing translations.

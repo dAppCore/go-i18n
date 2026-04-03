@@ -17,6 +17,8 @@ import "sync"
 // --- Core Types ---
 
 // Mode determines how the service handles missing translation keys.
+//
+//	i18n.SetMode(i18n.ModeStrict)
 type Mode int
 
 const (
@@ -39,6 +41,8 @@ func (m Mode) String() string {
 }
 
 // Formality represents the level of formality in translations.
+//
+//	i18n.S("user", "Alex").Formal()
 type Formality int
 
 const (
@@ -48,6 +52,8 @@ const (
 )
 
 // TextDirection represents text directionality.
+//
+//	if i18n.Direction() == i18n.DirRTL { /* ... */ }
 type TextDirection int
 
 const (
@@ -56,6 +62,8 @@ const (
 )
 
 // PluralCategory represents CLDR plural categories.
+//
+//	cat := i18n.CurrentPluralCategory(2)
 type PluralCategory int
 
 const (
@@ -68,6 +76,8 @@ const (
 )
 
 // GrammaticalGender represents grammatical gender for nouns.
+//
+//	i18n.S("user", "Alex").Gender("feminine")
 type GrammaticalGender int
 
 const (
@@ -80,6 +90,8 @@ const (
 // --- Message Types ---
 
 // Message represents a translation — either a simple string or plural forms.
+//
+//	msg := i18n.Message{One: "{{.Count}} file", Other: "{{.Count}} files"}
 type Message struct {
 	Text  string // Simple string value (non-plural)
 	Zero  string // count == 0 (Arabic, Latvian, Welsh)
@@ -132,6 +144,8 @@ func (m Message) IsPlural() bool {
 // --- Subject Types ---
 
 // Subject represents a typed subject with metadata for semantic translations.
+//
+//	subj := i18n.S("file", "config.yaml").Count(3).In("workspace")
 type Subject struct {
 	Noun      string    // The noun type (e.g., "file", "repo")
 	Value     any       // The actual value (e.g., filename)
@@ -144,6 +158,8 @@ type Subject struct {
 // --- Intent Types ---
 
 // IntentMeta defines the behaviour of an intent.
+//
+//	intent := i18n.Intent{Meta: i18n.IntentMeta{Type: "action", Verb: "delete"}}
 type IntentMeta struct {
 	Type      string   // "action", "question", "info"
 	Verb      string   // Reference to verb key
@@ -153,6 +169,8 @@ type IntentMeta struct {
 }
 
 // Composed holds all output forms for an intent after template resolution.
+//
+//	composed := i18n.ComposeIntent(i18n.Intent{Question: "Delete {{.Subject}}?"}, i18n.S("file", "config.yaml"))
 type Composed struct {
 	Question string     // "Delete config.yaml?"
 	Confirm  string     // "Really delete config.yaml?"
@@ -162,6 +180,8 @@ type Composed struct {
 }
 
 // Intent defines a semantic intent with templates for all output forms.
+//
+//	intent := i18n.Intent{Question: "Delete {{.Subject}}?"}
 type Intent struct {
 	Meta     IntentMeta
 	Question string // Template for question form
@@ -186,6 +206,8 @@ type templateData struct {
 // --- Grammar Types ---
 
 // GrammarData holds language-specific grammar forms loaded from JSON.
+//
+//	i18n.SetGrammarData("en", &i18n.GrammarData{Articles: i18n.ArticleForms{IndefiniteDefault: "a"}})
 type GrammarData struct {
 	Verbs    map[string]VerbForms // verb -> forms
 	Nouns    map[string]NounForms // noun -> forms
@@ -197,12 +219,16 @@ type GrammarData struct {
 }
 
 // VerbForms holds verb conjugations.
+//
+//	forms := i18n.VerbForms{Past: "deleted", Gerund: "deleting"}
 type VerbForms struct {
 	Past   string // "deleted"
 	Gerund string // "deleting"
 }
 
 // NounForms holds plural and gender information for a noun.
+//
+//	forms := i18n.NounForms{One: "file", Other: "files"}
 type NounForms struct {
 	One    string // Singular form
 	Other  string // Plural form
@@ -210,6 +236,8 @@ type NounForms struct {
 }
 
 // ArticleForms holds article configuration for a language.
+//
+//	articles := i18n.ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}
 type ArticleForms struct {
 	IndefiniteDefault string            // "a"
 	IndefiniteVowel   string            // "an"
@@ -218,12 +246,16 @@ type ArticleForms struct {
 }
 
 // PunctuationRules holds language-specific punctuation patterns.
+//
+//	rules := i18n.PunctuationRules{LabelSuffix: ":", ProgressSuffix: "..."}
 type PunctuationRules struct {
 	LabelSuffix    string // ":" (French uses " :")
 	ProgressSuffix string // "..."
 }
 
 // SignalData holds word lists used for disambiguation signals.
+//
+//	signals := i18n.SignalData{VerbAuxiliaries: []string{"is", "was"}}
 type SignalData struct {
 	NounDeterminers []string                      // Words that precede nouns: "the", "a", "this", "my", ...
 	VerbAuxiliaries []string                      // Auxiliaries/modals before verbs: "is", "was", "will", ...
@@ -235,6 +267,8 @@ type SignalData struct {
 // --- Number Formatting ---
 
 // NumberFormat defines locale-specific number formatting rules.
+//
+//	fmt := i18n.NumberFormat{ThousandsSep: ",", DecimalSep: ".", PercentFmt: "%s%%"}
 type NumberFormat struct {
 	ThousandsSep string // "," for en, "." for de
 	DecimalSep   string // "." for en, "," for de
@@ -244,12 +278,18 @@ type NumberFormat struct {
 // --- Function Types ---
 
 // PluralRule determines the plural category for a count.
+//
+//	rule := i18n.GetPluralRule("en")
 type PluralRule func(n int) PluralCategory
 
 // MissingKeyHandler receives missing key events.
+//
+//	i18n.OnMissingKey(func(m i18n.MissingKey) {})
 type MissingKeyHandler func(missing MissingKey)
 
 // MissingKey is dispatched when a translation key is not found in ModeCollect.
+//
+//	func handle(m i18n.MissingKey) { _ = m.Key }
 type MissingKey struct {
 	Key        string
 	Args       map[string]any
@@ -261,18 +301,24 @@ type MissingKey struct {
 
 // KeyHandler processes translation keys before standard lookup.
 // Handlers form a chain; each can handle a key or delegate to the next.
+//
+//	i18n.AddHandler(i18n.LabelHandler{})
 type KeyHandler interface {
 	Match(key string) bool
 	Handle(key string, args []any, next func() string) string
 }
 
 // Loader provides translation data to the Service.
+//
+//	svc, err := i18n.NewWithLoader(loader)
 type Loader interface {
 	Load(lang string) (map[string]Message, *GrammarData, error)
 	Languages() []string
 }
 
 // Translator defines the interface for translation services.
+//
+//	var t i18n.Translator = i18n.Default()
 type Translator interface {
 	T(messageID string, args ...any) string
 	SetLanguage(lang string) error

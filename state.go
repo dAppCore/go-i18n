@@ -1,8 +1,6 @@
 package i18n
 
 import (
-	"strings"
-
 	"dappco.re/go/core"
 )
 
@@ -55,6 +53,8 @@ func defaultServiceStateSnapshot() ServiceState {
 
 // ServiceState captures the current configuration of a service in one
 // copy-safe snapshot.
+//
+//	state := i18n.CurrentState()
 type ServiceState struct {
 	Language           string
 	RequestedLanguage  string
@@ -71,6 +71,9 @@ type ServiceState struct {
 }
 
 // HandlerTypeNames returns the short type names of the snapshot's handlers.
+//
+//	names := i18n.CurrentState().HandlerTypeNames()
+//
 // The returned slice is a fresh copy, so callers can inspect or mutate it
 // without affecting the snapshot.
 func (s ServiceState) HandlerTypeNames() []string {
@@ -89,6 +92,8 @@ func (s ServiceState) HandlerTypeNames() []string {
 }
 
 // String returns a concise, stable summary of the service snapshot.
+//
+//	fmt.Println(i18n.CurrentState().String())
 func (s ServiceState) String() string {
 	langs := "[]"
 	if len(s.AvailableLanguages) > 0 {
@@ -119,10 +124,11 @@ func (s ServiceState) String() string {
 
 func shortHandlerTypeName(handler KeyHandler) string {
 	name := core.Sprintf("%T", handler)
-	if idx := strings.LastIndex(name, "."); idx >= 0 {
-		name = name[idx+1:]
+	parts := core.Split(name, ".")
+	if len(parts) > 0 {
+		name = parts[len(parts)-1]
 	}
-	return strings.TrimPrefix(name, "*")
+	return core.TrimPrefix(name, "*")
 }
 
 func (s *Service) State() ServiceState {
@@ -166,6 +172,8 @@ func (s *Service) String() string {
 }
 
 // CurrentState is a more explicit alias for State.
+//
+//	state := i18n.CurrentState()
 func (s *Service) CurrentState() ServiceState {
 	return s.State()
 }
