@@ -1,9 +1,9 @@
 package i18n
 
 import (
-	"fmt"
 	"testing"
 
+	"dappco.re/go/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -39,6 +39,21 @@ func TestSubject_Count_Good(t *testing.T) {
 	assert.Equal(t, 5, subj.CountInt())
 	assert.Equal(t, "5", subj.CountString())
 	assert.True(t, subj.IsPlural())
+}
+
+func TestSubject_CountString_UsesLocaleFormatting(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("fr"))
+
+	subj := S("file", "test.txt").Count(1234)
+	assert.Equal(t, "1 234", subj.CountString())
 }
 
 func TestSubject_Count_Bad_NilReceiver(t *testing.T) {
@@ -123,7 +138,7 @@ func TestSubject_String_Good(t *testing.T) {
 
 func TestSubject_String_Good_Stringer(t *testing.T) {
 	// Use a type that implements fmt.Stringer
-	subj := S("error", fmt.Errorf("something broke"))
+	subj := S("error", core.NewError("something broke"))
 	assert.Equal(t, "something broke", subj.String())
 }
 

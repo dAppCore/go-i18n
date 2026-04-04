@@ -8,7 +8,7 @@
 //	T("i18n.label.status")              // "Status:"
 //	T("i18n.progress.build")            // "Building..."
 //	T("i18n.count.file", 5)             // "5 files"
-//	T("i18n.done.delete", "config.yaml") // "Config.Yaml deleted"
+//	T("i18n.done.delete", "config.yaml") // "Config.yaml deleted"
 //	T("i18n.fail.push", "commits")      // "Failed to push commits"
 package i18n
 
@@ -17,6 +17,8 @@ import "sync"
 // --- Core Types ---
 
 // Mode determines how the service handles missing translation keys.
+//
+//	i18n.SetMode(i18n.ModeStrict)
 type Mode int
 
 const (
@@ -39,6 +41,8 @@ func (m Mode) String() string {
 }
 
 // Formality represents the level of formality in translations.
+//
+//	i18n.S("user", "Alex").Formal()
 type Formality int
 
 const (
@@ -48,14 +52,18 @@ const (
 )
 
 // TextDirection represents text directionality.
+//
+//	if i18n.Direction() == i18n.DirRTL { /* ... */ }
 type TextDirection int
 
 const (
 	DirLTR TextDirection = iota // Left-to-right
-	DirRTL                     // Right-to-left
+	DirRTL                      // Right-to-left
 )
 
 // PluralCategory represents CLDR plural categories.
+//
+//	cat := i18n.CurrentPluralCategory(2)
 type PluralCategory int
 
 const (
@@ -68,6 +76,8 @@ const (
 )
 
 // GrammaticalGender represents grammatical gender for nouns.
+//
+//	i18n.S("user", "Alex").Gender("feminine")
 type GrammaticalGender int
 
 const (
@@ -80,6 +90,8 @@ const (
 // --- Message Types ---
 
 // Message represents a translation — either a simple string or plural forms.
+//
+//	msg := i18n.Message{One: "{{.Count}} file", Other: "{{.Count}} files"}
 type Message struct {
 	Text  string // Simple string value (non-plural)
 	Zero  string // count == 0 (Arabic, Latvian, Welsh)
@@ -132,6 +144,8 @@ func (m Message) IsPlural() bool {
 // --- Subject Types ---
 
 // Subject represents a typed subject with metadata for semantic translations.
+//
+//	subj := i18n.S("file", "config.yaml").Count(3).In("workspace")
 type Subject struct {
 	Noun      string    // The noun type (e.g., "file", "repo")
 	Value     any       // The actual value (e.g., filename)
@@ -144,6 +158,8 @@ type Subject struct {
 // --- Intent Types ---
 
 // IntentMeta defines the behaviour of an intent.
+//
+//	intent := i18n.Intent{Meta: i18n.IntentMeta{Type: "action", Verb: "delete"}}
 type IntentMeta struct {
 	Type      string   // "action", "question", "info"
 	Verb      string   // Reference to verb key
@@ -153,6 +169,8 @@ type IntentMeta struct {
 }
 
 // Composed holds all output forms for an intent after template resolution.
+//
+//	composed := i18n.ComposeIntent(i18n.Intent{Question: "Delete {{.Subject}}?"}, i18n.S("file", "config.yaml"))
 type Composed struct {
 	Question string     // "Delete config.yaml?"
 	Confirm  string     // "Really delete config.yaml?"
@@ -162,6 +180,8 @@ type Composed struct {
 }
 
 // Intent defines a semantic intent with templates for all output forms.
+//
+//	intent := i18n.Intent{Question: "Delete {{.Subject}}?"}
 type Intent struct {
 	Meta     IntentMeta
 	Question string // Template for question form
@@ -186,6 +206,8 @@ type templateData struct {
 // --- Grammar Types ---
 
 // GrammarData holds language-specific grammar forms loaded from JSON.
+//
+//	i18n.SetGrammarData("en", &i18n.GrammarData{Articles: i18n.ArticleForms{IndefiniteDefault: "a"}})
 type GrammarData struct {
 	Verbs    map[string]VerbForms // verb -> forms
 	Nouns    map[string]NounForms // noun -> forms
@@ -193,15 +215,20 @@ type GrammarData struct {
 	Words    map[string]string    // base word translations
 	Punct    PunctuationRules     // language-specific punctuation
 	Signals  SignalData           // disambiguation signal word lists
+	Number   NumberFormat         // locale-specific number formatting
 }
 
 // VerbForms holds verb conjugations.
+//
+//	forms := i18n.VerbForms{Past: "deleted", Gerund: "deleting"}
 type VerbForms struct {
 	Past   string // "deleted"
 	Gerund string // "deleting"
 }
 
 // NounForms holds plural and gender information for a noun.
+//
+//	forms := i18n.NounForms{One: "file", Other: "files"}
 type NounForms struct {
 	One    string // Singular form
 	Other  string // Plural form
@@ -209,6 +236,8 @@ type NounForms struct {
 }
 
 // ArticleForms holds article configuration for a language.
+//
+//	articles := i18n.ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}
 type ArticleForms struct {
 	IndefiniteDefault string            // "a"
 	IndefiniteVowel   string            // "an"
@@ -217,22 +246,29 @@ type ArticleForms struct {
 }
 
 // PunctuationRules holds language-specific punctuation patterns.
+//
+//	rules := i18n.PunctuationRules{LabelSuffix: ":", ProgressSuffix: "..."}
 type PunctuationRules struct {
 	LabelSuffix    string // ":" (French uses " :")
 	ProgressSuffix string // "..."
 }
 
 // SignalData holds word lists used for disambiguation signals.
+//
+//	signals := i18n.SignalData{VerbAuxiliaries: []string{"is", "was"}}
 type SignalData struct {
 	NounDeterminers []string                      // Words that precede nouns: "the", "a", "this", "my", ...
 	VerbAuxiliaries []string                      // Auxiliaries/modals before verbs: "is", "was", "will", ...
 	VerbInfinitive  []string                      // Infinitive markers: "to"
-	Priors          map[string]map[string]float64 // Reserved for Phase 2: corpus-derived per-word priors. Not yet loaded.
+	VerbNegation    []string                      // Negation cues that weakly signal a verb: "not", "never", ...
+	Priors          map[string]map[string]float64 // Corpus-derived verb/noun priors for ambiguous words, consumed by the reversal tokeniser.
 }
 
 // --- Number Formatting ---
 
 // NumberFormat defines locale-specific number formatting rules.
+//
+//	fmt := i18n.NumberFormat{ThousandsSep: ",", DecimalSep: ".", PercentFmt: "%s%%"}
 type NumberFormat struct {
 	ThousandsSep string // "," for en, "." for de
 	DecimalSep   string // "." for en, "," for de
@@ -242,12 +278,18 @@ type NumberFormat struct {
 // --- Function Types ---
 
 // PluralRule determines the plural category for a count.
+//
+//	rule := i18n.GetPluralRule("en")
 type PluralRule func(n int) PluralCategory
 
 // MissingKeyHandler receives missing key events.
+//
+//	i18n.OnMissingKey(func(m i18n.MissingKey) {})
 type MissingKeyHandler func(missing MissingKey)
 
 // MissingKey is dispatched when a translation key is not found in ModeCollect.
+//
+//	func handle(m i18n.MissingKey) { _ = m.Key }
 type MissingKey struct {
 	Key        string
 	Args       map[string]any
@@ -259,18 +301,24 @@ type MissingKey struct {
 
 // KeyHandler processes translation keys before standard lookup.
 // Handlers form a chain; each can handle a key or delegate to the next.
+//
+//	i18n.AddHandler(i18n.LabelHandler{})
 type KeyHandler interface {
 	Match(key string) bool
 	Handle(key string, args []any, next func() string) string
 }
 
 // Loader provides translation data to the Service.
+//
+//	svc, err := i18n.NewWithLoader(loader)
 type Loader interface {
 	Load(lang string) (map[string]Message, *GrammarData, error)
 	Languages() []string
 }
 
 // Translator defines the interface for translation services.
+//
+//	var t i18n.Translator = i18n.Default()
 type Translator interface {
 	T(messageID string, args ...any) string
 	SetLanguage(lang string) error
@@ -320,6 +368,7 @@ var pluralRules = map[string]PluralRule{
 	"ru": pluralRuleRussian, "ru-RU": pluralRuleRussian,
 	"pl": pluralRulePolish, "pl-PL": pluralRulePolish,
 	"ar": pluralRuleArabic, "ar-SA": pluralRuleArabic,
+	"cy": pluralRuleWelsh, "cy-GB": pluralRuleWelsh,
 	"zh": pluralRuleChinese, "zh-CN": pluralRuleChinese, "zh-TW": pluralRuleChinese,
 	"ja": pluralRuleJapanese, "ja-JP": pluralRuleJapanese,
 	"ko": pluralRuleKorean, "ko-KR": pluralRuleKorean,
@@ -385,7 +434,7 @@ var irregularVerbs = map[string]VerbForms{
 	"rebel": {Past: "rebelled", Gerund: "rebelling"}, "excel": {Past: "excelled", Gerund: "excelling"},
 	"cancel": {Past: "cancelled", Gerund: "cancelling"}, "travel": {Past: "travelled", Gerund: "travelling"},
 	"label": {Past: "labelled", Gerund: "labelling"}, "model": {Past: "modelled", Gerund: "modelling"},
-	"level": {Past: "levelled", Gerund: "levelling"},
+	"level":       {Past: "levelled", Gerund: "levelling"},
 	"format":      {Past: "formatted", Gerund: "formatting"},
 	"analyse":     {Past: "analysed", Gerund: "analysing"},
 	"organise":    {Past: "organised", Gerund: "organising"},
@@ -445,6 +494,57 @@ var irregularNouns = map[string]string{
 	"life": "lives", "wife": "wives", "knife": "knives", "leaf": "leaves",
 	"half": "halves", "self": "selves", "shelf": "shelves", "wolf": "wolves",
 	"calf": "calves", "loaf": "loaves", "thief": "thieves",
+}
+
+// dualClassVerbs seeds additional regular verbs that are also common nouns in
+// dev/ops text. The forms are regular, but listing them here makes the
+// reversal tokeniser treat them as known bases for dual-class disambiguation.
+var dualClassVerbs = map[string]VerbForms{
+	"change":   {Past: "changed", Gerund: "changing"},
+	"export":   {Past: "exported", Gerund: "exporting"},
+	"function": {Past: "functioned", Gerund: "functioning"},
+	"handle":   {Past: "handled", Gerund: "handling"},
+	"host":     {Past: "hosted", Gerund: "hosting"},
+	"import":   {Past: "imported", Gerund: "importing"},
+	"link":     {Past: "linked", Gerund: "linking"},
+	"log":      {Past: "logged", Gerund: "logging"},
+	"merge":    {Past: "merged", Gerund: "merging"},
+	"patch":    {Past: "patched", Gerund: "patching"},
+	"process":  {Past: "processed", Gerund: "processing"},
+	"queue":    {Past: "queued", Gerund: "queuing"},
+	"release":  {Past: "released", Gerund: "releasing"},
+	"pull":     {Past: "pulled", Gerund: "pulling"},
+	"push":     {Past: "pushed", Gerund: "pushing"},
+	"stream":   {Past: "streamed", Gerund: "streaming"},
+	"tag":      {Past: "tagged", Gerund: "tagging"},
+	"trigger":  {Past: "triggered", Gerund: "triggering"},
+	"watch":    {Past: "watched", Gerund: "watching"},
+	"update":   {Past: "updated", Gerund: "updating"},
+}
+
+// dualClassNouns mirrors the same vocabulary as nouns so the tokeniser can
+// classify the base forms as ambiguous when they appear without inflection.
+var dualClassNouns = map[string]string{
+	"change":   "changes",
+	"export":   "exports",
+	"function": "functions",
+	"handle":   "handles",
+	"host":     "hosts",
+	"import":   "imports",
+	"link":     "links",
+	"log":      "logs",
+	"merge":    "merges",
+	"patch":    "patches",
+	"process":  "processes",
+	"queue":    "queues",
+	"release":  "releases",
+	"pull":     "pulls",
+	"push":     "pushes",
+	"stream":   "streams",
+	"tag":      "tags",
+	"trigger":  "triggers",
+	"watch":    "watches",
+	"update":   "updates",
 }
 
 var vowelSounds = map[string]bool{

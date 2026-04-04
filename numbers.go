@@ -1,21 +1,33 @@
 package i18n
 
 import (
-	"fmt"
 	"math"
 	"strconv"
-	"strings"
+
+	"dappco.re/go/core"
 )
 
 func getNumberFormat() NumberFormat {
 	lang := currentLangForGrammar()
-	if idx := strings.IndexAny(lang, "-_"); idx > 0 {
-		lang = lang[:idx]
-	}
-	if fmt, ok := numberFormats[lang]; ok {
+	if fmt, ok := getLocaleNumberFormat(lang); ok {
 		return fmt
 	}
+	if idx := indexAny(lang, "-_"); idx > 0 {
+		if fmt, ok := getLocaleNumberFormat(lang[:idx]); ok {
+			return fmt
+		}
+	}
 	return numberFormats["en"]
+}
+
+func getLocaleNumberFormat(lang string) (NumberFormat, bool) {
+	if data := GetGrammarData(lang); data != nil && data.Number != (NumberFormat{}) {
+		return data.Number, true
+	}
+	if fmt, ok := numberFormats[lang]; ok {
+		return fmt, true
+	}
+	return NumberFormat{}, false
 }
 
 // FormatNumber formats an integer with locale-specific thousands separators.
@@ -31,19 +43,35 @@ func FormatDecimal(f float64) string {
 // FormatDecimalN formats a float with N decimal places.
 func FormatDecimalN(f float64, decimals int) string {
 	nf := getNumberFormat()
-	intPart := int64(f)
-	fracPart := math.Abs(f - float64(intPart))
+	negative := f < 0
+	absVal := math.Abs(f)
+	intPart := int64(absVal)
+	fracPart := absVal - float64(intPart)
 	intStr := formatIntWithSep(intPart, nf.ThousandsSep)
 	if decimals <= 0 || fracPart == 0 {
+		if negative {
+			return "-" + intStr
+		}
 		return intStr
 	}
 	multiplier := math.Pow(10, float64(decimals))
 	fracInt := int64(math.Round(fracPart * multiplier))
+	if fracInt >= int64(multiplier) {
+		intPart++
+		intStr = formatIntWithSep(intPart, nf.ThousandsSep)
+		fracInt = 0
+	}
 	if fracInt == 0 {
+		if negative {
+			return "-" + intStr
+		}
 		return intStr
 	}
-	fracStr := fmt.Sprintf("%0*d", decimals, fracInt)
-	fracStr = strings.TrimRight(fracStr, "0")
+	fracStr := core.Sprintf("%0*d", decimals, fracInt)
+	fracStr = trimRight(fracStr, "0")
+	if negative {
+		return "-" + intStr + nf.DecimalSep + fracStr
+	}
 	return intStr + nf.DecimalSep + fracStr
 }
 
@@ -57,7 +85,7 @@ func FormatPercent(f float64) string {
 	} else {
 		numStr = FormatDecimalN(pct, 1)
 	}
-	return fmt.Sprintf(nf.PercentFmt, numStr)
+	return core.Sprintf(nf.PercentFmt, numStr)
 }
 
 // FormatBytes formats bytes as human-readable size.
@@ -68,7 +96,6 @@ func FormatBytes(bytes int64) string {
 		GB = MB * 1024
 		TB = GB * 1024
 	)
-	nf := getNumberFormat()
 	var value float64
 	var unit string
 	switch {
@@ -85,32 +112,32 @@ func FormatBytes(bytes int64) string {
 		value = float64(bytes) / KB
 		unit = "KB"
 	default:
-		return fmt.Sprintf("%d B", bytes)
+		return core.Sprintf("%d B", bytes)
 	}
-	intPart := int64(value)
-	fracPart := value - float64(intPart)
-	if fracPart < 0.05 {
-		return fmt.Sprintf("%d %s", intPart, unit)
-	}
-	fracDigit := int(math.Round(fracPart * 10))
-	if fracDigit == 10 {
-		return fmt.Sprintf("%d %s", intPart+1, unit)
-	}
-	return fmt.Sprintf("%d%s%d %s", intPart, nf.DecimalSep, fracDigit, unit)
+	return FormatDecimalN(value, 2) + " " + unit
 }
 
 // FormatOrdinal formats a number as an ordinal.
 func FormatOrdinal(n int) string {
 	lang := currentLangForGrammar()
-	if idx := strings.IndexAny(lang, "-_"); idx > 0 {
+	if idx := indexAny(lang, "-_"); idx > 0 {
 		lang = lang[:idx]
 	}
 	switch lang {
+	case "fr":
+		return formatFrenchOrdinal(n)
 	case "en":
 		return formatEnglishOrdinal(n)
 	default:
-		return fmt.Sprintf("%d.", n)
+		return core.Sprintf("%d.", n)
 	}
+}
+
+func formatFrenchOrdinal(n int) string {
+	if n == 1 || n == -1 {
+		return core.Sprintf("%der", n)
+	}
+	return core.Sprintf("%de", n)
 }
 
 func formatEnglishOrdinal(n int) string {
@@ -119,17 +146,17 @@ func formatEnglishOrdinal(n int) string {
 		abs = -abs
 	}
 	if abs%100 >= 11 && abs%100 <= 13 {
-		return fmt.Sprintf("%dth", n)
+		return core.Sprintf("%dth", n)
 	}
 	switch abs % 10 {
 	case 1:
-		return fmt.Sprintf("%dst", n)
+		return core.Sprintf("%dst", n)
 	case 2:
-		return fmt.Sprintf("%dnd", n)
+		return core.Sprintf("%dnd", n)
 	case 3:
-		return fmt.Sprintf("%drd", n)
+		return core.Sprintf("%drd", n)
 	default:
-		return fmt.Sprintf("%dth", n)
+		return core.Sprintf("%dth", n)
 	}
 }
 
@@ -138,17 +165,22 @@ func formatIntWithSep(n int64, sep string) string {
 		return strconv.FormatInt(n, 10)
 	}
 	negative := n < 0
+	var abs uint64
 	if negative {
-		n = -n
+		// Convert via n+1 to avoid overflowing on math.MinInt64.
+		abs = uint64(-(n + 1))
+		abs++
+	} else {
+		abs = uint64(n)
 	}
-	str := strconv.FormatInt(n, 10)
+	str := strconv.FormatUint(abs, 10)
 	if len(str) <= 3 {
 		if negative {
 			return "-" + str
 		}
 		return str
 	}
-	var result strings.Builder
+	result := core.NewBuilder()
 	for i, c := range str {
 		if i > 0 && (len(str)-i)%3 == 0 {
 			result.WriteString(sep)
@@ -159,4 +191,35 @@ func formatIntWithSep(n int64, sep string) string {
 		return "-" + result.String()
 	}
 	return result.String()
+}
+
+// indexAny returns the index of the first occurrence of any char in chars, or -1.
+func indexAny(s, chars string) int {
+	for i, c := range s {
+		for _, ch := range chars {
+			if c == ch {
+				return i
+			}
+		}
+	}
+	return -1
+}
+
+// trimRight returns s with all trailing occurrences of cutset removed.
+func trimRight(s, cutset string) string {
+	for len(s) > 0 {
+		found := false
+		r := rune(s[len(s)-1])
+		for _, c := range cutset {
+			if r == c {
+				found = true
+				break
+			}
+		}
+		if !found {
+			break
+		}
+		s = s[:len(s)-1]
+	}
+	return s
 }

@@ -1,6 +1,21 @@
 package i18n
 
-import "testing"
+import (
+	"strings"
+	"testing"
+	"text/template"
+	"time"
+)
+
+type regionFallbackLoader struct{}
+
+func (regionFallbackLoader) Languages() []string {
+	return []string{"en-GB"}
+}
+
+func (regionFallbackLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	return map[string]Message{}, nil, nil
+}
 
 func TestPastTense(t *testing.T) {
 	// Ensure grammar data is loaded from embedded JSON
@@ -89,6 +104,7 @@ func TestPastTense(t *testing.T) {
 		{"push", "pushed"},
 		{"pull", "pulled"},
 		{"start", "started"},
+		{"panic", "panicked"},
 		{"copy", "copied"},
 		{"apply", "applied"},
 
@@ -155,6 +171,7 @@ func TestGerund(t *testing.T) {
 		{"push", "pushing"},
 		{"pull", "pulling"},
 		{"start", "starting"},
+		{"panic", "panicking"},
 		{"die", "dying"},
 
 		// Edge cases
@@ -219,6 +236,62 @@ func TestPluralize(t *testing.T) {
 	}
 }
 
+func TestPluralize_UsesLocaleSingularOverride(t *testing.T) {
+	const lang = "en-x-singular"
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+		SetGrammarData(lang, nil)
+	})
+
+	svc, err := NewWithLoader(pluralizeOverrideLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if err := SetLanguage(lang); err != nil {
+		t.Fatalf("SetLanguage(%s) failed: %v", lang, err)
+	}
+
+	if got, want := Pluralize("person", 1), "human"; got != want {
+		t.Fatalf("Pluralize(%q, 1) = %q, want %q", "person", got, want)
+	}
+	if got, want := Pluralize("Person", 1), "Human"; got != want {
+		t.Fatalf("Pluralize(%q, 1) = %q, want %q", "Person", got, want)
+	}
+	if got, want := Pluralize("person", 2), "people"; got != want {
+		t.Fatalf("Pluralize(%q, 2) = %q, want %q", "person", got, want)
+	}
+}
+
+func TestPluralize_PreservesUnicodeCapitalization(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	if got, want := Pluralize("Élément", 1), "Élément"; got != want {
+		t.Fatalf("Pluralize(%q, 1) = %q, want %q", "Élément", got, want)
+	}
+	if got, want := Pluralize("Élément", 2), "Éléments"; got != want {
+		t.Fatalf("Pluralize(%q, 2) = %q, want %q", "Élément", got, want)
+	}
+	if got, want := PluralForm("Élément"), "Éléments"; got != want {
+		t.Fatalf("PluralForm(%q) = %q, want %q", "Élément", got, want)
+	}
+}
+
 func TestPluralForm(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -266,6 +339,8 @@ func TestArticle(t *testing.T) {
 		{"honest", "an"},    // Vowel sound
 		{"university", "a"}, // Consonant sound
 		{"one", "a"},        // Consonant sound
+		{"SSH", "an"},       // Initialism: "ess-ess-aitch"
+		{"URL", "a"},        // Initialism: "you-are-ell"
 		{"", ""},
 	}
 
@@ -279,6 +354,147 @@ func TestArticle(t *testing.T) {
 	}
 }
 
+func TestArticleTokenAliases(t *testing.T) {
+	if got, want := ArticleToken("apple"), Article("apple"); got != want {
+		t.Fatalf("ArticleToken(apple) = %q, want %q", got, want)
+	}
+	if got, want := DefiniteToken("apple"), DefiniteArticle("apple"); got != want {
+		t.Fatalf("DefiniteToken(apple) = %q, want %q", got, want)
+	}
+}
+
+func TestArticleFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"branche", "la"},
+		{"branches", "les"},
+		{"amis", "des"},
+		{"enfant", "l'"},
+		{"fichier", "le"},
+		{"inconnu", "un"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := Article(tt.word)
+			if got != tt.want {
+				t.Errorf("Article(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestArticleFrenchElisionKeepsLeadingConsonant(t *testing.T) {
+	prevData := GetGrammarData("fr")
+	t.Cleanup(func() {
+		SetGrammarData("fr", prevData)
+	})
+
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	SetGrammarData("fr", &GrammarData{
+		Nouns: map[string]NounForms{
+			"amie":   {One: "amie", Other: "amies", Gender: "f"},
+			"accord": {One: "accord", Other: "accords", Gender: "d"},
+			"homme":  {One: "homme", Other: "hommes", Gender: "m"},
+			"héros":  {One: "héros", Other: "héros", Gender: "m"},
+			"idole":  {One: "idole", Other: "idoles", Gender: "j"},
+		},
+		Articles: ArticleForms{
+			IndefiniteDefault: "un",
+			IndefiniteVowel:   "un",
+			Definite:          "le",
+			ByGender: map[string]string{
+				"d": "de",
+				"f": "la",
+				"j": "je",
+				"m": "le",
+			},
+		},
+	})
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"homme", "l'"},
+		{"héros", "le"},
+		{"amie", "l'"},
+		{"accord", "d'"},
+		{"idole", "j'"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := Article(tt.word)
+			if got != tt.want {
+				t.Errorf("Article(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+
+	phraseTests := []struct {
+		word string
+		want string
+	}{
+		{"accord", "d'accord"},
+		{"idole", "j'idole"},
+	}
+
+	for _, tt := range phraseTests {
+		t.Run(tt.word+"_phrase", func(t *testing.T) {
+			got := ArticlePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("ArticlePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+type pluralizeOverrideLoader struct{}
+
+func (pluralizeOverrideLoader) Languages() []string {
+	return []string{"en-x-singular"}
+}
+
+func (pluralizeOverrideLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	grammar := &GrammarData{
+		Nouns: map[string]NounForms{
+			"person": {One: "human", Other: "people"},
+		},
+	}
+	SetGrammarData(lang, grammar)
+	return map[string]Message{}, grammar, nil
+}
+
 func TestTitle(t *testing.T) {
 	tests := []struct {
 		input string
@@ -289,6 +505,7 @@ func TestTitle(t *testing.T) {
 		{"", ""},
 		{"HELLO", "HELLO"},
 		{"hello-world", "Hello-World"},
+		{"config.yaml", "Config.yaml"},
 	}
 
 	for _, tt := range tests {
@@ -304,6 +521,191 @@ func TestTitle(t *testing.T) {
 func TestQuote(t *testing.T) {
 	if got := Quote("hello"); got != `"hello"` {
 		t.Errorf("Quote(%q) = %q, want %q", "hello", got, `"hello"`)
+	}
+	if got := Quote(`a "quoted" path\name`); got != `"a \"quoted\" path\\name"` {
+		t.Errorf("Quote(%q) = %q, want %q", `a "quoted" path\name`, got, `"a \"quoted\" path\\name"`)
+	}
+}
+
+func TestCaseHelpers(t *testing.T) {
+	if got := Lower("HELLO"); got != "hello" {
+		t.Fatalf("Lower(%q) = %q, want %q", "HELLO", got, "hello")
+	}
+	if got := Upper("hello"); got != "HELLO" {
+		t.Fatalf("Upper(%q) = %q, want %q", "hello", got, "HELLO")
+	}
+}
+
+func TestArticlePhrase(t *testing.T) {
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"file", "a file"},
+		{"error", "an error"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := ArticlePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("ArticlePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestArticlePhrase_RespectsWordMap(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	if got, want := ArticlePhrase("go_mod"), "a go.mod"; got != want {
+		t.Fatalf("ArticlePhrase(%q) = %q, want %q", "go_mod", got, want)
+	}
+}
+
+func TestArticlePhrase_UsesRenderedWordForArticleSelection(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["ssh"]
+	data.Words["ssh"] = "SSH"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["ssh"] = original
+			return
+		}
+		delete(data.Words, "ssh")
+	})
+
+	if got, want := ArticlePhrase("ssh"), "an SSH"; got != want {
+		t.Fatalf("ArticlePhrase(%q) = %q, want %q", "ssh", got, want)
+	}
+}
+
+func TestArticlePhraseFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"branche", "la branche"},
+		{"branches", "les branches"},
+		{"amis", "des amis"},
+		{"enfant", "l'enfant"},
+		{"fichier", "le fichier"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := ArticlePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("ArticlePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefiniteArticle(t *testing.T) {
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"file", "the"},
+		{"error", "the"},
+		{"", ""},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := DefiniteArticle(tt.word)
+			if got != tt.want {
+				t.Errorf("DefiniteArticle(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestDefinitePhraseFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"branche", "la branche"},
+		{"branches", "les branches"},
+		{"amis", "les amis"},
+		{"enfant", "l'enfant"},
+		{"fichier", "le fichier"},
+		{"héros", "le héros"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			got := DefinitePhrase(tt.word)
+			if got != tt.want {
+				t.Errorf("DefinitePhrase(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
 	}
 }
 
@@ -329,6 +731,27 @@ func TestLabel(t *testing.T) {
 				t.Errorf("Label(%q) = %q, want %q", tt.word, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestCompositionHelpersTrimWhitespace(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	if got, want := Label("  status  "), "Status:"; got != want {
+		t.Fatalf("Label(%q) = %q, want %q", "  status  ", got, want)
+	}
+	if got, want := Article("  error  "), "an"; got != want {
+		t.Fatalf("Article(%q) = %q, want %q", "  error  ", got, want)
+	}
+	if got, want := ArticlePhrase("  go_mod  "), "a go.mod"; got != want {
+		t.Fatalf("ArticlePhrase(%q) = %q, want %q", "  go_mod  ", got, want)
+	}
+	if got, want := ActionFailed("  delete  ", "  file  "), "Failed to delete file"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "  delete  ", "  file  ", got, want)
 	}
 }
 
@@ -383,10 +806,10 @@ func TestActionResult(t *testing.T) {
 		verb, subject string
 		want          string
 	}{
-		{"delete", "config.yaml", "Config.Yaml deleted"},
+		{"delete", "config.yaml", "Config.yaml deleted"},
 		{"build", "project", "Project built"},
 		{"", "file", ""},
-		{"delete", "", ""},
+		{"delete", "", "Deleted"},
 	}
 
 	for _, tt := range tests {
@@ -405,6 +828,7 @@ func TestActionFailed(t *testing.T) {
 		want          string
 	}{
 		{"delete", "config.yaml", "Failed to delete config.yaml"},
+		{"Delete", "config.yaml", "Failed to delete config.yaml"},
 		{"push", "commits", "Failed to push commits"},
 		{"push", "", "Failed to push"},
 		{"", "", ""},
@@ -417,6 +841,56 @@ func TestActionFailed(t *testing.T) {
 				t.Errorf("ActionFailed(%q, %q) = %q, want %q", tt.verb, tt.subject, got, tt.want)
 			}
 		})
+	}
+}
+
+func TestActionFailed_RespectsWordMap(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["push"]
+	data.Words["push"] = "submit"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["push"] = original
+			return
+		}
+		delete(data.Words, "push")
+	})
+
+	if got, want := ActionFailed("push", "commits"), "Failed to submit commits"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "push", "commits", got, want)
+	}
+}
+
+func TestActionFailedFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	if got, want := ActionFailed("supprimer", ""), "Impossible de supprimer"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "supprimer", "", got, want)
 	}
 }
 
@@ -582,13 +1056,312 @@ func TestFrenchGrammarData(t *testing.T) {
 	}
 }
 
+func TestGrammarFallbackToBaseLanguageTag(t *testing.T) {
+	prevDefault := Default()
+	prevGrammar := GetGrammarData("en")
+	t.Cleanup(func() {
+		SetGrammarData("en", prevGrammar)
+		SetDefault(prevDefault)
+	})
+
+	SetGrammarData("en", &GrammarData{
+		Verbs: map[string]VerbForms{
+			"delete": {Past: "deleted", Gerund: "deleting"},
+		},
+		Nouns: map[string]NounForms{
+			"file": {One: "file", Other: "files"},
+		},
+		Articles: ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "the",
+		},
+		Punct: PunctuationRules{
+			LabelSuffix:    ":",
+			ProgressSuffix: "...",
+		},
+		Words: map[string]string{
+			"status": "Status",
+		},
+	})
+
+	svc, err := NewWithLoader(regionFallbackLoader{})
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+	SetDefault(svc)
+	if err := svc.SetLanguage("en-GB"); err != nil {
+		t.Fatalf("SetLanguage(en-GB) failed: %v", err)
+	}
+
+	if got := PastTense("delete"); got != "deleted" {
+		t.Fatalf("PastTense(delete) = %q, want %q", got, "deleted")
+	}
+	if got := Pluralize("file", 2); got != "files" {
+		t.Fatalf("Pluralize(file, 2) = %q, want %q", got, "files")
+	}
+	if got := Article("apple"); got != "an" {
+		t.Fatalf("Article(apple) = %q, want %q", got, "an")
+	}
+	if got := Label("status"); got != "Status:" {
+		t.Fatalf("Label(status) = %q, want %q", got, "Status:")
+	}
+}
+
 func TestTemplateFuncs(t *testing.T) {
 	funcs := TemplateFuncs()
-	expected := []string{"title", "lower", "upper", "past", "gerund", "plural", "pluralForm", "article", "quote"}
+	expected := []string{
+		"title",
+		"lower",
+		"upper",
+		"n",
+		"number",
+		"int",
+		"decimal",
+		"float",
+		"percent",
+		"pct",
+		"bytes",
+		"size",
+		"ordinal",
+		"ord",
+		"ago",
+		"past",
+		"gerund",
+		"plural",
+		"pluralForm",
+		"article",
+		"articlePhrase",
+		"definiteArticle",
+		"definite",
+		"definitePhrase",
+		"quote",
+		"label",
+		"progress",
+		"progressSubject",
+		"actionResult",
+		"actionFailed",
+		"prompt",
+		"lang",
+		"timeAgo",
+		"formatAgo",
+	}
 	for _, name := range expected {
 		if _, ok := funcs[name]; !ok {
 			t.Errorf("TemplateFuncs() missing %q", name)
 		}
+	}
+}
+
+func TestTemplateFuncs_Article(t *testing.T) {
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(`{{article "apple"}}`)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	if got, want := buf.String(), "an apple"; got != want {
+		t.Fatalf("template article = %q, want %q", got, want)
+	}
+
+	tmpl, err = template.New("").Funcs(TemplateFuncs()).Parse(`{{articleToken "apple"}}|{{articlePhrase "apple"}}|{{definiteToken "apple"}}|{{definitePhrase "apple"}}`)
+	if err != nil {
+		t.Fatalf("Parse() alias helpers failed: %v", err)
+	}
+
+	buf.Reset()
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() alias helpers failed: %v", err)
+	}
+
+	if got, want := buf.String(), "an|an apple|the|the apple"; got != want {
+		t.Fatalf("template article aliases = %q, want %q", got, want)
+	}
+
+	tmpl, err = template.New("").Funcs(TemplateFuncs()).Parse(`{{definiteArticle "apple"}}`)
+	if err != nil {
+		t.Fatalf("Parse() definite article helper failed: %v", err)
+	}
+
+	buf.Reset()
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() definite article helper failed: %v", err)
+	}
+
+	if got, want := buf.String(), "the"; got != want {
+		t.Fatalf("template definite article = %q, want %q", got, want)
+	}
+}
+
+func TestTemplateFuncs_CompositeHelpers(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{label "status"}}|{{progress "build"}}|{{progressSubject "build" "project"}}|{{actionResult "delete" "file"}}|{{actionFailed "delete" "file"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	want := "Status:|Building...|Building project...|File deleted|Failed to delete file"
+	if got := buf.String(); got != want {
+		t.Fatalf("template composite helpers = %q, want %q", got, want)
+	}
+}
+
+func TestTemplateFuncs_PromptAndLang(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{prompt "confirm"}}|{{lang "de"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	if got, want := buf.String(), "Are you sure?|German"; got != want {
+		t.Fatalf("template prompt/lang = %q, want %q", got, want)
+	}
+}
+
+func TestTemplateFuncs_NumericAlias(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{n "number" 1234567}}|{{n "ago" 3 "hours"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.HasPrefix(got, "1,234,567|3 hours ago") {
+		t.Fatalf("template numeric alias = %q, want prefix %q", got, "1,234,567|3 hours ago")
+	}
+}
+
+func TestTemplateFuncs_NumericDirectAliases(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{int 1234567}}|{{float 3.14}}|{{pct 0.85}}|{{size 1536000}}|{{ord 3}}|{{ago 3 "hours"}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, nil); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.HasPrefix(got, "1,234,567|3.14|85%|1.46 MB|3rd|3 hours ago") {
+		t.Fatalf("template direct numeric aliases = %q, want prefix %q", got, "1,234,567|3.14|85%|1.46 MB|3rd|3 hours ago")
+	}
+}
+
+func TestTemplateFuncs_TimeHelpers(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(
+		`{{formatAgo 3 "hour"}}|{{timeAgo .}}`,
+	)
+	if err != nil {
+		t.Fatalf("Parse() failed: %v", err)
+	}
+
+	var buf strings.Builder
+	if err := tmpl.Execute(&buf, time.Now().Add(-5*time.Minute)); err != nil {
+		t.Fatalf("Execute() failed: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.HasPrefix(got, "3 hours ago|") {
+		t.Fatalf("template time helpers prefix = %q, want %q", got, "3 hours ago|")
+	}
+	if !strings.Contains(got, "minutes ago") && !strings.Contains(got, "just now") {
+		t.Fatalf("template time helpers suffix = %q, want relative time output", got)
+	}
+}
+
+func TestCompositeHelpersRespectWordMap(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	if got, want := Label("go_mod"), "go.mod:"; got != want {
+		t.Fatalf("Label(%q) = %q, want %q", "go_mod", got, want)
+	}
+	if got, want := ProgressSubject("build", "go_mod"), "Building go.mod..."; got != want {
+		t.Fatalf("ProgressSubject(%q, %q) = %q, want %q", "build", "go_mod", got, want)
+	}
+	if got, want := ProgressSubject("build", ""), "Building..."; got != want {
+		t.Fatalf("ProgressSubject(%q, %q) = %q, want %q", "build", "", got, want)
+	}
+	if got, want := ActionResult("delete", "go_mod"), "go.mod deleted"; got != want {
+		t.Fatalf("ActionResult(%q, %q) = %q, want %q", "delete", "go_mod", got, want)
+	}
+	if got, want := ActionResult("delete", ""), "Deleted"; got != want {
+		t.Fatalf("ActionResult(%q, %q) = %q, want %q", "delete", "", got, want)
+	}
+	if got, want := ActionFailed("delete", "go_mod"), "Failed to delete go.mod"; got != want {
+		t.Fatalf("ActionFailed(%q, %q) = %q, want %q", "delete", "go_mod", got, want)
 	}
 }
 

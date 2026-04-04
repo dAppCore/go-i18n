@@ -3,12 +3,10 @@ package integration
 import (
 	"bytes"
 	"context"
-	"encoding/json"
-	"fmt"
-	"strings"
 	"testing"
 	"time"
 
+	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
 	"forge.lthn.ai/core/go-inference"
 	_ "forge.lthn.ai/core/go-mlx" // registers Metal backend
@@ -24,9 +22,9 @@ func TestClassifyCorpus_Integration(t *testing.T) {
 	// Build 50 technical prompts for throughput measurement
 	var lines []string
 	for i := 0; i < 50; i++ {
-		lines = append(lines, fmt.Sprintf(`{"id":%d,"prompt":"Delete the configuration file and rebuild the project"}`, i))
+		lines = append(lines, core.Sprintf(`{"id":%d,"prompt":"Delete the configuration file and rebuild the project"}`, i))
 	}
-	input := strings.NewReader(strings.Join(lines, "\n") + "\n")
+	input := core.NewReader(core.Join("\n", lines...) + "\n")
 
 	var output bytes.Buffer
 	start := time.Now()
@@ -58,10 +56,10 @@ func TestClassifyCorpus_Integration(t *testing.T) {
 		}
 
 		// Also inspect the output JSONL for misclassified entries
-		outLines := strings.Split(strings.TrimSpace(output.String()), "\n")
+		outLines := core.Split(core.Trim(output.String()), "\n")
 		for _, line := range outLines {
 			var record map[string]any
-			if err := json.Unmarshal([]byte(line), &record); err == nil {
+			if r := core.JSONUnmarshal([]byte(line), &record); r.OK {
 				if record["domain_1b"] != "technical" {
 					t.Logf("  misclassified: id=%v domain_1b=%v", record["id"], record["domain_1b"])
 				}

@@ -3,12 +3,10 @@ package i18n
 import (
 	"bufio"
 	"context"
-	"encoding/json"
-	"fmt"
 	"io"
-	"strings"
 	"time"
 
+	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
 	"forge.lthn.ai/core/go-inference"
 )
@@ -63,7 +61,7 @@ func mapTokenToDomain(token string) string {
 	if len(token) == 0 {
 		return "unknown"
 	}
-	lower := strings.ToLower(token)
+	lower := core.Lower(token)
 	switch {
 	case lower == "technical" || lower == "tech":
 		return "technical"
@@ -107,11 +105,18 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 		}
 		prompts := make([]string, len(batch))
 		for i, p := range batch {
-			prompts[i] = fmt.Sprintf(cfg.promptTemplate, p.prompt)
+			prompts[i] = core.Sprintf(cfg.promptTemplate, p.prompt)
 		}
 		results, err := model.Classify(ctx, prompts, inference.WithMaxTokens(1))
 		if err != nil {
 			return log.E("ClassifyCorpus", "classify batch", err)
+		}
+		if len(results) != len(batch) {
+			return log.E(
+				"ClassifyCorpus",
+				core.Sprintf("classify batch returned %d results for %d prompts", len(results), len(batch)),
+				nil,
+			)
 		}
 		for i, r := range results {
 			domain := mapTokenToDomain(r.Token.Text)
@@ -119,13 +124,12 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 			stats.ByDomain[domain]++
 			stats.Total++
 
-			line, err := json.Marshal(batch[i].record)
-			if err != nil {
-				return log.E("ClassifyCorpus", "marshal output", err)
+			mr := core.JSONMarshal(batch[i].record)
+			if !mr.OK {
+				return log.E("ClassifyCorpus", "marshal output", mr.Value.(error))
 			}
-			if _, err := fmt.Fprintf(output, "%s\n", line); err != nil {
-				return log.E("ClassifyCorpus", "write output", err)
-			}
+			line := mr.Value.([]byte)
+			core.Print(output, "%s", line)
 		}
 		batch = batch[:0]
 		return nil
@@ -133,7 +137,7 @@ func ClassifyCorpus(ctx context.Context, model inference.TextModel,
 
 	for scanner.Scan() {
 		var record map[string]any
-		if err := json.Unmarshal(scanner.Bytes(), &record); err != nil {
+		if r := core.JSONUnmarshal(scanner.Bytes(), &record); !r.OK {
 			stats.Skipped++
 			continue
 		}

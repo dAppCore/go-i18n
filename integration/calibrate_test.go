@@ -2,10 +2,10 @@ package integration
 
 import (
 	"context"
-	"fmt"
 	"sort"
 	"testing"
 
+	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
 	"forge.lthn.ai/core/go-inference"
 	_ "forge.lthn.ai/core/go-mlx" // registers Metal backend
@@ -549,7 +549,7 @@ func TestCalibrateDomains_1Bvs27B(t *testing.T) {
 			disagreements++
 			truth := ""
 			if r.TrueDomain != "" {
-				truth = fmt.Sprintf(" [truth=%s]", r.TrueDomain)
+				truth = core.Sprintf(" [truth=%s]", r.TrueDomain)
 			}
 			t.Logf("  DISAGREE: 1B=%s 27B=%s%s | %.60s", r.DomainA, r.DomainB, truth, r.Text)
 			if disagreements >= 50 {

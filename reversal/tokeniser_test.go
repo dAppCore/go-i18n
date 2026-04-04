@@ -20,9 +20,9 @@ func TestTokeniser_MatchVerb_Irregular(t *testing.T) {
 	tok := NewTokeniser()
 
 	tests := []struct {
-		word    string
-		wantOK  bool
-		wantBase string
+		word      string
+		wantOK    bool
+		wantBase  string
 		wantTense string
 	}{
 		// Irregular past tense
@@ -159,6 +159,7 @@ func TestTokeniser_MatchWord(t *testing.T) {
 		{"url", "url", true},
 		{"ID", "id", true},
 		{"SSH", "ssh", true},
+		{"up to date", "up_to_date", true},
 		{"PHP", "php", true},
 		{"xyzzy", "", false},
 	}
@@ -188,6 +189,7 @@ func TestTokeniser_MatchArticle(t *testing.T) {
 		{"a", "indefinite", true},
 		{"an", "indefinite", true},
 		{"the", "definite", true},
+		{"the.", "definite", true},
 		{"A", "indefinite", true},
 		{"The", "definite", true},
 		{"foo", "", false},
@@ -203,6 +205,516 @@ func TestTokeniser_MatchArticle(t *testing.T) {
 				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
 			}
 		})
+	}
+}
+
+func TestTokeniser_MatchArticle_FrenchGendered(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"le", "definite", true},
+		{"la", "definite", true},
+		{"le serveur", "definite", true},
+		{"le serveur.", "definite", true},
+		{"la branche", "definite", true},
+		{"les amis", "definite", true},
+		{"Le", "definite", true},
+		{"La", "definite", true},
+		{"Un enfant", "indefinite", true},
+		{"Une amie", "indefinite", true},
+		{"de la", "indefinite", true},
+		{"de le", "indefinite", true},
+		{"de les", "indefinite", true},
+		{"de l'", "indefinite", true},
+		{"de l’", "indefinite", true},
+		{"du serveur", "indefinite", true},
+		{"des amis", "indefinite", true},
+		{"un", "indefinite", true},
+		{"une", "indefinite", true},
+		{"l'enfant", "definite", true},
+		{"l’ami", "definite", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+
+	tokens := tok.Tokenise("la branche")
+	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
+		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "la branche", tokens)
+	}
+
+	tokens = tok.Tokenise("une branche")
+	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
+		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "une branche", tokens)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("Tokenise(%q)[0].ArtType = %q, want %q", "une branche", tokens[0].ArtType, "indefinite")
+	}
+}
+
+func TestTokeniser_Tokenise_WordPhrase(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("up to date")
+	if len(tokens) != 1 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 1", "up to date", len(tokens))
+	}
+	if tokens[0].Type != TokenWord {
+		t.Fatalf("Tokenise(%q)[0].Type = %v, want TokenWord", "up to date", tokens[0].Type)
+	}
+	if tokens[0].WordCat != "up_to_date" {
+		t.Fatalf("Tokenise(%q)[0].WordCat = %q, want %q", "up to date", tokens[0].WordCat, "up_to_date")
+	}
+}
+
+func TestTokeniser_Tokenise_WordPhraseWithPunctuation(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("up to date.")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "up to date.", len(tokens))
+	}
+	if tokens[0].Type != TokenWord {
+		t.Fatalf("Tokenise(%q)[0].Type = %v, want TokenWord", "up to date.", tokens[0].Type)
+	}
+	if tokens[1].Type != TokenPunctuation {
+		t.Fatalf("Tokenise(%q)[1].Type = %v, want TokenPunctuation", "up to date.", tokens[1].Type)
+	}
+}
+
+func TestTokeniser_MatchArticle_FrenchExtended(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"l'", "definite", true},
+		{"l’", "definite", true},
+		{"lʼ", "definite", true},
+		{"L'", "definite", true},
+		{"L’", "definite", true},
+		{"Lʼ", "definite", true},
+		{"les", "definite", true},
+		{"au", "definite", true},
+		{"aux", "definite", true},
+		{"du", "indefinite", true},
+		{"des", "indefinite", true},
+		{"l'enfant", "definite", true},
+		{"de l'enfant", "indefinite", true},
+		{"de l’ami", "indefinite", true},
+		{"De l’enfant", "indefinite", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+}
+
+func TestTokeniser_MatchArticle_FrenchUnderscoreTagFallback(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr_CA")
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"le", "definite", true},
+		{"l'ami", "definite", true},
+		{"de l'ami", "indefinite", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+
+	tokens := tok.Tokenise("l'ami")
+	if len(tokens) == 0 || tokens[0].Type != TokenArticle {
+		t.Fatalf("Tokenise(%q)[0] should be TokenArticle, got %#v", "l'ami", tokens)
+	}
+}
+
+func TestTokeniser_MatchArticle_ConfiguredPhrasePrefix(t *testing.T) {
+	setup(t)
+
+	const lang = "xx"
+	prev := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, prev)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Articles: i18n.ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "the",
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"the file", "definite", true},
+		{"a file", "indefinite", true},
+		{"an error", "indefinite", true},
+		{"file", "", false},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+}
+
+func TestTokeniser_MatchArticle_ConfiguredElisionPrefix(t *testing.T) {
+	setup(t)
+
+	const lang = "xy"
+	prev := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, prev)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Articles: i18n.ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "l'",
+			ByGender: map[string]string{
+				"m": "le",
+				"f": "la",
+			},
+		},
+		Nouns: map[string]i18n.NounForms{
+			"ami": {One: "ami", Other: "amis", Gender: "m"},
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+
+	tests := []struct {
+		word     string
+		wantType string
+		wantOK   bool
+	}{
+		{"l'ami", "definite", true},
+		{"l’ami", "definite", true},
+		{"lʼami", "definite", true},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			artType, ok := tok.MatchArticle(tt.word)
+			if ok != tt.wantOK {
+				t.Fatalf("MatchArticle(%q) ok=%v, want %v", tt.word, ok, tt.wantOK)
+			}
+			if ok && artType != tt.wantType {
+				t.Errorf("MatchArticle(%q) = %q, want %q", tt.word, artType, tt.wantType)
+			}
+		})
+	}
+
+	tokens := tok.Tokenise("l'ami")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "l'ami", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle || tokens[0].ArtType != "definite" {
+		t.Fatalf("Tokenise(%q)[0] = %#v, want definite article", "l'ami", tokens[0])
+	}
+	if tokens[1].Type != TokenNoun || tokens[1].Lower != "ami" {
+		t.Fatalf("Tokenise(%q)[1] = %#v, want noun ami", "l'ami", tokens[1])
+	}
+}
+
+func TestTokeniser_Tokenise_FrenchElision(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	tokens := tok.Tokenise("l'enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "l'enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "definite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "definite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("de l'enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de l'enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[0].Lower != "de l'" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("de l' enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de l' enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[0].Lower != "de l'" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("De l’enfant.")
+	if len(tokens) != 3 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 3", "De l’enfant.", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+	if tokens[2].Type != TokenPunctuation {
+		t.Fatalf("tokens[2].Type = %v, want TokenPunctuation", tokens[2].Type)
+	}
+	if tokens[2].PunctType != "sentence_end" {
+		t.Fatalf("tokens[2].PunctType = %q, want %q", tokens[2].PunctType, "sentence_end")
+	}
+
+	tokens = tok.Tokenise("de le serveur")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de le serveur", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[0].Lower != "de le" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de le")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "serveur" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "serveur")
+	}
+
+	tokens = tok.Tokenise("de les amis")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de les amis", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[0].Lower != "de les" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de les")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "amis" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "amis")
+	}
+
+	tokens = tok.Tokenise("de l’ enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de l’ enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de l'" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("de lʼenfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de lʼenfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de l'" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de l'")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("d'enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "d'enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+
+	tokens = tok.Tokenise("l’enfant")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "l’enfant", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "definite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "definite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "enfant" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "enfant")
+	}
+
+	tokens = tok.Tokenise("au serveur")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "au serveur", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].ArtType != "definite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "definite")
+	}
+}
+
+func TestTokeniser_Tokenise_FrenchPartitiveArticlePhrase(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	tokens := tok.Tokenise("de la branche")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de la branche", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de la" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de la")
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "branche" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "branche")
+	}
+
+	tokens = tok.Tokenise("de les amis")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "de les amis", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle {
+		t.Fatalf("tokens[0].Type = %v, want TokenArticle", tokens[0].Type)
+	}
+	if tokens[0].Lower != "de les" {
+		t.Fatalf("tokens[0].Lower = %q, want %q", tokens[0].Lower, "de les")
+	}
+	if tokens[0].ArtType != "indefinite" {
+		t.Fatalf("tokens[0].ArtType = %q, want %q", tokens[0].ArtType, "indefinite")
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("tokens[1].Type = %v, want TokenNoun", tokens[1].Type)
+	}
+	if tokens[1].Lower != "amis" {
+		t.Fatalf("tokens[1].Lower = %q, want %q", tokens[1].Lower, "amis")
 	}
 }
 
@@ -256,6 +768,55 @@ func TestTokeniser_Tokenise_Punctuation(t *testing.T) {
 	}
 	if !hasPunct {
 		t.Error("did not detect punctuation in \"Building project...\"")
+	}
+}
+
+func TestTokeniser_Tokenise_ClauseBoundarySentence(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("run tests. commit")
+	hasSentenceEnd := false
+
+	for _, token := range tokens {
+		if token.Raw == "run" && token.Type != TokenVerb {
+			t.Errorf("'run' should remain TokenVerb, got %v", token.Type)
+		}
+		if token.Type == TokenPunctuation && token.PunctType == "sentence_end" {
+			hasSentenceEnd = true
+		}
+		if token.Lower == "commit" {
+			// Without sentence-end boundary support, this can be demoted by verb saturation.
+			// With boundary detection, it should still classify as a verb.
+			if token.Type != TokenVerb {
+				t.Errorf("'commit' after period should be TokenVerb, got %v", token.Type)
+			}
+		}
+	}
+
+	if !hasSentenceEnd {
+		t.Error("did not detect sentence-end punctuation in \"run tests. commit\"")
+	}
+}
+
+func TestTokeniser_Tokenise_ClauseBoundaryStandalonePunctuation(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("run tests . commit")
+	hasSentenceEnd := false
+
+	for _, token := range tokens {
+		if token.Type == TokenPunctuation && token.PunctType == "sentence_end" {
+			hasSentenceEnd = true
+		}
+		if token.Lower == "commit" && token.Type != TokenVerb {
+			t.Errorf("'commit' after standalone period should be TokenVerb, got %v", token.Type)
+		}
+	}
+
+	if !hasSentenceEnd {
+		t.Error("did not detect standalone sentence-end punctuation in \"run tests . commit\"")
 	}
 }
 
@@ -315,6 +876,43 @@ func TestTokeniser_WithSignals(t *testing.T) {
 	_ = tok // verify it compiles and accepts the option
 }
 
+func TestTokeniser_Tokenise_CorpusPriorBias(t *testing.T) {
+	const lang = "zz-prior"
+	original := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, original)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Verbs: map[string]i18n.VerbForms{
+			"commit": {Past: "committed", Gerund: "committing"},
+		},
+		Nouns: map[string]i18n.NounForms{
+			"commit": {One: "commit", Other: "commits"},
+		},
+		Signals: i18n.SignalData{
+			Priors: map[string]map[string]float64{
+				"commit": {
+					"verb": 0.2,
+					"noun": 0.8,
+				},
+			},
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+	tokens := tok.Tokenise("please commit")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "please commit", len(tokens))
+	}
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("Tokenise(%q)[1].Type = %v, want TokenNoun", "please commit", tokens[1].Type)
+	}
+	if tokens[1].Confidence <= 0.5 {
+		t.Fatalf("Tokenise(%q)[1].Confidence = %f, want > 0.5", "please commit", tokens[1].Confidence)
+	}
+}
+
 func TestTokeniser_DualClassDetection(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
@@ -326,11 +924,89 @@ func TestTokeniser_DualClassDetection(t *testing.T) {
 		}
 	}
 
-	notDual := []string{"delete", "go", "push", "branch", "repo"}
+	for _, word := range []string{"change", "export", "function", "handle", "host", "import", "link", "log", "merge", "patch", "process", "pull", "push", "queue", "release", "stream", "tag", "trigger", "update", "watch"} {
+		if !tok.IsDualClass(word) {
+			t.Errorf("%q should be dual-class after expansion", word)
+		}
+	}
+
+	notDual := []string{"delete", "go", "branch", "repo"}
 	for _, word := range notDual {
 		if tok.IsDualClass(word) {
 			t.Errorf("%q should not be dual-class", word)
 		}
+	}
+}
+
+func TestTokeniser_IgnoresDeprecatedGrammarEntries(t *testing.T) {
+	setup(t)
+
+	const lang = "zz-deprecated"
+	original := i18n.GetGrammarData(lang)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, original)
+	})
+
+	i18n.SetGrammarData(lang, &i18n.GrammarData{
+		Nouns: map[string]i18n.NounForms{
+			"passed":  {One: "passed", Other: "passed"},
+			"failed":  {One: "failed", Other: "failed"},
+			"skipped": {One: "skipped", Other: "skipped"},
+			"commit":  {One: "commit", Other: "commits"},
+		},
+		Words: map[string]string{
+			"passed":  "passed",
+			"failed":  "failed",
+			"skipped": "skipped",
+			"url":     "URL",
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+	for _, word := range []string{"passed", "failed", "skipped"} {
+		if tok.IsDualClass(word) {
+			t.Fatalf("%q should not be treated as dual-class", word)
+		}
+		if cat, ok := tok.MatchWord(word); ok {
+			t.Fatalf("MatchWord(%q) = %q, %v; want not found", word, cat, ok)
+		}
+		if _, ok := tok.MatchNoun(word); ok {
+			t.Fatalf("MatchNoun(%q) should be ignored", word)
+		}
+	}
+	if cat, ok := tok.MatchWord("url"); !ok || cat != "url" {
+		t.Fatalf("MatchWord(%q) = %q, %v; want %q, true", "url", cat, ok, "url")
+	}
+}
+
+func TestTokeniser_DualClassExpansion_ClassifiesCommonDevOpsWords(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tests := []struct {
+		text      string
+		wantType  TokenType
+		wantLower string
+	}{
+		{"the merge", TokenNoun, "merge"},
+		{"please merge the file", TokenVerb, "merge"},
+		{"the process", TokenNoun, "process"},
+		{"please process the log", TokenVerb, "process"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.text, func(t *testing.T) {
+			tokens := tok.Tokenise(tt.text)
+			if len(tokens) < 2 {
+				t.Fatalf("Tokenise(%q) returned %d tokens, want at least 2", tt.text, len(tokens))
+			}
+			if tokens[1].Lower != tt.wantLower {
+				t.Fatalf("Tokenise(%q)[1].Lower = %q, want %q", tt.text, tokens[1].Lower, tt.wantLower)
+			}
+			if tokens[1].Type != tt.wantType {
+				t.Fatalf("Tokenise(%q)[1].Type = %v, want %v", tt.text, tokens[1].Type, tt.wantType)
+			}
+		})
 	}
 }
 
@@ -454,6 +1130,46 @@ func TestTokeniser_Disambiguate_ContractionAux(t *testing.T) {
 	}
 }
 
+func TestTokeniser_Disambiguate_ContractionAux_FallbackDefaults(t *testing.T) {
+	tok := NewTokeniserForLang("zz")
+	tokens := tok.Tokenise("don't run the tests")
+	// The hardcoded fallback auxiliaries should still recognise contractions
+	// even when no locale grammar data is loaded.
+	for _, token := range tokens {
+		if token.Lower == "run" && token.Type != TokenVerb {
+			t.Errorf("'run' after \"don't\": Type = %v, want TokenVerb", token.Type)
+		}
+	}
+}
+
+func TestTokeniser_Disambiguate_NegationSignal(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithSignals())
+
+	tokens := tok.Tokenise("no longer commit the changes")
+	if len(tokens) < 3 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want at least 3", "no longer commit the changes", len(tokens))
+	}
+
+	commitTok := tokens[2]
+	if commitTok.Type != TokenVerb {
+		t.Fatalf("'commit' after 'no longer': Type = %v, want TokenVerb", commitTok.Type)
+	}
+	if commitTok.Signals == nil {
+		t.Fatal("'commit' after 'no longer' should have signal breakdown")
+	}
+	foundNegation := false
+	for _, component := range commitTok.Signals.Components {
+		if component.Name == "verb_negation" {
+			foundNegation = true
+			break
+		}
+	}
+	if !foundNegation {
+		t.Error("verb_negation signal should have fired for 'no longer commit'")
+	}
+}
+
 func TestTokeniser_WithSignals_Breakdown(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser(WithSignals())
@@ -501,7 +1217,7 @@ func TestDisambiguationStats_WithAmbiguous(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
 	tokens := tok.Tokenise("The commit passed the test")
-	stats := DisambiguationStatsFromTokens(tokens)
+	stats := tok.DisambiguationStats(tokens)
 	if stats.AmbiguousTokens == 0 {
 		t.Error("expected ambiguous tokens for dual-class words")
 	}
@@ -514,7 +1230,7 @@ func TestDisambiguationStats_NoAmbiguous(t *testing.T) {
 	setup(t)
 	tok := NewTokeniser()
 	tokens := tok.Tokenise("Deleted the files")
-	stats := DisambiguationStatsFromTokens(tokens)
+	stats := tok.DisambiguationStats(tokens)
 	if stats.AmbiguousTokens != 0 {
 		t.Errorf("AmbiguousTokens = %d, want 0", stats.AmbiguousTokens)
 	}
@@ -523,7 +1239,7 @@ func TestDisambiguationStats_NoAmbiguous(t *testing.T) {
 func TestWithWeights_Override(t *testing.T) {
 	setup(t)
 	// Override noun_determiner to 0 — "The commit" should no longer resolve as noun
-	tok := NewTokeniser(WithWeights(map[string]float64{
+	weights := map[string]float64{
 		"noun_determiner":   0.0,
 		"verb_auxiliary":    0.25,
 		"following_class":   0.15,
@@ -531,11 +1247,113 @@ func TestWithWeights_Override(t *testing.T) {
 		"verb_saturation":   0.10,
 		"inflection_echo":   0.03,
 		"default_prior":     0.02,
-	}))
+	}
+	tok := NewTokeniser(WithWeights(weights))
 	tokens := tok.Tokenise("The commit")
 	// With noun_determiner zeroed, default_prior (verb) should win
 	if tokens[1].Type != TokenVerb {
 		t.Errorf("with noun_determiner=0, 'commit' Type = %v, want TokenVerb", tokens[1].Type)
+	}
+}
+
+func TestWithWeights_CopiesInputMap(t *testing.T) {
+	setup(t)
+	weights := map[string]float64{
+		"noun_determiner":   0.35,
+		"verb_auxiliary":    0.25,
+		"following_class":   0.15,
+		"sentence_position": 0.10,
+		"verb_saturation":   0.10,
+		"inflection_echo":   0.03,
+		"default_prior":     0.02,
+	}
+	tok := NewTokeniser(WithWeights(weights))
+
+	// Mutate the caller's map after construction; the tokeniser should keep
+	// using the original copied values.
+	weights["noun_determiner"] = 0
+
+	tokens := tok.Tokenise("The commit")
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("with copied weights, 'commit' Type = %v, want TokenNoun", tokens[1].Type)
+	}
+}
+
+func TestWithWeights_PartialOverrideKeepsDefaults(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithWeights(map[string]float64{
+		"verb_auxiliary": 0.25,
+	}))
+
+	tokens := tok.Tokenise("The commit")
+	if tokens[1].Type != TokenNoun {
+		t.Fatalf("with partial weights, 'commit' Type = %v, want TokenNoun", tokens[1].Type)
+	}
+}
+
+func TestDefaultWeights_ReturnsCopy(t *testing.T) {
+	first := DefaultWeights()
+	second := DefaultWeights()
+
+	if first["noun_determiner"] != 0.35 {
+		t.Fatalf("DefaultWeights()[noun_determiner] = %v, want 0.35", first["noun_determiner"])
+	}
+	first["noun_determiner"] = 0
+
+	if second["noun_determiner"] != 0.35 {
+		t.Fatalf("DefaultWeights() should return a fresh copy, got %v", second["noun_determiner"])
+	}
+}
+
+func TestTokeniserSignalWeights_ReturnsCopy(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser(WithWeights(map[string]float64{
+		"noun_determiner": 0.5,
+		"default_prior":   0.1,
+	}))
+
+	weights := tok.SignalWeights()
+	if weights["noun_determiner"] != 0.5 {
+		t.Fatalf("SignalWeights()[noun_determiner] = %v, want 0.5", weights["noun_determiner"])
+	}
+
+	weights["noun_determiner"] = 0
+	if got := tok.SignalWeights()["noun_determiner"]; got != 0.5 {
+		t.Fatalf("SignalWeights() should return a fresh copy, got %v", got)
+	}
+}
+
+func TestLowInformationConfidenceConstants(t *testing.T) {
+	if LowInformationScoreThreshold != 0.10 {
+		t.Fatalf("LowInformationScoreThreshold = %v, want 0.10", LowInformationScoreThreshold)
+	}
+	if LowInformationVerbConfidence != 0.55 {
+		t.Fatalf("LowInformationVerbConfidence = %v, want 0.55", LowInformationVerbConfidence)
+	}
+	if LowInformationNounConfidence != 0.45 {
+		t.Fatalf("LowInformationNounConfidence = %v, want 0.45", LowInformationNounConfidence)
+	}
+}
+
+func TestTokeniser_LowInformationConfidenceFloor(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+
+	tokens := tok.Tokenise("maybe commit")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(maybe commit) produced %d tokens, want 2", len(tokens))
+	}
+	if tokens[1].Type != TokenVerb {
+		t.Fatalf("Tokenise(maybe commit) Type = %v, want TokenVerb", tokens[1].Type)
+	}
+	if tokens[1].Confidence != 0.55 {
+		t.Fatalf("Tokenise(maybe commit) Confidence = %v, want 0.55", tokens[1].Confidence)
+	}
+	if tokens[1].AltType != TokenNoun {
+		t.Fatalf("Tokenise(maybe commit) AltType = %v, want TokenNoun", tokens[1].AltType)
+	}
+	if tokens[1].AltConf != 0.45 {
+		t.Fatalf("Tokenise(maybe commit) AltConf = %v, want 0.45", tokens[1].AltConf)
 	}
 }
 

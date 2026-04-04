@@ -144,6 +144,30 @@ func TestReferenceSet_Classify(t *testing.T) {
 	}
 }
 
+func TestReferenceSet_Classify_SingleDomainConfidence(t *testing.T) {
+	tok := initI18n(t)
+
+	samples := []ClassifiedText{
+		{Text: "Delete the configuration file", Domain: "technical"},
+		{Text: "Build the project from source", Domain: "technical"},
+	}
+
+	rs, err := BuildReferences(tok, samples)
+	if err != nil {
+		t.Fatalf("BuildReferences: %v", err)
+	}
+
+	imp := NewImprint(tok.Tokenise("Run the tests before committing"))
+	cls := rs.Classify(imp)
+
+	if cls.Domain == "" {
+		t.Fatal("empty classification domain")
+	}
+	if cls.Confidence != 0 {
+		t.Errorf("Confidence = %f, want 0 when only one domain is available", cls.Confidence)
+	}
+}
+
 func TestReferenceSet_DomainNames(t *testing.T) {
 	tok := initI18n(t)
 	samples := []ClassifiedText{

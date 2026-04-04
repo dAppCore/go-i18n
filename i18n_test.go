@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"testing"
+	"testing/fstest"
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -39,6 +40,48 @@ func TestT_Good_MissingKey(t *testing.T) {
 	assert.Equal(t, "nonexistent.key.test", got)
 }
 
+// --- Package-level Translate() ---
+
+func TestTranslate_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	result := Translate("prompt.yes")
+	require.True(t, result.OK)
+	assert.Equal(t, "y", result.Value)
+}
+
+func TestTranslate_Good_MissingKey(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	result := Translate("nonexistent.translation.key")
+	require.False(t, result.OK)
+	assert.Equal(t, "nonexistent.translation.key", result.Value)
+}
+
+func TestTranslate_Good_SameTextAsKey(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	AddMessages("en", map[string]string{
+		"exact.same.key": "exact.same.key",
+	})
+
+	result := Translate("exact.same.key")
+	require.True(t, result.OK)
+	assert.Equal(t, "exact.same.key", result.Value)
+}
+
 // --- Package-level Raw() ---
 
 func TestRaw_Good(t *testing.T) {
@@ -62,6 +105,44 @@ func TestRaw_Good_BypassesHandlers(t *testing.T) {
 	assert.Equal(t, "i18n.label.status", got)
 }
 
+func TestLoadFS_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	fsys := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{"loadfs.key": "loaded via package helper"}`),
+		},
+	}
+
+	LoadFS(fsys, "locales")
+
+	got := T("loadfs.key")
+	assert.Equal(t, "loaded via package helper", got)
+}
+
+func TestAddMessages_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	AddMessages("en", map[string]string{
+		"add.messages.key": "loaded via package helper",
+	})
+
+	got := T("add.messages.key")
+	assert.Equal(t, "loaded via package helper", got)
+}
+
 // --- SetLanguage / CurrentLanguage ---
 
 func TestSetLanguage_Good(t *testing.T) {
@@ -73,6 +154,27 @@ func TestSetLanguage_Good(t *testing.T) {
 	err = SetLanguage("en")
 	assert.NoError(t, err)
 	assert.Contains(t, CurrentLanguage(), "en")
+}
+
+func TestSetLanguage_Good_UnderscoreTag(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	err = SetLanguage("fr_CA")
+	assert.NoError(t, err)
+	assert.True(t, len(CurrentLanguage()) >= 2)
+	assert.Equal(t, "fr", CurrentLanguage()[:2])
+}
+
+func TestLanguage_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentLanguage(), Language())
 }
 
 func TestSetLanguage_Bad_Unsupported(t *testing.T) {
@@ -92,6 +194,95 @@ func TestCurrentLanguage_Good(t *testing.T) {
 
 	lang := CurrentLanguage()
 	assert.NotEmpty(t, lang)
+	assert.Equal(t, lang, CurrentLang())
+}
+
+func TestAvailableLanguages_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	langs := AvailableLanguages()
+	require.NotEmpty(t, langs)
+	assert.Equal(t, svc.AvailableLanguages(), langs)
+
+	langs[0] = "zz"
+	assert.NotEqual(t, "zz", svc.AvailableLanguages()[0])
+}
+
+func TestCurrentAvailableLanguages_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	langs := CurrentAvailableLanguages()
+	require.NotEmpty(t, langs)
+	assert.Equal(t, svc.AvailableLanguages(), langs)
+}
+
+func TestFallback_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, "en", Fallback())
+
+	SetFallback("fr")
+	assert.Equal(t, "fr", Fallback())
+}
+
+func TestDebug_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.False(t, Debug())
+
+	SetDebug(true)
+	assert.True(t, Debug())
+}
+
+func TestCurrentState_Good(t *testing.T) {
+	svc, err := NewWithLoader(messageBaseFallbackLoader{})
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	state := CurrentState()
+	assert.Equal(t, svc.Language(), state.Language)
+	assert.Equal(t, svc.AvailableLanguages(), state.AvailableLanguages)
+	assert.Equal(t, svc.Mode(), state.Mode)
+	assert.Equal(t, svc.Fallback(), state.Fallback)
+	assert.Equal(t, svc.Formality(), state.Formality)
+	assert.Equal(t, svc.Location(), state.Location)
+	assert.Equal(t, svc.Direction(), state.Direction)
+	assert.Equal(t, svc.IsRTL(), state.IsRTL)
+	assert.Equal(t, svc.Debug(), state.Debug)
+	assert.Len(t, state.Handlers, len(svc.Handlers()))
+
+	state.AvailableLanguages[0] = "zz"
+	assert.NotEqual(t, "zz", CurrentState().AvailableLanguages[0])
+	state.Handlers[0] = nil
+	assert.NotNil(t, CurrentState().Handlers[0])
+}
+
+func TestState_Good_WithoutDefaultService(t *testing.T) {
+	var svc *Service
+	state := svc.State()
+	assert.Equal(t, defaultServiceStateSnapshot(), state)
 }
 
 // --- SetMode / CurrentMode ---
@@ -130,19 +321,134 @@ func TestN_Good(t *testing.T) {
 		name   string
 		format string
 		value  any
+		args   []any
 		want   string
 	}{
-		{"number", "number", int64(1234567), "1,234,567"},
-		{"percent", "percent", 0.85, "85%"},
-		{"bytes", "bytes", int64(1536000), "1.5 MB"},
-		{"ordinal", "ordinal", 1, "1st"},
+		{"number", "number", int64(1234567), nil, "1,234,567"},
+		{"percent", "percent", 0.85, nil, "85%"},
+		{"bytes", "bytes", int64(1536000), nil, "1.46 MB"},
+		{"ordinal", "ordinal", 1, nil, "1st"},
+		{"ago", "ago", 5, []any{"minutes"}, "5 minutes ago"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			got := N(tt.format, tt.value)
+			got := N(tt.format, tt.value, tt.args...)
 			assert.Equal(t, tt.want, got)
 		})
 	}
+}
+
+func TestN_Good_WithoutDefaultService(t *testing.T) {
+	prev := Default()
+	SetDefault(nil)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	tests := []struct {
+		name   string
+		format string
+		value  any
+		args   []any
+		want   string
+	}{
+		{"number", "number", int64(1234567), nil, "1,234,567"},
+		{"percent", "percent", 0.85, nil, "85%"},
+		{"bytes", "bytes", int64(1536000), nil, "1.46 MB"},
+		{"ordinal", "ordinal", 1, nil, "1st"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := N(tt.format, tt.value, tt.args...)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+// --- Prompt() prompt shorthand ---
+
+func TestPrompt_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	tests := []struct {
+		name string
+		key  string
+		want string
+	}{
+		{"yes", "yes", "y"},
+		{"yes_trimmed", " yes ", "y"},
+		{"yes_prefixed", "prompt.yes", "y"},
+		{"confirm", "confirm", "Are you sure?"},
+		{"confirm_prefixed", "prompt.confirm", "Are you sure?"},
+		{"empty", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Prompt(tt.key)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestCurrentPrompt_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	assert.Equal(t, Prompt("confirm"), CurrentPrompt("confirm"))
+}
+
+// --- Lang() language label shorthand ---
+
+func TestLang_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	tests := []struct {
+		name string
+		key  string
+		want string
+	}{
+		{"de", "de", "German"},
+		{"fr", "fr", "French"},
+		{"fr_ca", "fr_CA", "French"},
+		{"fr_prefixed", "lang.fr", "French"},
+		{"empty", "", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := Lang(tt.key)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestLang_MissingKeyHandler_FiresOnce(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetMissingKeyHandlers()
+		SetMode(ModeNormal)
+		SetDefault(prev)
+	})
+
+	SetMode(ModeCollect)
+	calls := 0
+	SetMissingKeyHandlers(func(MissingKey) {
+		calls++
+	})
+
+	got := Lang("zz")
+	assert.Equal(t, "[lang.zz]", got)
+	assert.Equal(t, 1, calls)
 }
 
 // --- AddHandler / PrependHandler ---
@@ -159,6 +465,46 @@ func TestAddHandler_Good(t *testing.T) {
 	assert.Equal(t, initialCount+1, len(svc.Handlers()))
 }
 
+func TestAddHandler_Good_Variadic(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	AddHandler(LabelHandler{}, ProgressHandler{})
+	handlers := svc.Handlers()
+	assert.Equal(t, 2, len(handlers))
+	assert.IsType(t, LabelHandler{}, handlers[0])
+	assert.IsType(t, ProgressHandler{}, handlers[1])
+}
+
+func TestAddHandler_Good_SkipsNil(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	var nilHandler KeyHandler
+	AddHandler(nilHandler, LabelHandler{})
+
+	handlers := svc.Handlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, LabelHandler{}, handlers[0])
+}
+
+func TestAddHandler_DoesNotMutateInputSlice(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	handlers := []KeyHandler{nil, LabelHandler{}}
+	AddHandler(handlers...)
+
+	assert.Nil(t, handlers[0])
+	assert.IsType(t, LabelHandler{}, handlers[1])
+}
+
 func TestPrependHandler_Good(t *testing.T) {
 	svc, err := New(WithHandlers()) // start with no handlers
 	require.NoError(t, err)
@@ -172,6 +518,132 @@ func TestPrependHandler_Good(t *testing.T) {
 	PrependHandler(ProgressHandler{})
 	handlers := svc.Handlers()
 	assert.Equal(t, 2, len(handlers))
+}
+
+func TestPrependHandler_Good_Variadic(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	PrependHandler(LabelHandler{}, ProgressHandler{})
+	handlers := svc.Handlers()
+	assert.Equal(t, 2, len(handlers))
+	assert.IsType(t, LabelHandler{}, handlers[0])
+	assert.IsType(t, ProgressHandler{}, handlers[1])
+}
+
+func TestPrependHandler_Good_SkipsNil(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	var nilHandler KeyHandler
+	PrependHandler(nilHandler, LabelHandler{})
+
+	handlers := svc.Handlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, LabelHandler{}, handlers[0])
+}
+
+func TestPrependHandler_DoesNotMutateInputSlice(t *testing.T) {
+	svc, err := New(WithHandlers())
+	require.NoError(t, err)
+	_ = Init()
+	SetDefault(svc)
+
+	handlers := []KeyHandler{nil, ProgressHandler{}}
+	PrependHandler(handlers...)
+
+	assert.Nil(t, handlers[0])
+	assert.IsType(t, ProgressHandler{}, handlers[1])
+}
+
+func TestClearHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	AddHandler(LabelHandler{})
+	require.NotEmpty(t, svc.Handlers())
+
+	ClearHandlers()
+	assert.Empty(t, svc.Handlers())
+}
+
+func TestResetHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	ClearHandlers()
+	require.Empty(t, svc.Handlers())
+
+	svc.ResetHandlers()
+	require.Len(t, svc.Handlers(), len(DefaultHandlers()))
+	assert.IsType(t, LabelHandler{}, svc.Handlers()[0])
+
+	ClearHandlers()
+	require.Empty(t, svc.Handlers())
+
+	ResetHandlers()
+	handlers := svc.Handlers()
+	require.Len(t, handlers, len(DefaultHandlers()))
+	assert.IsType(t, LabelHandler{}, handlers[0])
+	assert.Equal(t, "Status:", T("i18n.label.status"))
+}
+
+func TestSetHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	_ = Init()
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	SetHandlers(serviceStubHandler{})
+
+	handlers := CurrentHandlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, serviceStubHandler{}, handlers[0])
+	assert.Equal(t, "stub", T("custom.stub"))
+	assert.Equal(t, "i18n.label.status", T("i18n.label.status"))
+}
+
+func TestHandlers_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	handlers := Handlers()
+	require.Len(t, handlers, len(svc.Handlers()))
+	assert.Equal(t, svc.Handlers(), handlers)
+}
+
+func TestNewWithHandlers_SkipsNil(t *testing.T) {
+	svc, err := New(WithHandlers(nil, LabelHandler{}))
+	require.NoError(t, err)
+
+	handlers := svc.Handlers()
+	require.Len(t, handlers, 1)
+	assert.IsType(t, LabelHandler{}, handlers[0])
 }
 
 // --- executeIntentTemplate ---
@@ -215,6 +687,43 @@ func TestExecuteIntentTemplate_Good_WithFuncs(t *testing.T) {
 
 	got := executeIntentTemplate("{{past .Subject}}!", data)
 	assert.Equal(t, "built!", got)
+}
+
+func TestComposeIntent_Good(t *testing.T) {
+	intent := Intent{
+		Meta: IntentMeta{
+			Type:      "action",
+			Verb:      "delete",
+			Dangerous: true,
+			Default:   "no",
+			Supports:  []string{"yes", "no"},
+		},
+		Question: "Delete {{.Subject}}?",
+		Confirm:  "Really delete {{article .Subject}}?",
+		Success:  "{{title .Subject}} deleted",
+		Failure:  "Failed to delete {{lower .Subject}}",
+	}
+
+	got := ComposeIntent(intent, S("file", "config.yaml"))
+
+	assert.Equal(t, "Delete config.yaml?", got.Question)
+	assert.Equal(t, "Really delete a config.yaml?", got.Confirm)
+	assert.Equal(t, "Config.yaml deleted", got.Success)
+	assert.Equal(t, "Failed to delete config.yaml", got.Failure)
+	assert.Equal(t, intent.Meta, got.Meta)
+}
+
+func TestIntentCompose_Good_NilSubject(t *testing.T) {
+	intent := Intent{
+		Question: "Proceed?",
+	}
+
+	got := intent.Compose(nil)
+
+	assert.Equal(t, "Proceed?", got.Question)
+	assert.Empty(t, got.Confirm)
+	assert.Empty(t, got.Success)
+	assert.Empty(t, got.Failure)
 }
 
 // --- applyTemplate ---

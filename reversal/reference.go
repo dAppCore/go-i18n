@@ -122,8 +122,6 @@ func (rs *ReferenceSet) Classify(imprint GrammarImprint) ImprintClassification {
 		result.Domain = ranked[0].domain
 		if len(ranked) > 1 {
 			result.Confidence = ranked[0].sim - ranked[1].sim
-		} else {
-			result.Confidence = ranked[0].sim
 		}
 	}
 	return result

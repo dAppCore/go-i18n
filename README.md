@@ -45,6 +45,17 @@ go test -bench=. ./...
 go build ./...
 ```
 
+For repeatable local runs in a clean workspace, the repo also ships a
+`Makefile` with the standard workflow targets:
+
+```bash
+make build
+make vet
+make test
+make cover
+make tidy
+```
+
 ## Licence
 
 European Union Public Licence 1.2 — see [LICENCE](LICENCE) for details.

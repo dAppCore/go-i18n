@@ -22,6 +22,11 @@ func TestLabelHandler(t *testing.T) {
 	if got != "Status:" {
 		t.Errorf("LabelHandler.Handle(status) = %q, want %q", got, "Status:")
 	}
+
+	got = h.Handle("i18n.label.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("LabelHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
 }
 
 func TestProgressHandler(t *testing.T) {
@@ -48,6 +53,31 @@ func TestProgressHandler(t *testing.T) {
 	if got != "Building project..." {
 		t.Errorf("ProgressHandler.Handle(build, project) = %q, want %q", got, "Building project...")
 	}
+
+	got = h.Handle("i18n.progress.build", []any{S("project", "config.yaml")}, nil)
+	if got != "Building config.yaml..." {
+		t.Errorf("ProgressHandler.Handle(build, Subject) = %q, want %q", got, "Building config.yaml...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{C("project")}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, TranslationContext) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{map[string]any{"Subject": "project"}}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, map[Subject:project]) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{map[string]string{"Subject": "project"}}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, map[string]string[Subject:project]) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("ProgressHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
 }
 
 func TestCountHandler(t *testing.T) {
@@ -72,7 +102,11 @@ func TestCountHandler(t *testing.T) {
 		{"i18n.count.file", []any{5}, "5 files"},
 		{"i18n.count.file", []any{0}, "0 files"},
 		{"i18n.count.child", []any{3}, "3 children"},
+		{"i18n.count.url", []any{2}, "2 URLs"},
+		{"i18n.count.api", []any{2}, "2 APIs"},
+		{"i18n.count.cpus", []any{2}, "2 CPUs"},
 		{"i18n.count.file", nil, "file"},
+		{"i18n.count.url", nil, "URL"},
 	}
 
 	for _, tt := range tests {
@@ -82,6 +116,31 @@ func TestCountHandler(t *testing.T) {
 				t.Errorf("CountHandler.Handle(%q, %v) = %q, want %q", tt.key, tt.args, got, tt.want)
 			}
 		})
+	}
+
+	got := h.Handle("i18n.count.file", []any{S("file", "config.yaml").Count(3)}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, Subject.Count(3)) = %q, want %q", got, "3 files")
+	}
+
+	got = h.Handle("i18n.count.file", []any{map[string]string{"Count": "3"}}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, map[string]string[Count:3]) = %q, want %q", got, "3 files")
+	}
+
+	got = h.Handle("i18n.count.file", []any{C("file").Set("Count", 3)}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, TranslationContext.Count=3) = %q, want %q", got, "3 files")
+	}
+
+	got = h.Handle("i18n.count.file", []any{C("file")}, nil)
+	if got != "1 file" {
+		t.Errorf("CountHandler.Handle(file, TranslationContext default count) = %q, want %q", got, "1 file")
+	}
+
+	got = h.Handle("i18n.count.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("CountHandler.Handle(empty) = %q, want %q", got, "fallback")
 	}
 }
 
@@ -100,14 +159,39 @@ func TestDoneHandler(t *testing.T) {
 
 	// With subject
 	got := h.Handle("i18n.done.delete", []any{"config.yaml"}, nil)
-	if got != "Config.Yaml deleted" {
-		t.Errorf("DoneHandler.Handle(delete, config.yaml) = %q, want %q", got, "Config.Yaml deleted")
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, config.yaml) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{S("file", "config.yaml")}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, Subject) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{C("config.yaml")}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, TranslationContext) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{map[string]any{"Subject": "config.yaml"}}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, map[Subject:config.yaml]) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{map[string]string{"Subject": "config.yaml"}}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, map[string]string[Subject:config.yaml]) = %q, want %q", got, "Config.yaml deleted")
 	}
 
 	// Without subject — just past tense
 	got = h.Handle("i18n.done.delete", nil, nil)
 	if got != "Deleted" {
 		t.Errorf("DoneHandler.Handle(delete) = %q, want %q", got, "Deleted")
+	}
+
+	got = h.Handle("i18n.done.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("DoneHandler.Handle(empty) = %q, want %q", got, "fallback")
 	}
 }
 
@@ -123,9 +207,34 @@ func TestFailHandler(t *testing.T) {
 		t.Errorf("FailHandler.Handle(push, commits) = %q, want %q", got, "Failed to push commits")
 	}
 
+	got = h.Handle("i18n.fail.push", []any{S("commit", "commits")}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, Subject) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{C("commits")}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, TranslationContext) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{map[string]any{"Subject": "commits"}}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, map[Subject:commits]) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{map[string]string{"Subject": "commits"}}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, map[string]string[Subject:commits]) = %q, want %q", got, "Failed to push commits")
+	}
+
 	got = h.Handle("i18n.fail.push", nil, nil)
 	if got != "Failed to push" {
 		t.Errorf("FailHandler.Handle(push) = %q, want %q", got, "Failed to push")
+	}
+
+	got = h.Handle("i18n.fail.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("FailHandler.Handle(empty) = %q, want %q", got, "fallback")
 	}
 }
 
@@ -149,7 +258,9 @@ func TestNumericHandler(t *testing.T) {
 		{"i18n.numeric.ordinal", []any{3}, "3rd"},
 		{"i18n.numeric.ordinal", []any{11}, "11th"},
 		{"i18n.numeric.percent", []any{0.85}, "85%"},
-		{"i18n.numeric.bytes", []any{int64(1536000)}, "1.5 MB"},
+		{"i18n.numeric.bytes", []any{int64(1536000)}, "1.46 MB"},
+		{"i18n.numeric.number", []any{"1234567"}, "1,234,567"},
+		{"i18n.numeric.ago", []any{5, "minutes"}, "5 minutes ago"},
 	}
 
 	for _, tt := range tests {
@@ -165,6 +276,113 @@ func TestNumericHandler(t *testing.T) {
 	got := h.Handle("i18n.numeric.number", nil, func() string { return "fallback" })
 	if got != "fallback" {
 		t.Errorf("NumericHandler with no args should fallback, got %q", got)
+	}
+
+	// No args and no fallback should not panic.
+	got = h.Handle("i18n.numeric.number", nil, nil)
+	if got != "" {
+		t.Errorf("NumericHandler with no args and no fallback = %q, want empty string", got)
+	}
+}
+
+func TestCountHandler_UsesLocaleNumberFormat(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.file", []any{1234}, nil)
+	want := "1 234 files"
+	if got != want {
+		t.Errorf("CountHandler.Handle(locale format) = %q, want %q", got, want)
+	}
+}
+
+func TestCountHandler_PreservesExactWordDisplay(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.go_mod", []any{2}, nil)
+	if got != "2 go.mod" {
+		t.Fatalf("CountHandler.Handle(go_mod, 2) = %q, want %q", got, "2 go.mod")
+	}
+}
+
+func TestCountHandler_PreservesPhraseDisplay(t *testing.T) {
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["up_to_date"]
+	data.Words["up_to_date"] = "up to date"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["up_to_date"] = original
+			return
+		}
+		delete(data.Words, "up_to_date")
+	})
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.up_to_date", []any{2}, nil)
+	if got != "2 up to date" {
+		t.Fatalf("CountHandler.Handle(up_to_date, 2) = %q, want %q", got, "2 up to date")
+	}
+}
+
+func TestCountHandler_PluralisesLocaleNounPhrases(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.mise à jour", []any{2}, nil)
+	if got != "2 mises à jour" {
+		t.Fatalf("CountHandler.Handle(mise à jour, 2) = %q, want %q", got, "2 mises à jour")
 	}
 }
 

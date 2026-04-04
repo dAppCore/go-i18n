@@ -1,6 +1,10 @@
 package i18n
 
-import "fmt"
+import (
+	"fmt"
+
+	"dappco.re/go/core"
+)
 
 // S creates a new Subject with the given noun and value.
 //
@@ -8,6 +12,23 @@ import "fmt"
 //	S("file", path).Count(3).In("workspace")
 func S(noun string, value any) *Subject {
 	return &Subject{Noun: noun, Value: value, count: 1}
+}
+
+// ComposeIntent renders an intent's templates into concrete output.
+func ComposeIntent(intent Intent, subject *Subject) Composed {
+	return intent.Compose(subject)
+}
+
+// Compose renders an intent's templates into concrete output.
+func (i Intent) Compose(subject *Subject) Composed {
+	data := newTemplateData(subject)
+	return Composed{
+		Question: executeIntentTemplate(i.Question, data),
+		Confirm:  executeIntentTemplate(i.Confirm, data),
+		Success:  executeIntentTemplate(i.Success, data),
+		Failure:  executeIntentTemplate(i.Failure, data),
+		Meta:     i.Meta,
+	}
 }
 
 func (s *Subject) Count(n int) *Subject {
@@ -65,15 +86,40 @@ func (s *Subject) String() string {
 	if stringer, ok := s.Value.(fmt.Stringer); ok {
 		return stringer.String()
 	}
-	return fmt.Sprint(s.Value)
+	return core.Sprintf("%v", s.Value)
 }
 
-func (s *Subject) IsPlural() bool  { return s != nil && s.count != 1 }
-func (s *Subject) CountInt() int   { if s == nil { return 1 }; return s.count }
-func (s *Subject) CountString() string { if s == nil { return "1" }; return fmt.Sprint(s.count) }
-func (s *Subject) GenderString() string { if s == nil { return "" }; return s.gender }
-func (s *Subject) LocationString() string { if s == nil { return "" }; return s.location }
-func (s *Subject) NounString() string { if s == nil { return "" }; return s.Noun }
+func (s *Subject) IsPlural() bool { return s != nil && s.count != 1 }
+func (s *Subject) CountInt() int {
+	if s == nil {
+		return 1
+	}
+	return s.count
+}
+func (s *Subject) CountString() string {
+	if s == nil {
+		return "1"
+	}
+	return FormatNumber(int64(s.count))
+}
+func (s *Subject) GenderString() string {
+	if s == nil {
+		return ""
+	}
+	return s.gender
+}
+func (s *Subject) LocationString() string {
+	if s == nil {
+		return ""
+	}
+	return s.location
+}
+func (s *Subject) NounString() string {
+	if s == nil {
+		return ""
+	}
+	return s.Noun
+}
 func (s *Subject) FormalityString() string {
 	if s == nil {
 		return FormalityNeutral.String()

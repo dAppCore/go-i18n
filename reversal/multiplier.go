@@ -1,9 +1,9 @@
 package reversal
 
 import (
-	"strings"
 	"unicode"
 
+	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
 )
 
@@ -26,7 +26,7 @@ func NewMultiplierForLang(lang string) *Multiplier {
 // Expand produces: original + tense flips (past, gerund) + number flips (plural toggle) + combinations.
 // All output is deterministic and grammatically correct.
 func (m *Multiplier) Expand(text string) []string {
-	text = strings.TrimSpace(text)
+	text = core.Trim(text)
 	if text == "" {
 		return nil
 	}
@@ -68,39 +68,27 @@ func (m *Multiplier) Expand(text string) []string {
 
 	// 2. Verb transforms: for each verb, produce past and gerund variants
 	for _, vi := range verbIndices {
-		pastTokens := m.applyVerbTransform(tokens, vi, "past")
-		addVariant(reconstruct(pastTokens))
-
-		gerundTokens := m.applyVerbTransform(tokens, vi, "gerund")
-		addVariant(reconstruct(gerundTokens))
-
-		baseTokens := m.applyVerbTransform(tokens, vi, "base")
-		addVariant(reconstruct(baseTokens))
+		addVariant(m.reconstructWithVerbTransform(tokens, vi, "past"))
+		addVariant(m.reconstructWithVerbTransform(tokens, vi, "gerund"))
+		addVariant(m.reconstructWithVerbTransform(tokens, vi, "base"))
 	}
 
 	// 3. Noun transforms: for each noun, toggle plural/singular
 	for _, ni := range nounIndices {
-		pluralTokens := m.applyNounTransform(tokens, ni)
-		addVariant(reconstruct(pluralTokens))
+		addVariant(m.reconstructWithNounTransform(tokens, ni))
 	}
 
 	// 4. Combinations: each verb transform + each noun transform
 	for _, vi := range verbIndices {
 		for _, ni := range nounIndices {
 			// past + noun toggle
-			pastTokens := m.applyVerbTransform(tokens, vi, "past")
-			pastPluralTokens := m.applyNounTransformOnTokens(pastTokens, ni)
-			addVariant(reconstruct(pastPluralTokens))
+			addVariant(m.reconstructWithVerbAndNounTransform(tokens, vi, "past", ni))
 
 			// gerund + noun toggle
-			gerundTokens := m.applyVerbTransform(tokens, vi, "gerund")
-			gerundPluralTokens := m.applyNounTransformOnTokens(gerundTokens, ni)
-			addVariant(reconstruct(gerundPluralTokens))
+			addVariant(m.reconstructWithVerbAndNounTransform(tokens, vi, "gerund", ni))
 
 			// base + noun toggle
-			baseTokens := m.applyVerbTransform(tokens, vi, "base")
-			basePluralTokens := m.applyNounTransformOnTokens(baseTokens, ni)
-			addVariant(reconstruct(basePluralTokens))
+			addVariant(m.reconstructWithVerbAndNounTransform(tokens, vi, "base", ni))
 		}
 	}
 
@@ -140,7 +128,7 @@ func (m *Multiplier) applyVerbTransform(tokens []Token, vi int, targetTense stri
 
 	result[vi] = Token{
 		Raw:        newForm,
-		Lower:      strings.ToLower(newForm),
+		Lower:      core.Lower(newForm),
 		Type:       TokenVerb,
 		Confidence: 1.0,
 		VerbInfo: VerbMatch{
@@ -191,7 +179,7 @@ func (m *Multiplier) applyNounTransformOnTokens(tokens []Token, ni int) []Token 
 
 	result[ni] = Token{
 		Raw:        newForm,
-		Lower:      strings.ToLower(newForm),
+		Lower:      core.Lower(newForm),
 		Type:       TokenNoun,
 		Confidence: 1.0,
 		NounInfo: NounMatch{
@@ -204,9 +192,84 @@ func (m *Multiplier) applyNounTransformOnTokens(tokens []Token, ni int) []Token 
 	return result
 }
 
+func (m *Multiplier) reconstructWithVerbTransform(tokens []Token, vi int, targetTense string) string {
+	return m.reconstructWithTransforms(tokens, vi, targetTense, -1)
+}
+
+func (m *Multiplier) reconstructWithNounTransform(tokens []Token, ni int) string {
+	return m.reconstructWithTransforms(tokens, -1, "", ni)
+}
+
+func (m *Multiplier) reconstructWithVerbAndNounTransform(tokens []Token, vi int, targetTense string, ni int) string {
+	return m.reconstructWithTransforms(tokens, vi, targetTense, ni)
+}
+
+func (m *Multiplier) reconstructWithTransforms(tokens []Token, vi int, targetTense string, ni int) string {
+	b := core.NewBuilder()
+	for i, tok := range tokens {
+		if i > 0 {
+			// Punctuation tokens should stay attached to the preceding token.
+			if tok.Type == TokenPunctuation {
+				b.WriteString(tok.Raw)
+				continue
+			}
+			b.WriteByte(' ')
+		}
+		switch {
+		case i == vi:
+			b.WriteString(transformedVerbRaw(tok, targetTense))
+		case i == ni:
+			b.WriteString(transformedNounRaw(tok))
+		default:
+			b.WriteString(tok.Raw)
+		}
+	}
+	return b.String()
+}
+
+func transformedVerbRaw(tok Token, targetTense string) string {
+	base := tok.VerbInfo.Base
+	currentTense := tok.VerbInfo.Tense
+	if currentTense == targetTense {
+		return tok.Raw
+	}
+
+	var newForm string
+	switch targetTense {
+	case "past":
+		newForm = i18n.PastTense(base)
+	case "gerund":
+		newForm = i18n.Gerund(base)
+	case "base":
+		newForm = base
+	}
+	if newForm == "" {
+		return tok.Raw
+	}
+	return preserveCase(tok.Raw, newForm)
+}
+
+func transformedNounRaw(tok Token) string {
+	base := tok.NounInfo.Base
+	if base == "" {
+		return tok.Raw
+	}
+
+	var newForm string
+	if tok.NounInfo.Plural {
+		newForm = base
+	} else {
+		newForm = i18n.PluralForm(base)
+	}
+	if newForm == "" {
+		return tok.Raw
+	}
+	return preserveCase(tok.Raw, newForm)
+}
+
 // reconstruct joins tokens back into a string, preserving spacing.
 func reconstruct(tokens []Token) string {
-	var b strings.Builder
+	b := core.NewBuilder()
 	for i, tok := range tokens {
 		if i > 0 {
 			// Punctuation tokens that were split from the previous word
@@ -235,7 +298,7 @@ func preserveCase(original, replacement string) string {
 
 	// If the original is all uppercase (like "DELETE"), make replacement all uppercase.
 	if isAllUpper(original) && len(original) > 1 {
-		return strings.ToUpper(replacement)
+		return core.Upper(replacement)
 	}
 
 	// If the first character of the original is uppercase, capitalise the replacement.

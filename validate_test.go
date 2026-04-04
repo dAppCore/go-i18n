@@ -4,10 +4,10 @@ package i18n
 
 import (
 	"context"
-	"fmt"
 	"iter"
 	"testing"
 
+	"dappco.re/go/core"
 	"forge.lthn.ai/core/go-inference"
 )
 
@@ -73,7 +73,7 @@ func newMockIrregularModel(forms map[string]string) *mockGenerateModel {
 // containsVerb checks if the prompt contains the verb in the expected format.
 func containsVerb(prompt, verb string) bool {
 	return len(prompt) > 0 && len(verb) > 0 &&
-		contains(prompt, fmt.Sprintf("'%s'", verb))
+		contains(prompt, core.Sprintf("'%s'", verb))
 }
 
 // contains is a simple substring check (avoids importing strings in test).
@@ -324,6 +324,30 @@ func TestArticlePrompt(t *testing.T) {
 	}
 	if !contains(prompt, "a/an/the") {
 		t.Errorf("prompt should mention article options: %q", prompt)
+	}
+}
+
+func TestArticlePromptFrenchLocale(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	prompt := articlePrompt("livre")
+	if !contains(prompt, "livre") {
+		t.Errorf("prompt should contain the noun: %q", prompt)
+	}
+	if !contains(prompt, "le/la/l'/les/du/au/aux/un/une/des") {
+		t.Errorf("prompt should mention French article options: %q", prompt)
 	}
 }
 

@@ -15,6 +15,7 @@ svc := i18n.Default()
 
 // Option 2: Explicit creation with options
 svc, err := i18n.New(
+    i18n.WithLanguage("en-GB"),
     i18n.WithFallback("en"),
     i18n.WithDefaultHandlers(),
 )
@@ -30,11 +31,31 @@ svc, err := i18n.NewWithFS(myFS, "locales")
 
 The service automatically detects the system language from `LANG`, `LC_ALL`, or `LC_MESSAGES` environment variables using BCP 47 tag matching.
 
+### Current-State Aliases
+
+The API exposes `Current*` aliases for the most common service getters so call sites can choose between terse and explicit naming without changing behaviour:
+
+- `CurrentLanguage()` / `CurrentLang()`
+- `CurrentAvailableLanguages()`
+- `CurrentMode()`
+- `CurrentFallback()`
+- `CurrentFormality()`
+- `CurrentLocation()`
+- `CurrentDirection()` / `CurrentTextDirection()`
+- `CurrentIsRTL()` / `CurrentRTL()`
+- `CurrentPluralCategory()` / `PluralCategoryOf()`
+- `CurrentDebug()`
+- `CurrentHandlers()`
+- `CurrentPrompt()`
+- `State()` / `CurrentState()` snapshot of the full service configuration
+
 ### Options
 
 | Option | Effect |
 |--------|--------|
 | `WithFallback("en")` | Set fallback language for missing translations |
+| `WithLanguage("fr")` | Set the initial language before the service starts serving |
+| `WithLocation("workspace")` | Set the default location context |
 | `WithDefaultHandlers()` | Register the six built-in `i18n.*` namespace handlers |
 | `WithHandlers(h...)` | Replace handlers entirely |
 | `WithMode(ModeStrict)` | Panic on missing keys (useful in CI) |
@@ -194,7 +215,7 @@ T("i18n.count.person", 3)   // "3 people"
 Produces past-tense completion messages.
 
 ```go
-T("i18n.done.delete", "config.yaml")  // "Config.Yaml deleted"
+T("i18n.done.delete", "config.yaml")  // "Config.yaml deleted"
 T("i18n.done.push", "commits")        // "Commits pushed"
 T("i18n.done.delete")                 // "Deleted"
 ```
@@ -216,7 +237,7 @@ Locale-aware number formatting.
 T("i18n.numeric.number", 1234567)   // "1,234,567"
 T("i18n.numeric.decimal", 3.14)     // "3.14"
 T("i18n.numeric.percent", 0.85)     // "85%"
-T("i18n.numeric.bytes", 1536000)    // "1.5 MB"
+T("i18n.numeric.bytes", 1536000)    // "1.46 MB"
 T("i18n.numeric.ordinal", 3)        // "3rd"
 T("i18n.numeric.ago", 5, "minutes") // "5 minutes ago"
 ```
@@ -226,7 +247,7 @@ The shorthand `N()` function wraps this namespace:
 ```go
 i18n.N("number", 1234567)  // "1,234,567"
 i18n.N("percent", 0.85)    // "85%"
-i18n.N("bytes", 1536000)   // "1.5 MB"
+i18n.N("bytes", 1536000)   // "1.46 MB"
 i18n.N("ordinal", 1)       // "1st"
 ```
 
@@ -338,4 +359,4 @@ All grammar functions are available as Go template functions via `TemplateFuncs(
 template.New("").Funcs(i18n.TemplateFuncs())
 ```
 
-Available functions: `title`, `lower`, `upper`, `past`, `gerund`, `plural`, `pluralForm`, `article`, `quote`.
+Available functions: `title`, `lower`, `upper`, `past`, `gerund`, `plural`, `pluralForm`, `article`, `quote`, `label`, `progress`, `progressSubject`, `actionResult`, `actionFailed`, `timeAgo`, `formatAgo`.

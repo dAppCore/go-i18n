@@ -34,6 +34,21 @@ func TestNewImprint(t *testing.T) {
 	}
 }
 
+func TestNewImprint_WordPhrase(t *testing.T) {
+	svc, err := i18n.New()
+	if err != nil {
+		t.Fatalf("i18n.New() failed: %v", err)
+	}
+	i18n.SetDefault(svc)
+
+	tok := NewTokeniser()
+	imp := NewImprint(tok.Tokenise("up to date"))
+
+	if imp.DomainVocabulary["up_to_date"] != 1 {
+		t.Fatalf("DomainVocabulary[\"up_to_date\"] = %d, want 1", imp.DomainVocabulary["up_to_date"])
+	}
+}
+
 func TestNewImprint_Empty(t *testing.T) {
 	imp := NewImprint(nil)
 	if imp.TokenCount != 0 {

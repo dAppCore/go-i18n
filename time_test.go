@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"testing"
+	"testing/fstest"
 	"time"
 
 	"github.com/stretchr/testify/assert"
@@ -20,11 +21,14 @@ func TestTimeAgo_Good(t *testing.T) {
 		duration time.Duration
 		contains string
 	}{
-		{"just_now", 5 * time.Second, "just now"},
+		{"just_now", 4 * time.Second, "just now"},
+		{"seconds_ago", 5 * time.Second, "5 seconds ago"},
 		{"minutes_ago", 5 * time.Minute, "5 minutes ago"},
 		{"hours_ago", 3 * time.Hour, "3 hours ago"},
 		{"days_ago", 2 * 24 * time.Hour, "2 days ago"},
 		{"weeks_ago", 3 * 7 * 24 * time.Hour, "3 weeks ago"},
+		{"months_ago", 40 * 24 * time.Hour, "1 month ago"},
+		{"years_ago", 400 * 24 * time.Hour, "1 year ago"},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -41,7 +45,7 @@ func TestTimeAgo_Good_EdgeCases(t *testing.T) {
 
 	// Just under 1 minute
 	got := TimeAgo(time.Now().Add(-59 * time.Second))
-	assert.Contains(t, got, "just now")
+	assert.Contains(t, got, "seconds ago")
 
 	// Exactly 1 minute
 	got = TimeAgo(time.Now().Add(-60 * time.Second))
@@ -58,6 +62,14 @@ func TestTimeAgo_Good_EdgeCases(t *testing.T) {
 	// Just under 1 week
 	got = TimeAgo(time.Now().Add(-6 * 24 * time.Hour))
 	assert.Contains(t, got, "days ago")
+
+	// Just over 4 weeks
+	got = TimeAgo(time.Now().Add(-31 * 24 * time.Hour))
+	assert.Contains(t, got, "month ago")
+
+	// Well over a year
+	got = TimeAgo(time.Now().Add(-800 * 24 * time.Hour))
+	assert.Contains(t, got, "years ago")
 }
 
 func TestTimeAgo_Good_SingleUnits(t *testing.T) {
@@ -80,6 +92,24 @@ func TestTimeAgo_Good_SingleUnits(t *testing.T) {
 	// 1 week ago
 	got = TimeAgo(time.Now().Add(-7 * 24 * time.Hour))
 	assert.Contains(t, got, "1 week ago")
+}
+
+func TestTimeAgo_Good_MissingJustNowKeyFallback(t *testing.T) {
+	svc, err := NewWithFS(fstest.MapFS{
+		"xx.json": &fstest.MapFile{
+			Data: []byte(`{}`),
+		},
+	}, ".")
+	require.NoError(t, err)
+
+	prev := Default()
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	got := TimeAgo(time.Now().Add(-4 * time.Second))
+	assert.Equal(t, "just now", got)
 }
 
 // --- FormatAgo ---
@@ -112,6 +142,46 @@ func TestFormatAgo_Good(t *testing.T) {
 	}
 }
 
+func TestFormatAgo_Good_PluralUnitAlias(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	got := FormatAgo(5, "minutes")
+	assert.Equal(t, "5 minutes ago", got)
+}
+
+func TestFormatAgo_Good_MorePluralUnitAliases(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	tests := []struct {
+		name  string
+		count int
+		unit  string
+		want  string
+	}{
+		{"months", 3, "months", "3 months ago"},
+		{"year", 1, "years", "1 year ago"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatAgo(tt.count, tt.unit)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFormatAgo_Good_NormalisesUnitInput(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	got := FormatAgo(2, " Hours ")
+	assert.Equal(t, "2 hours ago", got)
+}
+
 func TestFormatAgo_Bad_UnknownUnit(t *testing.T) {
 	svc, err := New()
 	require.NoError(t, err)
@@ -129,4 +199,74 @@ func TestFormatAgo_Good_SingularUnit(t *testing.T) {
 
 	got := FormatAgo(1, "fortnight")
 	assert.Equal(t, "1 fortnight ago", got)
+}
+
+func TestFormatAgo_Good_NoDefaultService(t *testing.T) {
+	prev := Default()
+	SetDefault(nil)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	got := FormatAgo(1, "second")
+	assert.Equal(t, "1 second ago", got)
+
+	got = FormatAgo(5, "second")
+	assert.Equal(t, "5 seconds ago", got)
+}
+
+func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
+	prev := Default()
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("fr"))
+
+	tests := []struct {
+		name  string
+		count int
+		unit  string
+		want  string
+	}{
+		{"month", 1, "month", "il y a 1 mois"},
+		{"months", 3, "month", "il y a 3 mois"},
+		{"year", 1, "year", "il y a 1 an"},
+		{"years", 4, "year", "il y a 4 ans"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := FormatAgo(tt.count, tt.unit)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestFormatAgo_FallsBackToLocaleWordMap(t *testing.T) {
+	prev := Default()
+	svc, err := NewWithFS(fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"word": {
+						"month": "mois"
+					}
+				}
+			}`),
+		},
+	}, ".")
+	require.NoError(t, err)
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	require.NoError(t, SetLanguage("en"))
+
+	got := FormatAgo(2, "month")
+	assert.Equal(t, "2 mois ago", got)
 }

@@ -16,10 +16,16 @@
 package reversal
 
 import (
+	"maps"
+	"math"
 	"strings"
+	"unicode/utf8"
 
+	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
 )
+
+var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu"}
 
 // VerbMatch holds the result of a reverse verb lookup.
 type VerbMatch struct {
@@ -49,17 +55,17 @@ const (
 
 // Token represents a single classified token from a text string.
 type Token struct {
-	Raw        string          // Original text as it appeared in input
-	Lower      string          // Lowercased form
-	Type       TokenType       // Classification
-	Confidence float64         // 0.0-1.0 classification confidence
-	AltType    TokenType       // Runner-up classification (dual-class only)
-	AltConf    float64         // Runner-up confidence
-	VerbInfo   VerbMatch       // Set when Type OR AltType == TokenVerb
-	NounInfo   NounMatch       // Set when Type OR AltType == TokenNoun
-	WordCat    string          // Set when Type == TokenWord
-	ArtType    string          // Set when Type == TokenArticle
-	PunctType  string          // Set when Type == TokenPunctuation
+	Raw        string           // Original text as it appeared in input
+	Lower      string           // Lowercased form
+	Type       TokenType        // Classification
+	Confidence float64          // 0.0-1.0 classification confidence
+	AltType    TokenType        // Runner-up classification (dual-class only)
+	AltConf    float64          // Runner-up confidence
+	VerbInfo   VerbMatch        // Set when Type OR AltType == TokenVerb
+	NounInfo   NounMatch        // Set when Type OR AltType == TokenNoun
+	WordCat    string           // Set when Type == TokenWord
+	ArtType    string           // Set when Type == TokenArticle
+	PunctType  string           // Set when Type == TokenPunctuation
 	Signals    *SignalBreakdown // Non-nil only when WithSignals() option is set
 }
 
@@ -88,14 +94,16 @@ type Tokeniser struct {
 	pluralToBase map[string]string // "files" → "file"
 	baseNouns    map[string]bool   // "file" → true
 	words        map[string]string // word translations
+	phraseLen    int               // longest multi-word gram.word entry
 	lang         string
 
 	dualClass   map[string]bool    // words in both verb AND noun tables
 	nounDet     map[string]bool    // signal: noun determiners
 	verbAux     map[string]bool    // signal: verb auxiliaries
 	verbInf     map[string]bool    // signal: infinitive markers
+	verbNeg     map[string]bool    // signal: negation cues
 	withSignals bool               // allocate SignalBreakdown on ambiguous tokens
-	weights     map[string]float64 // signal weights (F3: configurable)
+	weights     map[string]float64 // signal weights used during disambiguation
 }
 
 // TokeniserOption configures a Tokeniser.
@@ -107,9 +115,21 @@ func WithSignals() TokeniserOption {
 }
 
 // WithWeights overrides the default signal weights for disambiguation.
-// All 7 signal keys must be present; omitted keys silently disable those signals.
+// Omitted keys keep their default weights so partial overrides stay safe.
 func WithWeights(w map[string]float64) TokeniserOption {
-	return func(t *Tokeniser) { t.weights = w }
+	return func(t *Tokeniser) {
+		if len(w) == 0 {
+			t.weights = nil
+			return
+		}
+		// Start from the defaults so callers can override only the weights they
+		// care about without accidentally disabling the rest of the signal set.
+		copied := DefaultWeights()
+		for key, value := range w {
+			copied[key] = value
+		}
+		t.weights = copied
+	}
 }
 
 // NewTokeniser creates a Tokeniser for English ("en").
@@ -138,7 +158,7 @@ func NewTokeniserForLang(lang string, opts ...TokeniserOption) *Tokeniser {
 	t.buildDualClassIndex()
 	t.buildSignalIndex()
 	if t.weights == nil {
-		t.weights = defaultWeights()
+		t.weights = DefaultWeights()
 	}
 	return t
 }
@@ -147,7 +167,7 @@ func NewTokeniserForLang(lang string, opts ...TokeniserOption) *Tokeniser {
 // inverse lookup maps: inflected form → base form.
 func (t *Tokeniser) buildVerbIndex() {
 	// Tier 1: Read from JSON grammar data (via GetGrammarData).
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data != nil && data.Verbs != nil {
 		for base, forms := range data.Verbs {
 			t.baseVerbs[base] = true
@@ -175,15 +195,31 @@ func (t *Tokeniser) buildVerbIndex() {
 			}
 		}
 	}
+
+	// Tier 2b: Seed additional regular dual-class bases that are common in
+	// dev/ops text. These are regular forms, but they need to behave like
+	// known bases so the dual-class resolver can disambiguate them.
+	for base, forms := range i18n.DualClassVerbs() {
+		t.baseVerbs[base] = true
+		if forms.Past != "" && t.pastToBase[forms.Past] == "" {
+			t.pastToBase[forms.Past] = base
+		}
+		if forms.Gerund != "" && t.gerundToBase[forms.Gerund] == "" {
+			t.gerundToBase[forms.Gerund] = base
+		}
+	}
 }
 
 // buildNounIndex reads grammar tables and irregular noun maps to build
 // inverse lookup maps: plural form → base form.
 func (t *Tokeniser) buildNounIndex() {
 	// Tier 1: Read from JSON grammar data (via GetGrammarData).
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data != nil && data.Nouns != nil {
 		for base, forms := range data.Nouns {
+			if skipDeprecatedEnglishGrammarEntry(base) {
+				continue
+			}
 			t.baseNouns[base] = true
 			if forms.Other != "" && forms.Other != base {
 				t.pluralToBase[forms.Other] = base
@@ -200,6 +236,18 @@ func (t *Tokeniser) buildNounIndex() {
 			}
 		}
 	}
+
+	// Tier 2b: Seed additional regular dual-class bases that are common in
+	// dev/ops text. The plural forms are regular, but the entries need to
+	// appear in the base noun set so the ambiguous-token pass can see them.
+	for base, plural := range i18n.DualClassNouns() {
+		t.baseNouns[base] = true
+		if plural != base {
+			if _, exists := t.pluralToBase[plural]; !exists {
+				t.pluralToBase[plural] = base
+			}
+		}
+	}
 }
 
 // MatchNoun performs a 3-tier reverse lookup for a noun form.
@@ -209,7 +257,7 @@ func (t *Tokeniser) buildNounIndex() {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward function PluralForm().
 func (t *Tokeniser) MatchNoun(word string) (NounMatch, bool) {
-	word = strings.ToLower(strings.TrimSpace(word))
+	word = core.Lower(core.Trim(word))
 	if word == "" {
 		return NounMatch{}, false
 	}
@@ -250,27 +298,27 @@ func (t *Tokeniser) reverseRegularPlural(word string) []string {
 	var candidates []string
 
 	// Rule: consonant + "ies" → consonant + "y" (e.g., "entries" → "entry")
-	if strings.HasSuffix(word, "ies") && len(word) > 3 {
+	if core.HasSuffix(word, "ies") && len(word) > 3 {
 		base := word[:len(word)-3] + "y"
 		candidates = append(candidates, base)
 	}
 
 	// Rule: "ves" → "f" or "fe" (e.g., "wolves" → "wolf", "knives" → "knife")
-	if strings.HasSuffix(word, "ves") && len(word) > 3 {
+	if core.HasSuffix(word, "ves") && len(word) > 3 {
 		candidates = append(candidates, word[:len(word)-3]+"f")
 		candidates = append(candidates, word[:len(word)-3]+"fe")
 	}
 
 	// Rule: sibilant + "es" (e.g., "processes" → "process", "branches" → "branch")
-	if strings.HasSuffix(word, "ses") || strings.HasSuffix(word, "xes") ||
-		strings.HasSuffix(word, "zes") || strings.HasSuffix(word, "ches") ||
-		strings.HasSuffix(word, "shes") {
+	if core.HasSuffix(word, "ses") || core.HasSuffix(word, "xes") ||
+		core.HasSuffix(word, "zes") || core.HasSuffix(word, "ches") ||
+		core.HasSuffix(word, "shes") {
 		base := word[:len(word)-2] // strip "es"
 		candidates = append(candidates, base)
 	}
 
 	// Rule: drop "s" (e.g., "servers" → "server")
-	if strings.HasSuffix(word, "s") && len(word) > 1 {
+	if core.HasSuffix(word, "s") && len(word) > 1 {
 		base := word[:len(word)-1]
 		candidates = append(candidates, base)
 	}
@@ -285,7 +333,7 @@ func (t *Tokeniser) reverseRegularPlural(word string) []string {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward functions PastTense() and Gerund().
 func (t *Tokeniser) MatchVerb(word string) (VerbMatch, bool) {
-	word = strings.ToLower(strings.TrimSpace(word))
+	word = core.Lower(core.Trim(word))
 	if word == "" {
 		return VerbMatch{}, false
 	}
@@ -358,7 +406,7 @@ func (t *Tokeniser) bestRoundTrip(target string, candidates []string, forward fu
 	// Priority 3: prefer candidate not ending in "e" (avoids phantom verbs
 	// with CCe endings like "walke", "processe")
 	for _, m := range matches {
-		if !strings.HasSuffix(m, "e") {
+		if !core.HasSuffix(m, "e") {
 			return m
 		}
 	}
@@ -402,12 +450,12 @@ func isVowelByte(b byte) bool {
 func (t *Tokeniser) reverseRegularPast(word string) []string {
 	var candidates []string
 
-	if !strings.HasSuffix(word, "ed") {
+	if !core.HasSuffix(word, "ed") {
 		return candidates
 	}
 
 	// Rule: consonant + "ied" → consonant + "y" (e.g., "copied" → "copy")
-	if strings.HasSuffix(word, "ied") && len(word) > 3 {
+	if core.HasSuffix(word, "ied") && len(word) > 3 {
 		base := word[:len(word)-3] + "y"
 		candidates = append(candidates, base)
 	}
@@ -448,14 +496,14 @@ func (t *Tokeniser) reverseRegularPast(word string) []string {
 func (t *Tokeniser) reverseRegularGerund(word string) []string {
 	var candidates []string
 
-	if !strings.HasSuffix(word, "ing") || len(word) < 4 {
+	if !core.HasSuffix(word, "ing") || len(word) < 4 {
 		return candidates
 	}
 
 	stem := word[:len(word)-3] // strip "ing"
 
 	// Rule: "ying" → "ie" (e.g., "dying" → "die")
-	if strings.HasSuffix(word, "ying") && len(word) > 4 {
+	if core.HasSuffix(word, "ying") && len(word) > 4 {
 		base := word[:len(word)-4] + "ie"
 		candidates = append(candidates, base)
 	}
@@ -482,21 +530,28 @@ func (t *Tokeniser) reverseRegularGerund(word string) []string {
 // Both the key (e.g., "url") and the display form (e.g., "URL") map back
 // to the key, enabling case-insensitive lookups.
 func (t *Tokeniser) buildWordIndex() {
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data == nil || data.Words == nil {
 		return
 	}
 	for key, display := range data.Words {
+		if skipDeprecatedEnglishGrammarEntry(key) {
+			continue
+		}
 		// Map the key itself (already lowercase)
-		t.words[strings.ToLower(key)] = key
+		t.words[core.Lower(key)] = key
 		// Map the display form (e.g., "URL" → "url", "SSH" → "ssh")
-		t.words[strings.ToLower(display)] = key
+		lowerDisplay := core.Lower(display)
+		t.words[lowerDisplay] = key
+		if words := strings.Fields(lowerDisplay); len(words) > 1 && len(words) > t.phraseLen {
+			t.phraseLen = len(words)
+		}
 	}
 }
 
 // IsDualClass returns true if the word exists in both verb and noun tables.
 func (t *Tokeniser) IsDualClass(word string) bool {
-	return t.dualClass[strings.ToLower(word)]
+	return t.dualClass[core.Lower(word)]
 }
 
 func (t *Tokeniser) buildDualClassIndex() {
@@ -512,53 +567,85 @@ func (t *Tokeniser) buildSignalIndex() {
 	t.nounDet = make(map[string]bool)
 	t.verbAux = make(map[string]bool)
 	t.verbInf = make(map[string]bool)
+	t.verbNeg = make(map[string]bool)
 
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 
 	// Guard each signal list independently so partial locale data
 	// falls back per-field rather than silently disabling signals.
 	if data != nil && len(data.Signals.NounDeterminers) > 0 {
 		for _, w := range data.Signals.NounDeterminers {
-			t.nounDet[strings.ToLower(w)] = true
+			t.nounDet[core.Lower(w)] = true
 		}
 	} else {
-		for _, w := range []string{
-			"the", "a", "an", "this", "that", "these", "those",
-			"my", "your", "his", "her", "its", "our", "their",
-			"every", "each", "some", "any", "no",
-			"many", "few", "several", "all", "both",
-		} {
+		for _, w := range defaultNounDeterminers() {
 			t.nounDet[w] = true
 		}
 	}
 
 	if data != nil && len(data.Signals.VerbAuxiliaries) > 0 {
 		for _, w := range data.Signals.VerbAuxiliaries {
-			t.verbAux[strings.ToLower(w)] = true
+			t.verbAux[core.Lower(w)] = true
 		}
 	} else {
-		for _, w := range []string{
-			"is", "are", "was", "were", "has", "had", "have",
-			"do", "does", "did", "will", "would", "could", "should",
-			"can", "may", "might", "shall", "must",
-		} {
+		for _, w := range defaultVerbAuxiliaries() {
 			t.verbAux[w] = true
 		}
 	}
 
 	if data != nil && len(data.Signals.VerbInfinitive) > 0 {
 		for _, w := range data.Signals.VerbInfinitive {
-			t.verbInf[strings.ToLower(w)] = true
+			t.verbInf[core.Lower(w)] = true
 		}
 	} else {
 		t.verbInf["to"] = true
 	}
+
+	if data != nil && len(data.Signals.VerbNegation) > 0 {
+		for _, w := range data.Signals.VerbNegation {
+			t.verbNeg[core.Lower(w)] = true
+		}
+	} else {
+		// Keep the fallback conservative: these are weak cues, not hard
+		// negation parsing.
+		for _, w := range defaultVerbNegations() {
+			t.verbNeg[w] = true
+		}
+	}
 }
 
-func defaultWeights() map[string]float64 {
+func defaultNounDeterminers() []string {
+	return []string{
+		"the", "a", "an", "this", "that", "these", "those",
+		"my", "your", "his", "her", "its", "our", "their",
+		"every", "each", "some", "any", "no",
+		"many", "few", "several", "all", "both",
+	}
+}
+
+func defaultVerbAuxiliaries() []string {
+	return []string{
+		"am", "is", "are", "was", "were",
+		"has", "had", "have",
+		"do", "does", "did",
+		"will", "would", "could", "should",
+		"can", "may", "might", "shall", "must",
+		"don't", "can't", "won't", "shouldn't", "couldn't", "wouldn't",
+		"doesn't", "didn't", "isn't", "aren't", "wasn't", "weren't",
+		"hasn't", "hadn't", "haven't",
+	}
+}
+
+func defaultVerbNegations() []string {
+	return []string{"not", "never"}
+}
+
+// DefaultWeights returns a copy of the tokeniser's built-in signal weights.
+func DefaultWeights() map[string]float64 {
 	return map[string]float64{
 		"noun_determiner":   0.35,
 		"verb_auxiliary":    0.25,
+		"verb_negation":     0.05,
 		"following_class":   0.15,
 		"sentence_position": 0.10,
 		"verb_saturation":   0.10,
@@ -567,32 +654,255 @@ func defaultWeights() map[string]float64 {
 	}
 }
 
+// SignalWeights returns a copy of the tokeniser's configured signal weights.
+//
+// The copy keeps calibration and debugging callers from mutating the live
+// internal map by accident.
+func (t *Tokeniser) SignalWeights() map[string]float64 {
+	if t == nil || len(t.weights) == 0 {
+		return nil
+	}
+	weights := make(map[string]float64, len(t.weights))
+	maps.Copy(weights, t.weights)
+	return weights
+}
+
+func skipDeprecatedEnglishGrammarEntry(key string) bool {
+	switch core.Lower(key) {
+	case "passed", "failed", "skipped":
+		return true
+	default:
+		return false
+	}
+}
+
 // MatchWord performs a case-insensitive lookup in the words map.
 // Returns the category key and true if found, or ("", false) otherwise.
 func (t *Tokeniser) MatchWord(word string) (string, bool) {
-	cat, ok := t.words[strings.ToLower(word)]
+	cat, ok := t.words[core.Lower(word)]
 	return cat, ok
 }
 
 // MatchArticle checks whether a word is an article (definite or indefinite).
+// It recognises configured grammar articles plus French elision, plural,
+// and gendered forms when the active language is French.
 // Returns the article type ("indefinite" or "definite") and true if matched,
 // or ("", false) otherwise.
 func (t *Tokeniser) MatchArticle(word string) (string, bool) {
-	data := i18n.GetGrammarData(t.lang)
+	data := t.grammarData()
 	if data == nil {
 		return "", false
 	}
 
-	lower := strings.ToLower(word)
+	if base, _ := splitTrailingPunct(word); base != "" {
+		word = base
+	}
+	lower := normalizeFrenchApostrophes(core.Lower(word))
 
-	if lower == strings.ToLower(data.Articles.IndefiniteDefault) ||
-		lower == strings.ToLower(data.Articles.IndefiniteVowel) {
+	if artType, ok := matchConfiguredArticleText(lower, data); ok {
+		return artType, true
+	}
+	if t.isFrenchLanguage() {
+		if artType, ok := matchFrenchLeadingArticlePhrase(lower); ok {
+			return artType, true
+		}
+		if artType, ok := matchFrenchArticleText(lower); ok {
+			return artType, true
+		}
+		if artType, ok := matchFrenchAttachedArticle(lower); ok {
+			return artType, true
+		}
+		switch lower {
+		case "l'", "l’", "les", "au", "aux":
+			return "definite", true
+		case "d'", "d’", "de l'", "de l’", "de la", "du", "des":
+			return "indefinite", true
+		case "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’":
+			return "definite", true
+		case "un", "une":
+			return "indefinite", true
+		}
+	}
+
+	return "", false
+}
+
+func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, bool) {
+	if data == nil {
+		return "", false
+	}
+	lower = normalizeFrenchApostrophes(lower)
+
+	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.IndefiniteDefault, "indefinite"); ok {
+		return artType, true
+	}
+	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.IndefiniteVowel, "indefinite"); ok {
+		return artType, true
+	}
+	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.Definite, "definite"); ok {
+		return artType, true
+	}
+	for _, article := range data.Articles.ByGender {
+		if artType, ok := matchConfiguredArticleCandidate(lower, article, "definite"); ok {
+			return artType, true
+		}
+	}
+
+	if idx := strings.IndexAny(lower, " \t"); idx > 0 {
+		prefix := core.Trim(lower[:idx])
+		if prefix == "" {
+			return "", false
+		}
+		if artType, ok := matchConfiguredArticleCandidate(prefix, data.Articles.IndefiniteDefault, "indefinite"); ok {
+			return artType, true
+		}
+		if artType, ok := matchConfiguredArticleCandidate(prefix, data.Articles.IndefiniteVowel, "indefinite"); ok {
+			return artType, true
+		}
+		if artType, ok := matchConfiguredArticleCandidate(prefix, data.Articles.Definite, "definite"); ok {
+			return artType, true
+		}
+		for _, article := range data.Articles.ByGender {
+			if artType, ok := matchConfiguredArticleCandidate(prefix, article, "definite"); ok {
+				return artType, true
+			}
+		}
+	}
+
+	return "", false
+}
+
+func matchConfiguredArticleCandidate(lower, article, kind string) (string, bool) {
+	article = normalizeFrenchApostrophes(core.Lower(article))
+	if article == "" {
+		return "", false
+	}
+	if lower == article {
+		return kind, true
+	}
+
+	if !strings.HasPrefix(lower, article) {
+		return "", false
+	}
+	rest := strings.TrimPrefix(lower, article)
+	if rest == "" {
+		return "", false
+	}
+	if strings.HasSuffix(article, "'") {
+		return kind, true
+	}
+	r, _ := utf8.DecodeRuneInString(rest)
+	switch r {
+	case ' ', '\t', '\'', '’', 'ʼ':
+		return kind, true
+	default:
+		return "", false
+	}
+}
+
+func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
+	lower = normalizeFrenchApostrophes(lower)
+	switch {
+	case lower == "le", lower == "la", lower == "les",
+		lower == "l'", lower == "l’", lower == "au", lower == "aux":
+		return "definite", true
+	case lower == "un", lower == "une", lower == "du", lower == "des":
 		return "indefinite", true
 	}
-	if lower == strings.ToLower(data.Articles.Definite) {
+
+	for _, prefix := range []struct {
+		text string
+		kind string
+	}{
+		{text: "le ", kind: "definite"},
+		{text: "la ", kind: "definite"},
+		{text: "les ", kind: "definite"},
+		{text: "un ", kind: "indefinite"},
+		{text: "une ", kind: "indefinite"},
+		{text: "du ", kind: "indefinite"},
+		{text: "des ", kind: "indefinite"},
+		{text: "au ", kind: "definite"},
+		{text: "aux ", kind: "definite"},
+		{text: "l'", kind: "definite"},
+		{text: "l’", kind: "definite"},
+		{text: "d'", kind: "indefinite"},
+		{text: "d’", kind: "indefinite"},
+	} {
+		if strings.HasPrefix(lower, prefix.text) {
+			return prefix.kind, true
+		}
+	}
+
+	return "", false
+}
+
+func matchFrenchArticleText(lower string) (string, bool) {
+	lower = normalizeFrenchApostrophes(lower)
+	switch {
+	case strings.HasPrefix(lower, "de l'"):
+		return "indefinite", true
+	case strings.HasPrefix(lower, "de la "), strings.HasPrefix(lower, "de le "), strings.HasPrefix(lower, "de les "), strings.HasPrefix(lower, "du "), strings.HasPrefix(lower, "des "):
+		return "indefinite", true
+	case strings.HasPrefix(lower, "au "), strings.HasPrefix(lower, "aux "):
 		return "definite", true
 	}
 
+	fields := strings.Fields(lower)
+	if len(fields) == 0 {
+		return "", false
+	}
+
+	switch fields[0] {
+	case "l'", "l’", "les", "au", "aux":
+		return "definite", true
+	case "un", "une":
+		return "indefinite", true
+	case "du", "des":
+		return "indefinite", true
+	case "de":
+		if len(fields) >= 2 {
+			switch fields[1] {
+			case "la", "le", "les", "l'", "l’":
+				return "indefinite", true
+			case "du", "des":
+				return "definite", true
+			}
+		}
+	case "d'", "d’":
+		return "indefinite", true
+	case "j'", "j’", "m'", "m’", "t'", "t’", "s'", "s’", "n'", "n’", "c'", "c’", "qu'", "qu’":
+		return "definite", true
+	}
+
+	if artType, ok := matchFrenchAttachedArticle(lower); ok {
+		return artType, true
+	}
+
+	return "", false
+}
+
+func matchFrenchAttachedArticle(lower string) (string, bool) {
+	lower = normalizeFrenchApostrophes(lower)
+	for _, prefix := range frenchElisionPrefixes {
+		if !strings.HasPrefix(lower, prefix) {
+			continue
+		}
+		rest := strings.TrimPrefix(lower, prefix)
+		if rest == "" {
+			continue
+		}
+		if !strings.HasPrefix(rest, "'") && !strings.HasPrefix(rest, "’") {
+			continue
+		}
+		switch prefix {
+		case "d":
+			return "indefinite", true
+		case "l":
+			return "definite", true
+		default:
+			return "definite", true
+		}
+	}
 	return "", false
 }
 
@@ -601,11 +911,24 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 const tokenAmbiguous TokenType = -1
 
 // clauseBoundaries lists words that delimit clause boundaries for
-// the verb_saturation signal (D2 review fix).
+// the verb_saturation signal.
 var clauseBoundaries = map[string]bool{
 	"and": true, "or": true, "but": true, "because": true,
 	"when": true, "while": true, "if": true, "then": true, "so": true,
 }
+
+const (
+	// LowInformationScoreThreshold is the cutoff below which the tokeniser
+	// treats a classification as weakly supported and keeps confidence near
+	// chance rather than normalising a single prior into 100% confidence.
+	LowInformationScoreThreshold = 0.10
+	// LowInformationVerbConfidence is the confidence assigned to the verb side
+	// of a low-information ambiguous token when verb wins the tie-break.
+	LowInformationVerbConfidence = 0.55
+	// LowInformationNounConfidence is the confidence assigned to the noun side
+	// of a low-information ambiguous token when noun wins the tie-break.
+	LowInformationNounConfidence = 0.45
+)
 
 // Tokenise splits text on whitespace and classifies each word using a
 // two-pass algorithm:
@@ -613,7 +936,7 @@ var clauseBoundaries = map[string]bool{
 // Pass 1 classifies unambiguous tokens and marks dual-class base forms.
 // Pass 2 resolves ambiguous tokens using weighted disambiguation signals.
 func (t *Tokeniser) Tokenise(text string) []Token {
-	text = strings.TrimSpace(text)
+	text = core.Trim(text)
 	if text == "" {
 		return nil
 	}
@@ -622,13 +945,65 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	var tokens []Token
 
 	// --- Pass 1: Classify & Mark ---
-	for _, raw := range parts {
+	for i := 0; i < len(parts); i++ {
+		if consumed, tok, punctTok := t.matchWordPhrase(parts, i); consumed > 0 {
+			tokens = append(tokens, tok)
+			if punctTok != nil {
+				tokens = append(tokens, *punctTok)
+			}
+			i += consumed - 1
+			continue
+		}
+		if consumed, tok, extraTok, punctTok := t.matchFrenchArticlePhrase(parts, i); consumed > 0 {
+			tokens = append(tokens, tok)
+			if extraTok != nil {
+				tokens = append(tokens, *extraTok)
+			}
+			if punctTok != nil {
+				tokens = append(tokens, *punctTok)
+			}
+			i += consumed - 1
+			continue
+		}
+
+		raw := parts[i]
+		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
+			if artType, ok := t.MatchArticle(prefix); ok {
+				tokens = append(tokens, Token{
+					Raw:        prefix,
+					Lower:      normalizeFrenchApostrophes(core.Lower(prefix)),
+					Type:       TokenArticle,
+					ArtType:    artType,
+					Confidence: 1.0,
+				})
+			}
+			raw = rest
+			if raw == "" {
+				continue
+			}
+		}
+		if prefix, rest, ok := t.splitConfiguredElision(raw); ok {
+			if artType, ok := t.MatchArticle(prefix); ok {
+				tokens = append(tokens, Token{
+					Raw:        prefix,
+					Lower:      normalizeFrenchApostrophes(core.Lower(prefix)),
+					Type:       TokenArticle,
+					ArtType:    artType,
+					Confidence: 1.0,
+				})
+			}
+			raw = rest
+			if raw == "" {
+				continue
+			}
+		}
+
 		// Strip trailing punctuation to get the clean word.
 		word, punct := splitTrailingPunct(raw)
 
 		// Classify the word portion (if any).
 		if word != "" {
-			tok := Token{Raw: raw, Lower: strings.ToLower(word)}
+			tok := Token{Raw: raw, Lower: core.Lower(word)}
 
 			if artType, ok := t.MatchArticle(word); ok {
 				// Articles are unambiguous.
@@ -699,6 +1074,232 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	return tokens
 }
 
+func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Token) {
+	if t.phraseLen < 2 || start >= len(parts) {
+		return 0, Token{}, nil
+	}
+
+	maxLen := t.phraseLen
+	if remaining := len(parts) - start; remaining < maxLen {
+		maxLen = remaining
+	}
+
+	for n := maxLen; n >= 2; n-- {
+		phraseWords := make([]string, 0, n)
+		rawParts := make([]string, 0, n)
+		var punct string
+		valid := true
+
+		for j := 0; j < n; j++ {
+			part := parts[start+j]
+			if prefix, _, ok := t.splitFrenchElision(part); ok && prefix != part {
+				valid = false
+				break
+			}
+
+			word, partPunct := splitTrailingPunct(part)
+			if word == "" {
+				valid = false
+				break
+			}
+			if partPunct != "" && j != n-1 {
+				valid = false
+				break
+			}
+
+			rawParts = append(rawParts, word)
+			phraseWords = append(phraseWords, core.Lower(word))
+			if j == n-1 {
+				punct = partPunct
+			}
+		}
+
+		if !valid {
+			continue
+		}
+
+		phrase := strings.Join(phraseWords, " ")
+		cat, ok := t.words[phrase]
+		if !ok {
+			continue
+		}
+
+		tok := Token{
+			Raw:        strings.Join(rawParts, " "),
+			Lower:      phrase,
+			Type:       TokenWord,
+			WordCat:    cat,
+			Confidence: 1.0,
+		}
+
+		if punct != "" {
+			if punctType, ok := matchPunctuation(punct); ok {
+				punctTok := Token{
+					Raw:        punct,
+					Lower:      punct,
+					Type:       TokenPunctuation,
+					PunctType:  punctType,
+					Confidence: 1.0,
+				}
+				return n, tok, &punctTok
+			}
+		}
+
+		return n, tok, nil
+	}
+
+	return 0, Token{}, nil
+}
+
+func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, Token, *Token, *Token) {
+	if !t.isFrenchLanguage() || start+1 >= len(parts) {
+		return 0, Token{}, nil, nil
+	}
+
+	first, firstPunct := splitTrailingPunct(parts[start])
+	if first == "" || firstPunct != "" {
+		return 0, Token{}, nil, nil
+	}
+	second, secondPunct := splitTrailingPunct(parts[start+1])
+	if second == "" {
+		return 0, Token{}, nil, nil
+	}
+
+	switch core.Lower(first) {
+	case "de":
+		switch core.Lower(second) {
+		case "la", "le", "les", "du", "des":
+			tok := Token{
+				Raw:        first + " " + second,
+				Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + second)),
+				Type:       TokenArticle,
+				ArtType:    "indefinite",
+				Confidence: 1.0,
+			}
+			if secondPunct != "" {
+				if punctType, ok := matchPunctuation(secondPunct); ok {
+					punctTok := Token{
+						Raw:        secondPunct,
+						Lower:      secondPunct,
+						Type:       TokenPunctuation,
+						PunctType:  punctType,
+						Confidence: 1.0,
+					}
+					return 2, tok, nil, &punctTok
+				}
+			}
+			return 2, tok, nil, nil
+		default:
+			if prefix, rest, ok := t.splitFrenchElision(second); ok && normalizeFrenchApostrophes(prefix) == "l'" && rest != "" {
+				tok := Token{
+					Raw:        first + " " + prefix,
+					Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + prefix)),
+					Type:       TokenArticle,
+					ArtType:    "indefinite",
+					Confidence: 1.0,
+				}
+				extra := t.classifyElidedFrenchWord(rest)
+				var punctTok *Token
+				if secondPunct != "" {
+					if punctType, ok := matchPunctuation(secondPunct); ok {
+						punctTok = &Token{
+							Raw:        secondPunct,
+							Lower:      secondPunct,
+							Type:       TokenPunctuation,
+							PunctType:  punctType,
+							Confidence: 1.0,
+						}
+					}
+				}
+				return 2, tok, &extra, punctTok
+			}
+			// Handle spaced elision forms such as "de l' enfant" or "de l’ enfant".
+			if normalizeFrenchApostrophes(second) == "l'" && start+2 < len(parts) {
+				third, thirdPunct := splitTrailingPunct(parts[start+2])
+				if third != "" {
+					tok := Token{
+						Raw:        first + " " + second,
+						Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + second)),
+						Type:       TokenArticle,
+						ArtType:    "indefinite",
+						Confidence: 1.0,
+					}
+					extra := t.classifyElidedFrenchWord(third)
+					var punctTok *Token
+					if thirdPunct != "" {
+						if punctType, ok := matchPunctuation(thirdPunct); ok {
+							punctTok = &Token{
+								Raw:        thirdPunct,
+								Lower:      thirdPunct,
+								Type:       TokenPunctuation,
+								PunctType:  punctType,
+								Confidence: 1.0,
+							}
+						}
+					}
+					return 3, tok, &extra, punctTok
+				}
+			}
+			return 0, Token{}, nil, nil
+		}
+	}
+
+	return 0, Token{}, nil, nil
+}
+
+func (t *Tokeniser) classifyElidedFrenchWord(word string) Token {
+	tok := Token{Raw: word, Lower: core.Lower(word)}
+
+	if artType, ok := t.MatchArticle(word); ok {
+		tok.Type = TokenArticle
+		tok.ArtType = artType
+		tok.Confidence = 1.0
+		return tok
+	}
+
+	vm, verbOK := t.MatchVerb(word)
+	nm, nounOK := t.MatchNoun(word)
+	if verbOK && nounOK && t.dualClass[tok.Lower] {
+		if vm.Tense != "base" {
+			tok.Type = TokenVerb
+			tok.VerbInfo = vm
+			tok.NounInfo = nm
+			tok.Confidence = 1.0
+		} else if nm.Plural {
+			tok.Type = TokenNoun
+			tok.VerbInfo = vm
+			tok.NounInfo = nm
+			tok.Confidence = 1.0
+		} else {
+			tok.Type = tokenAmbiguous
+			tok.VerbInfo = vm
+			tok.NounInfo = nm
+		}
+		return tok
+	}
+	if verbOK {
+		tok.Type = TokenVerb
+		tok.VerbInfo = vm
+		tok.Confidence = 1.0
+		return tok
+	}
+	if nounOK {
+		tok.Type = TokenNoun
+		tok.NounInfo = nm
+		tok.Confidence = 1.0
+		return tok
+	}
+	if cat, ok := t.MatchWord(word); ok {
+		tok.Type = TokenWord
+		tok.WordCat = cat
+		tok.Confidence = 1.0
+		return tok
+	}
+
+	tok.Type = TokenUnknown
+	return tok
+}
+
 // resolveAmbiguous iterates all tokens and resolves any marked as
 // tokenAmbiguous using the weighted scoring function.
 func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
@@ -711,7 +1312,7 @@ func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
 	}
 }
 
-// scoreAmbiguous evaluates 7 weighted signals to determine whether an
+// scoreAmbiguous evaluates 8 weighted signals to determine whether an
 // ambiguous token should be classified as verb or noun.
 func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, []SignalComponent) {
 	var verbScore, nounScore float64
@@ -745,7 +1346,25 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 3. following_class: next token's class informs this token's role
+	// 3. verb_negation: preceding negation weakly signals a verb
+	if w, ok := t.weights["verb_negation"]; ok && idx > 0 {
+		prev := tokens[idx-1]
+		if t.verbNeg[prev.Lower] || t.hasNoLongerBefore(tokens, idx) {
+			verbScore += w * 1.0
+			if t.withSignals {
+				reason := "preceded by '" + prev.Lower + "'"
+				if t.hasNoLongerBefore(tokens, idx) {
+					reason = "preceded by 'no longer'"
+				}
+				components = append(components, SignalComponent{
+					Name: "verb_negation", Weight: w, Value: 1.0, Contrib: w,
+					Reason: reason,
+				})
+			}
+		}
+	}
+
+	// 4. following_class: next token's class informs this token's role
 	if w, ok := t.weights["following_class"]; ok && idx+1 < len(tokens) {
 		next := tokens[idx+1]
 		if next.Type != tokenAmbiguous {
@@ -771,7 +1390,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 4. sentence_position: first token in sentence → verb signal (imperative)
+	// 5. sentence_position: first token in sentence → verb signal (imperative)
 	if w, ok := t.weights["sentence_position"]; ok && idx == 0 {
 		verbScore += w * 1.0
 		if t.withSignals {
@@ -782,7 +1401,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 5. verb_saturation: if a confident verb already exists in the same clause
+	// 6. verb_saturation: if a confident verb already exists in the same clause
 	if w, ok := t.weights["verb_saturation"]; ok {
 		if t.hasConfidentVerbInClause(tokens, idx) {
 			nounScore += w * 1.0
@@ -795,7 +1414,7 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 6. inflection_echo: another token shares the same base in inflected form
+	// 7. inflection_echo: another token shares the same base in inflected form
 	if w, ok := t.weights["inflection_echo"]; ok {
 		echoVerb, echoNoun := t.checkInflectionEcho(tokens, idx)
 		if echoNoun {
@@ -820,8 +1439,23 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 		}
 	}
 
-	// 7. default_prior: always fires as verb signal
-	if w, ok := t.weights["default_prior"]; ok {
+	// 8. default_prior: corpus-derived priors take precedence; otherwise fall back to the static verb prior.
+	if priorVerb, priorNoun, ok := t.corpusPrior(tokens[idx].Lower); ok {
+		verbScore += priorVerb
+		nounScore += priorNoun
+		if t.withSignals {
+			components = append(components, SignalComponent{
+				Name: "default_prior", Weight: 1.0, Value: priorVerb, Contrib: priorVerb,
+				Reason: "corpus-derived prior",
+			})
+			if priorNoun > 0 {
+				components = append(components, SignalComponent{
+					Name: "default_prior", Weight: 1.0, Value: priorNoun, Contrib: priorNoun,
+					Reason: "corpus-derived prior",
+				})
+			}
+		}
+	} else if w, ok := t.weights["default_prior"]; ok {
 		verbScore += w * 1.0
 		if t.withSignals {
 			components = append(components, SignalComponent{
@@ -834,9 +1468,41 @@ func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, [
 	return verbScore, nounScore, components
 }
 
+func (t *Tokeniser) hasNoLongerBefore(tokens []Token, idx int) bool {
+	if idx < 2 {
+		return false
+	}
+	return tokens[idx-2].Lower == "no" && tokens[idx-1].Lower == "longer"
+}
+
+func (t *Tokeniser) corpusPrior(word string) (float64, float64, bool) {
+	data := i18n.GetGrammarData(t.lang)
+	if data == nil || len(data.Signals.Priors) == 0 {
+		return 0, 0, false
+	}
+	bucket, ok := data.Signals.Priors[core.Lower(word)]
+	if !ok || len(bucket) == 0 {
+		return 0, 0, false
+	}
+	verb := bucket["verb"]
+	noun := bucket["noun"]
+	if !validSignalPriorScore(verb) || !validSignalPriorScore(noun) {
+		return 0, 0, false
+	}
+	total := verb + noun
+	if total <= 0 {
+		return 0, 0, false
+	}
+	return verb / total, noun / total, true
+}
+
+func validSignalPriorScore(score float64) bool {
+	return !math.IsNaN(score) && !math.IsInf(score, 0) && score >= 0
+}
+
 // hasConfidentVerbInClause scans for a confident verb (Confidence >= 1.0)
 // within the same clause as the token at idx. Clause boundaries are
-// punctuation tokens and clause-boundary conjunctions/subordinators (D2).
+// punctuation tokens and clause-boundary conjunctions/subordinators.
 func (t *Tokeniser) hasConfidentVerbInClause(tokens []Token, idx int) bool {
 	// Scan backwards from idx to find clause start.
 	start := 0
@@ -894,35 +1560,7 @@ func (t *Tokeniser) checkInflectionEcho(tokens []Token, idx int) (bool, bool) {
 // resolveToken assigns the final classification to an ambiguous token
 // based on verb and noun scores from disambiguation signals.
 func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, components []SignalComponent) {
-	total := verbScore + nounScore
-
-	// B3 review fix: if total < 0.10 (only default prior fired),
-	// use low-information confidence floor.
-	if total < 0.10 {
-		if verbScore >= nounScore {
-			tok.Type = TokenVerb
-			tok.Confidence = 0.55
-			tok.AltType = TokenNoun
-			tok.AltConf = 0.45
-		} else {
-			tok.Type = TokenNoun
-			tok.Confidence = 0.55
-			tok.AltType = TokenVerb
-			tok.AltConf = 0.45
-		}
-	} else {
-		if verbScore >= nounScore {
-			tok.Type = TokenVerb
-			tok.Confidence = verbScore / total
-			tok.AltType = TokenNoun
-			tok.AltConf = nounScore / total
-		} else {
-			tok.Type = TokenNoun
-			tok.Confidence = nounScore / total
-			tok.AltType = TokenVerb
-			tok.AltConf = verbScore / total
-		}
-	}
+	tok.Type, tok.Confidence, tok.AltType, tok.AltConf = classifyAmbiguousToken(verbScore, nounScore)
 
 	if t.withSignals {
 		tok.Signals = &SignalBreakdown{
@@ -933,22 +1571,153 @@ func (t *Tokeniser) resolveToken(tok *Token, verbScore, nounScore float64, compo
 	}
 }
 
+func classifyAmbiguousToken(verbScore, nounScore float64) (TokenType, float64, TokenType, float64) {
+	total := verbScore + nounScore
+
+	// Keep the fallback close to chance when only the default prior fired.
+	if total < LowInformationScoreThreshold {
+		if verbScore >= nounScore {
+			return TokenVerb, LowInformationVerbConfidence, TokenNoun, LowInformationNounConfidence
+		}
+		return TokenNoun, LowInformationNounConfidence, TokenVerb, LowInformationVerbConfidence
+	}
+
+	if verbScore >= nounScore {
+		return TokenVerb, verbScore / total, TokenNoun, nounScore / total
+	}
+	return TokenNoun, nounScore / total, TokenVerb, verbScore / total
+}
+
 // splitTrailingPunct separates a word from its trailing punctuation.
-// Returns the word and the punctuation suffix. Punctuation patterns
-// recognised: "..." (progress), "?" (question), ":" (label).
+// Returns the word and the punctuation suffix. It also recognises
+// standalone punctuation tokens such as "." and ")".
 func splitTrailingPunct(s string) (string, string) {
+	// Standalone punctuation token.
+	if _, ok := matchPunctuation(s); ok {
+		return "", s
+	}
+
 	// Check for "..." suffix first (3-char pattern).
-	if strings.HasSuffix(s, "...") {
+	if core.HasSuffix(s, "...") {
 		return s[:len(s)-3], "..."
 	}
 	// Check single-char trailing punctuation.
 	if len(s) > 1 {
 		last := s[len(s)-1]
-		if last == '?' || last == ':' || last == '!' || last == ';' || last == ',' {
+		if last == '?' || last == ':' || last == '!' || last == ';' || last == ',' || last == '.' || last == ')' || last == ']' || last == '}' {
 			return s[:len(s)-1], string(last)
 		}
 	}
 	return s, ""
+}
+
+func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
+	if !t.isFrenchLanguage() || len(raw) == 0 {
+		return "", raw, false
+	}
+
+	lower := normalizeFrenchApostrophes(core.Lower(raw))
+	if len(lower) < 2 {
+		return "", raw, false
+	}
+
+	for _, prefix := range frenchElisionPrefixes {
+		if !strings.HasPrefix(lower, prefix) {
+			continue
+		}
+		idx := len(prefix)
+		if idx >= len(raw) {
+			continue
+		}
+		if idx < len(raw) {
+			r, size := utf8.DecodeRuneInString(raw[idx:])
+			if !isFrenchApostrophe(r) {
+				continue
+			}
+			if size > 0 {
+				return raw[:idx+size], raw[idx+size:], true
+			}
+		}
+	}
+
+	return "", raw, false
+}
+
+func (t *Tokeniser) splitConfiguredElision(raw string) (string, string, bool) {
+	if len(raw) == 0 {
+		return "", raw, false
+	}
+
+	data := t.grammarData()
+	if data == nil {
+		return "", raw, false
+	}
+
+	candidates := []string{data.Articles.IndefiniteDefault, data.Articles.IndefiniteVowel, data.Articles.Definite}
+	for _, article := range data.Articles.ByGender {
+		candidates = append(candidates, article)
+	}
+
+	lower := normalizeFrenchApostrophes(core.Lower(raw))
+	for _, article := range candidates {
+		article = normalizeFrenchApostrophes(core.Lower(article))
+		if article == "" || !strings.Contains(article, "'") {
+			continue
+		}
+		if !strings.HasPrefix(lower, article) {
+			continue
+		}
+		if len(raw) <= len(article) {
+			continue
+		}
+		rest := raw[len(article):]
+		if rest == "" {
+			continue
+		}
+		return raw[:len(article)], rest, true
+	}
+
+	return "", raw, false
+}
+
+func (t *Tokeniser) isFrenchLanguage() bool {
+	lang := tokeniserLanguageBase(t.lang)
+	return lang == "fr" || core.HasPrefix(lang, "fr-")
+}
+
+func (t *Tokeniser) grammarData() *i18n.GrammarData {
+	if data := i18n.GetGrammarData(t.lang); data != nil {
+		return data
+	}
+	if base := tokeniserLanguageBase(t.lang); base != "" {
+		return i18n.GetGrammarData(base)
+	}
+	return nil
+}
+
+func tokeniserLanguageBase(lang string) string {
+	lang = core.Lower(core.Trim(lang))
+	if idx := strings.IndexAny(lang, "-_"); idx > 0 {
+		return lang[:idx]
+	}
+	return lang
+}
+
+func normalizeFrenchApostrophes(s string) string {
+	if s == "" || (!strings.ContainsRune(s, '’') && !strings.ContainsRune(s, 'ʼ')) {
+		return s
+	}
+	s = strings.ReplaceAll(s, "’", "'")
+	return strings.ReplaceAll(s, "ʼ", "'")
+}
+
+func isFrenchApostrophe(r rune) bool {
+	switch r {
+	case '\'', '’', 'ʼ':
+		return true
+	default:
+		return false
+	}
 }
 
 // matchPunctuation detects known punctuation patterns.
@@ -967,6 +1736,14 @@ func matchPunctuation(punct string) (string, bool) {
 		return "separator", true
 	case ",":
 		return "comma", true
+	case ".":
+		return "sentence_end", true
+	case ")":
+		return "close_paren", true
+	case "]":
+		return "close_bracket", true
+	case "}":
+		return "close_brace", true
 	}
 	return "", false
 }
@@ -1010,4 +1787,9 @@ func DisambiguationStatsFromTokens(tokens []Token) DisambiguationStats {
 		s.AvgConfidence = confSum / float64(confCount)
 	}
 	return s
+}
+
+// DisambiguationStats returns aggregate disambiguation stats for a token slice.
+func (t *Tokeniser) DisambiguationStats(tokens []Token) DisambiguationStats {
+	return DisambiguationStatsFromTokens(tokens)
 }

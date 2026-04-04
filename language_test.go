@@ -12,11 +12,13 @@ func TestGetPluralCategory(t *testing.T) {
 		{"en", 0, PluralOther},
 		{"en", 1, PluralOne},
 		{"en", 2, PluralOther},
+		{"en_US", 1, PluralOne},
 
 		// French (0 and 1 are singular)
 		{"fr", 0, PluralOne},
 		{"fr", 1, PluralOne},
 		{"fr", 2, PluralOther},
+		{"fr_CA", 2, PluralOther},
 
 		// Russian
 		{"ru", 1, PluralOne},
@@ -38,6 +40,14 @@ func TestGetPluralCategory(t *testing.T) {
 		{"ar", 5, PluralFew},
 		{"ar", 11, PluralMany},
 		{"ar", 100, PluralOther},
+
+		// Welsh
+		{"cy", 0, PluralZero},
+		{"cy", 1, PluralOne},
+		{"cy", 2, PluralTwo},
+		{"cy", 3, PluralFew},
+		{"cy", 6, PluralMany},
+		{"cy", 7, PluralOther},
 
 		// Chinese (always other)
 		{"zh", 0, PluralOther},
@@ -73,6 +83,21 @@ func TestGetPluralRule(t *testing.T) {
 	rule = GetPluralRule("en-US")
 	if rule(1) != PluralOne {
 		t.Error("English-US rule(1) should be PluralOne")
+	}
+
+	rule = GetPluralRule("fr-Latn-CA")
+	if rule(0) != PluralOne {
+		t.Error("French multi-part tag rule(0) should be PluralOne")
+	}
+
+	rule = GetPluralRule("cy-GB")
+	if rule(2) != PluralTwo {
+		t.Error("Welsh-GB rule(2) should be PluralTwo")
+	}
+
+	rule = GetPluralRule("en_US")
+	if rule(1) != PluralOne {
+		t.Error("English_US rule(1) should be PluralOne")
 	}
 
 	// Unknown falls back to English

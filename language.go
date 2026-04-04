@@ -2,11 +2,11 @@ package i18n
 
 // GetPluralRule returns the plural rule for a language code.
 func GetPluralRule(lang string) PluralRule {
+	lang = normalizeLanguageTag(lang)
 	if rule, ok := pluralRules[lang]; ok {
 		return rule
 	}
-	if len(lang) > 2 {
-		base := lang[:2]
+	if base := baseLanguageTag(lang); base != "" {
 		if rule, ok := pluralRules[base]; ok {
 			return rule
 		}
@@ -83,3 +83,20 @@ func pluralRuleArabic(n int) PluralCategory {
 func pluralRuleChinese(n int) PluralCategory  { return PluralOther }
 func pluralRuleJapanese(n int) PluralCategory { return PluralOther }
 func pluralRuleKorean(n int) PluralCategory   { return PluralOther }
+
+func pluralRuleWelsh(n int) PluralCategory {
+	switch n {
+	case 0:
+		return PluralZero
+	case 1:
+		return PluralOne
+	case 2:
+		return PluralTwo
+	case 3:
+		return PluralFew
+	case 6:
+		return PluralMany
+	default:
+		return PluralOther
+	}
+}

@@ -5,6 +5,7 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/text/language"
 )
 
 // --- Formality.String() ---
@@ -88,6 +89,7 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 	}{
 		{"arabic", "ar", true},
 		{"arabic_sa", "ar-SA", true},
+		{"arabic_sa_underscore", "ar_EG", true},
 		{"hebrew", "he", true},
 		{"farsi", "fa", true},
 		{"urdu", "ur", true},
@@ -95,7 +97,7 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 		{"german", "de", false},
 		{"french", "fr", false},
 		{"unknown", "xx", false},
-		{"arabic_variant", "ar-EG-extra", true},  // len > 2 prefix check
+		{"arabic_variant", "ar-EG-extra", true},   // len > 2 prefix check
 		{"english_variant", "en-US-extra", false}, // len > 2, not RTL
 	}
 	for _, tt := range tests {
@@ -119,6 +121,86 @@ func TestSetFormality_Good(t *testing.T) {
 	assert.Equal(t, FormalityNeutral, svc.Formality())
 }
 
+// --- Package-level SetFallback ---
+
+func TestSetFallback_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	SetFallback("fr")
+	assert.Equal(t, "fr", svc.Fallback())
+
+	SetFallback("en")
+	assert.Equal(t, "en", svc.Fallback())
+}
+
+// --- Package-level CurrentFormality ---
+
+func TestCurrentFormality_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, FormalityNeutral, CurrentFormality())
+
+	SetFormality(FormalityFormal)
+	assert.Equal(t, FormalityFormal, CurrentFormality())
+}
+
+// --- Package-level CurrentFallback ---
+
+func TestCurrentFallback_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, "en", CurrentFallback())
+
+	SetFallback("fr")
+	assert.Equal(t, "fr", CurrentFallback())
+}
+
+// --- Package-level SetLocation ---
+
+func TestSetLocation_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	SetLocation("workspace")
+	assert.Equal(t, "workspace", svc.Location())
+
+	SetLocation("")
+	assert.Equal(t, "", svc.Location())
+}
+
+// --- Package-level CurrentLocation ---
+
+func TestCurrentLocation_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, "", CurrentLocation())
+
+	SetLocation("workspace")
+	assert.Equal(t, "workspace", CurrentLocation())
+}
+
+// --- Package-level Location ---
+
+func TestLocation_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentLocation(), Location())
+
+	SetLocation("workspace")
+	assert.Equal(t, CurrentLocation(), Location())
+}
+
 // --- Package-level Direction ---
 
 func TestDirection_Good(t *testing.T) {
@@ -128,6 +210,26 @@ func TestDirection_Good(t *testing.T) {
 
 	dir := Direction()
 	assert.Equal(t, DirLTR, dir)
+}
+
+// --- Package-level CurrentDirection ---
+
+func TestCurrentDirection_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, DirLTR, CurrentDirection())
+}
+
+// --- Package-level CurrentTextDirection ---
+
+func TestCurrentTextDirection_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentDirection(), CurrentTextDirection())
 }
 
 // --- Package-level IsRTL ---
@@ -140,6 +242,91 @@ func TestIsRTL_Good(t *testing.T) {
 	assert.False(t, IsRTL(), "English should not be RTL")
 }
 
+// --- Package-level RTL ---
+
+func TestRTL_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, IsRTL(), RTL())
+}
+
+// --- Package-level CurrentIsRTL ---
+
+func TestCurrentIsRTL_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.False(t, CurrentIsRTL(), "English should not be RTL")
+}
+
+// --- Package-level CurrentRTL ---
+
+func TestCurrentRTL_Good(t *testing.T) {
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, CurrentIsRTL(), CurrentRTL())
+}
+
+// --- Package-level CurrentPluralCategory ---
+
+func TestCurrentPluralCategory_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, PluralOther, CurrentPluralCategory(0))
+	assert.Equal(t, PluralOne, CurrentPluralCategory(1))
+	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+
+	require.NoError(t, SetLanguage("fr"))
+	assert.Equal(t, PluralOne, CurrentPluralCategory(0))
+	assert.Equal(t, PluralOne, CurrentPluralCategory(1))
+	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+}
+
+// --- Package-level PluralCategoryOf ---
+
+func TestPluralCategoryOf_Good(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	assert.Equal(t, PluralOther, PluralCategoryOf(0))
+	assert.Equal(t, PluralOne, PluralCategoryOf(1))
+	assert.Equal(t, PluralOther, PluralCategoryOf(2))
+
+	require.NoError(t, SetLanguage("fr"))
+	assert.Equal(t, PluralOne, PluralCategoryOf(0))
+	assert.Equal(t, PluralOne, PluralCategoryOf(1))
+	assert.Equal(t, PluralOther, PluralCategoryOf(2))
+}
+
+func TestCurrentPluralCategory_NoDefaultService(t *testing.T) {
+	prev := Default()
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	SetDefault(nil)
+
+	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+}
+
 // --- detectLanguage ---
 
 func TestDetectLanguage_Good(t *testing.T) {
@@ -147,6 +334,49 @@ func TestDetectLanguage_Good(t *testing.T) {
 	// but we can test with no supported languages
 	result := detectLanguage(nil)
 	assert.Equal(t, "", result, "should return empty with no supported languages")
+}
+
+func TestDetectLanguage_PrefersLocaleOverrides(t *testing.T) {
+	t.Setenv("LANG", "en_US.UTF-8")
+	t.Setenv("LC_MESSAGES", "fr_FR.UTF-8")
+	t.Setenv("LC_ALL", "de_DE.UTF-8")
+
+	supported := []language.Tag{
+		language.AmericanEnglish,
+		language.French,
+		language.German,
+	}
+
+	result := detectLanguage(supported)
+	assert.Equal(t, "de", result, "LC_ALL should win over LANG and LC_MESSAGES")
+}
+
+func TestDetectLanguage_SkipsInvalidHigherPriorityLocale(t *testing.T) {
+	t.Setenv("LANG", "en_US.UTF-8")
+	t.Setenv("LC_MESSAGES", "fr_FR.UTF-8")
+	t.Setenv("LC_ALL", "not-a-locale")
+
+	supported := []language.Tag{
+		language.AmericanEnglish,
+		language.French,
+	}
+
+	result := detectLanguage(supported)
+	assert.Equal(t, "fr", result, "invalid LC_ALL should not block a valid lower-priority locale")
+}
+
+func TestDetectLanguage_PrefersLanguageList(t *testing.T) {
+	t.Setenv("LANGUAGE", "fr_FR.UTF-8:de_DE.UTF-8")
+	t.Setenv("LANG", "en_US.UTF-8")
+
+	supported := []language.Tag{
+		language.AmericanEnglish,
+		language.French,
+		language.German,
+	}
+
+	result := detectLanguage(supported)
+	assert.Equal(t, "fr", result, "LANGUAGE should be considered before LANG")
 }
 
 // --- Mode.String() ---

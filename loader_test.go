@@ -19,6 +19,38 @@ func TestFSLoaderLanguages(t *testing.T) {
 	}
 }
 
+func TestFSLoaderLanguagesCanonicalAndUnique(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en.json":    &fstest.MapFile{Data: []byte(`{}`)},
+		"locales/en_US.json": &fstest.MapFile{Data: []byte(`{}`)},
+		"locales/es-MX.json": &fstest.MapFile{Data: []byte(`{}`)},
+		"locales/fr.json":    &fstest.MapFile{Data: []byte(`{}`)},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	langs := loader.Languages()
+	want := []string{"en", "en-US", "es-MX", "fr"}
+	if !slices.Equal(langs, want) {
+		t.Fatalf("Languages() = %v, want %v", langs, want)
+	}
+}
+
+func TestFSLoaderLanguagesReturnsCopy(t *testing.T) {
+	loader := NewFSLoader(localeFS, "locales")
+
+	langs := loader.Languages()
+	if len(langs) == 0 {
+		t.Fatal("Languages() returned empty")
+	}
+
+	langs[0] = "zz"
+
+	got := loader.Languages()
+	if got[0] == "zz" {
+		t.Fatalf("Languages() returned shared slice: %v", got)
+	}
+}
+
 func TestFSLoaderLoad(t *testing.T) {
 	loader := NewFSLoader(localeFS, "locales")
 	messages, grammar, err := loader.Load("en")
@@ -85,6 +117,17 @@ func TestFSLoaderLoad(t *testing.T) {
 		t.Errorf("punct.progress = %q, want '...'", grammar.Punct.ProgressSuffix)
 	}
 
+	// Number formatting from gram.number
+	if grammar.Number.ThousandsSep != "," {
+		t.Errorf("number.thousands = %q, want ','", grammar.Number.ThousandsSep)
+	}
+	if grammar.Number.DecimalSep != "." {
+		t.Errorf("number.decimal = %q, want '.'", grammar.Number.DecimalSep)
+	}
+	if grammar.Number.PercentFmt != "%s%%" {
+		t.Errorf("number.percent = %q, want '%%s%%%%'", grammar.Number.PercentFmt)
+	}
+
 	// Words from gram.word.*
 	if len(grammar.Words) == 0 {
 		t.Error("grammar has 0 words")
@@ -105,6 +148,72 @@ func TestFSLoaderLoadMissing(t *testing.T) {
 	}
 }
 
+func TestFSLoaderLoadFallsBackToBaseLanguage(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"greeting": "hello",
+				"gram": {
+					"article": {
+						"indefinite": { "default": "a", "vowel": "an" },
+						"definite": "the"
+					}
+				}
+			}`),
+		},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	messages, grammar, err := loader.Load("en-GB")
+	if err != nil {
+		t.Fatalf("Load(en-GB) error: %v", err)
+	}
+	if got := messages["greeting"].Text; got != "hello" {
+		t.Fatalf("Load(en-GB) greeting = %q, want %q", got, "hello")
+	}
+	if grammar == nil {
+		t.Fatal("Load(en-GB) returned nil grammar")
+	}
+	if grammar.Articles.Definite != "the" {
+		t.Fatalf("Load(en-GB) grammar article = %q, want %q", grammar.Articles.Definite, "the")
+	}
+}
+
+func TestLocaleFilenameCandidates(t *testing.T) {
+	got := localeFilenameCandidates("en-GB")
+	want := []string{"en-GB.json", "en_GB.json", "en.json"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("localeFilenameCandidates(en-GB) = %v, want %v", got, want)
+	}
+}
+
+func TestLocaleFilenameCandidatesNormalisesCase(t *testing.T) {
+	got := localeFilenameCandidates("en-us")
+	want := []string{"en-us.json", "en_us.json", "en-US.json", "en_US.json", "en.json"}
+	if !slices.Equal(got, want) {
+		t.Fatalf("localeFilenameCandidates(en-us) = %v, want %v", got, want)
+	}
+}
+
+func TestFSLoaderLoadUsesCanonicalVariant(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/en-US.json": &fstest.MapFile{
+			Data: []byte(`{
+				"greeting": "hello"
+			}`),
+		},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	messages, _, err := loader.Load("en-us")
+	if err != nil {
+		t.Fatalf("Load(en-us) error: %v", err)
+	}
+	if got := messages["greeting"].Text; got != "hello" {
+		t.Fatalf("Load(en-us) greeting = %q, want %q", got, "hello")
+	}
+}
+
 func TestFlattenWithGrammar(t *testing.T) {
 	messages := make(map[string]Message)
 	grammar := &GrammarData{
@@ -121,19 +230,50 @@ func TestFlattenWithGrammar(t *testing.T) {
 					"past":   "tested",
 					"gerund": "testing",
 				},
+				"partial_past": map[string]any{
+					"past": "partialed",
+				},
+				"partial_gerund": map[string]any{
+					"gerund": "partialing",
+				},
+				"publish_draft": map[string]any{
+					"base":   "publish",
+					"past":   "published",
+					"gerund": "publishing",
+				},
 			},
 			"noun": map[string]any{
 				"widget": map[string]any{
 					"one":   "widget",
 					"other": "widgets",
 				},
+				"passed": map[string]any{
+					"one":   "passed",
+					"other": "passed",
+				},
 			},
 			"word": map[string]any{
-				"api": "API",
+				"api":     "API",
+				"failed":  "failed",
+				"skipped": "skipped",
 			},
 			"punct": map[string]any{
 				"label":    ":",
 				"progress": "...",
+			},
+			"number": map[string]any{
+				"thousands": ",",
+				"decimal":   ".",
+				"percent":   "%s%%",
+			},
+			"signal": map[string]any{
+				"prior": map[string]any{
+					"commit": map[string]any{
+						"verb": 0.25,
+						"noun": 0.75,
+					},
+				},
+				"verb_negation": []any{"not", "never"},
 			},
 			"article": map[string]any{
 				"indefinite": map[string]any{
@@ -159,6 +299,35 @@ func TestFlattenWithGrammar(t *testing.T) {
 			t.Errorf("test.past = %q, want 'tested'", v.Past)
 		}
 	}
+	if v, ok := grammar.Verbs["publish"]; !ok {
+		t.Error("verb base override 'publish' not extracted")
+	} else {
+		if v.Past != "published" {
+			t.Errorf("publish.past = %q, want 'published'", v.Past)
+		}
+		if v.Gerund != "publishing" {
+			t.Errorf("publish.gerund = %q, want 'publishing'", v.Gerund)
+		}
+	}
+	if _, ok := grammar.Verbs["publish_draft"]; ok {
+		t.Error("verb should be stored under explicit base, not JSON key")
+	}
+	if v, ok := grammar.Verbs["partial_past"]; !ok {
+		t.Error("incomplete verb entry with only past should be extracted")
+	} else if v.Past != "partialed" || v.Gerund != "" {
+		t.Errorf("partial_past forms = %+v, want Past only", v)
+	}
+	if v, ok := grammar.Verbs["partial_gerund"]; !ok {
+		t.Error("incomplete verb entry with only gerund should be extracted")
+	} else if v.Past != "" || v.Gerund != "partialing" {
+		t.Errorf("partial_gerund forms = %+v, want Gerund only", v)
+	}
+	if _, ok := messages["gram.verb.partial_past"]; ok {
+		t.Error("gram.verb.partial_past should not be flattened into messages")
+	}
+	if _, ok := messages["gram.verb.partial_gerund"]; ok {
+		t.Error("gram.verb.partial_gerund should not be flattened into messages")
+	}
 
 	// Noun extracted
 	if n, ok := grammar.Nouns["widget"]; !ok {
@@ -168,15 +337,32 @@ func TestFlattenWithGrammar(t *testing.T) {
 			t.Errorf("widget.other = %q, want 'widgets'", n.Other)
 		}
 	}
+	if _, ok := grammar.Nouns["passed"]; ok {
+		t.Error("deprecated noun 'passed' should be ignored")
+	}
 
 	// Word extracted
 	if grammar.Words["api"] != "API" {
 		t.Errorf("word 'api' = %q, want 'API'", grammar.Words["api"])
 	}
+	if _, ok := grammar.Words["failed"]; ok {
+		t.Error("deprecated word 'failed' should be ignored")
+	}
+	if _, ok := grammar.Words["skipped"]; ok {
+		t.Error("deprecated word 'skipped' should be ignored")
+	}
 
 	// Punct extracted
 	if grammar.Punct.LabelSuffix != ":" {
 		t.Errorf("punct.label = %q, want ':'", grammar.Punct.LabelSuffix)
+	}
+
+	// Number formatting extracted
+	if grammar.Number.ThousandsSep != "," {
+		t.Errorf("number.thousands = %q, want ','", grammar.Number.ThousandsSep)
+	}
+	if len(grammar.Signals.VerbNegation) != 2 || grammar.Signals.VerbNegation[0] != "not" || grammar.Signals.VerbNegation[1] != "never" {
+		t.Errorf("verb negation not extracted: %+v", grammar.Signals.VerbNegation)
 	}
 
 	// Articles extracted
@@ -187,6 +373,369 @@ func TestFlattenWithGrammar(t *testing.T) {
 	// Regular keys flattened
 	if msg, ok := messages["prompt.yes"]; !ok || msg.Text != "y" {
 		t.Errorf("prompt.yes not flattened correctly, got %+v", messages["prompt.yes"])
+	}
+	if _, ok := messages["gram.number.thousands"]; ok {
+		t.Error("gram.number.thousands should not be flattened into messages")
+	}
+}
+
+func TestFlattenWithGrammar_DetectsSchemaObjectsOutsideGrammarPaths(t *testing.T) {
+	messages := make(map[string]Message)
+	grammar := &GrammarData{
+		Verbs: make(map[string]VerbForms),
+		Words: make(map[string]string),
+	}
+
+	raw := map[string]any{
+		"lexicon": map[string]any{
+			"base_only": map[string]any{
+				"base": "base",
+			},
+		},
+		"phrases": map[string]any{
+			"draft": map[string]any{
+				"past":   "drafted",
+				"gerund": "drafting",
+			},
+		},
+	}
+
+	flattenWithGrammar("", raw, messages, grammar)
+
+	if _, ok := grammar.Verbs["draft"]; !ok {
+		t.Fatal("verb schema object outside gram.verb.* was not extracted")
+	}
+	if _, ok := messages["phrases.draft"]; ok {
+		t.Fatal("verb schema object should not be flattened into messages")
+	}
+	if _, ok := grammar.Verbs["base_only"]; ok {
+		t.Fatal("base-only object should not be detected as a verb table")
+	}
+}
+
+func TestMergeGrammarData(t *testing.T) {
+	const lang = "zz"
+	original := GetGrammarData(lang)
+	t.Cleanup(func() {
+		SetGrammarData(lang, original)
+	})
+
+	SetGrammarData(lang, &GrammarData{
+		Verbs: map[string]VerbForms{
+			"keep": {Past: "kept", Gerund: "keeping"},
+		},
+		Nouns: map[string]NounForms{
+			"file": {One: "file", Other: "files"},
+		},
+		Words: map[string]string{
+			"url": "URL",
+		},
+		Articles: ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "the",
+			ByGender: map[string]string{
+				"m": "le",
+			},
+		},
+		Punct: PunctuationRules{
+			LabelSuffix:    ":",
+			ProgressSuffix: "...",
+		},
+		Signals: SignalData{
+			NounDeterminers: []string{"the"},
+			VerbAuxiliaries: []string{"will"},
+			VerbInfinitive:  []string{"to"},
+			VerbNegation:    []string{"not"},
+			Priors: map[string]map[string]float64{
+				"run": {
+					"verb": 0.7,
+				},
+			},
+		},
+		Number: NumberFormat{
+			ThousandsSep: ",",
+			DecimalSep:   ".",
+			PercentFmt:   "%s%%",
+		},
+	})
+
+	MergeGrammarData(lang, &GrammarData{
+		Verbs: map[string]VerbForms{
+			"add": {Past: "added", Gerund: "adding"},
+		},
+		Nouns: map[string]NounForms{
+			"repo": {One: "repo", Other: "repos"},
+		},
+		Words: map[string]string{
+			"api": "API",
+		},
+		Articles: ArticleForms{
+			ByGender: map[string]string{
+				"f": "la",
+			},
+		},
+		Punct: PunctuationRules{
+			LabelSuffix: " !",
+		},
+		Signals: SignalData{
+			NounDeterminers: []string{"a"},
+			VerbAuxiliaries: []string{"can"},
+			VerbInfinitive:  []string{"go"},
+			VerbNegation:    []string{"never"},
+			Priors: map[string]map[string]float64{
+				"run": {
+					"noun": 0.3,
+				},
+			},
+		},
+		Number: NumberFormat{
+			ThousandsSep: ".",
+		},
+	})
+
+	data := GetGrammarData(lang)
+	if data == nil {
+		t.Fatal("MergeGrammarData() cleared existing grammar data")
+	}
+	if _, ok := data.Verbs["keep"]; !ok {
+		t.Error("existing verb entry was lost")
+	}
+	if _, ok := data.Verbs["add"]; !ok {
+		t.Error("merged verb entry missing")
+	}
+	if _, ok := data.Nouns["file"]; !ok {
+		t.Error("existing noun entry was lost")
+	}
+	if _, ok := data.Nouns["repo"]; !ok {
+		t.Error("merged noun entry missing")
+	}
+	if data.Words["url"] != "URL" || data.Words["api"] != "API" {
+		t.Errorf("words not merged correctly: %+v", data.Words)
+	}
+	if data.Articles.IndefiniteDefault != "a" || data.Articles.IndefiniteVowel != "an" || data.Articles.Definite != "the" {
+		t.Errorf("article defaults changed unexpectedly: %+v", data.Articles)
+	}
+	if data.Articles.ByGender["m"] != "le" || data.Articles.ByGender["f"] != "la" {
+		t.Errorf("article by_gender not merged correctly: %+v", data.Articles.ByGender)
+	}
+	if data.Punct.LabelSuffix != " !" || data.Punct.ProgressSuffix != "..." {
+		t.Errorf("punctuation not merged correctly: %+v", data.Punct)
+	}
+	if len(data.Signals.NounDeterminers) != 2 || len(data.Signals.VerbAuxiliaries) != 2 || len(data.Signals.VerbInfinitive) != 2 || len(data.Signals.VerbNegation) != 2 {
+		t.Errorf("signal slices not merged correctly: %+v", data.Signals)
+	}
+	if got := data.Signals.Priors["run"]["verb"]; got != 0.7 {
+		t.Errorf("signal priors lost existing value: got %v", got)
+	}
+	if got := data.Signals.Priors["run"]["noun"]; got != 0.3 {
+		t.Errorf("signal priors missing merged value: got %v", got)
+	}
+	if data.Signals.VerbNegation[0] != "not" || data.Signals.VerbNegation[1] != "never" {
+		t.Errorf("signal negation not merged correctly: %+v", data.Signals.VerbNegation)
+	}
+	if data.Number.ThousandsSep != "." || data.Number.DecimalSep != "." || data.Number.PercentFmt != "%s%%" {
+		t.Errorf("number format not merged correctly: %+v", data.Number)
+	}
+}
+
+func TestMergeGrammarData_DeduplicatesSignals(t *testing.T) {
+	const lang = "zy"
+	original := GetGrammarData(lang)
+	t.Cleanup(func() {
+		SetGrammarData(lang, original)
+	})
+
+	SetGrammarData(lang, &GrammarData{
+		Signals: SignalData{
+			NounDeterminers: []string{"the", "a"},
+			VerbAuxiliaries: []string{"will"},
+			VerbInfinitive:  []string{"to"},
+			VerbNegation:    []string{"not"},
+		},
+	})
+
+	MergeGrammarData(lang, &GrammarData{
+		Signals: SignalData{
+			NounDeterminers: []string{"a", "some"},
+			VerbAuxiliaries: []string{"will", "can"},
+			VerbInfinitive:  []string{"to", "de"},
+			VerbNegation:    []string{"not", "never"},
+		},
+	})
+
+	data := GetGrammarData(lang)
+	if data == nil {
+		t.Fatal("GetGrammarData returned nil")
+	}
+	if got, want := data.Signals.NounDeterminers, []string{"the", "a", "some"}; !slices.Equal(got, want) {
+		t.Fatalf("NounDeterminers = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbAuxiliaries, []string{"will", "can"}; !slices.Equal(got, want) {
+		t.Fatalf("VerbAuxiliaries = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbInfinitive, []string{"to", "de"}; !slices.Equal(got, want) {
+		t.Fatalf("VerbInfinitive = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbNegation, []string{"not", "never"}; !slices.Equal(got, want) {
+		t.Fatalf("VerbNegation = %v, want %v", got, want)
+	}
+}
+
+func TestGrammarDataLanguageTagNormalisation(t *testing.T) {
+	const rawLang = "tl_PH"
+	const canonicalLang = "tl-PH"
+
+	originalRaw := GetGrammarData(rawLang)
+	originalCanonical := GetGrammarData(canonicalLang)
+	t.Cleanup(func() {
+		SetGrammarData(rawLang, originalRaw)
+		SetGrammarData(canonicalLang, originalCanonical)
+	})
+
+	SetGrammarData(rawLang, &GrammarData{
+		Words: map[string]string{
+			"demo": "Demo",
+		},
+	})
+
+	if got := GetGrammarData(rawLang); got == nil || got.Words["demo"] != "Demo" {
+		t.Fatalf("GetGrammarData(%q) = %+v, want demo word", rawLang, got)
+	}
+	if got := GetGrammarData(canonicalLang); got == nil || got.Words["demo"] != "Demo" {
+		t.Fatalf("GetGrammarData(%q) = %+v, want demo word", canonicalLang, got)
+	}
+
+	MergeGrammarData(canonicalLang, &GrammarData{
+		Words: map[string]string{
+			"api": "API",
+		},
+	})
+
+	data := GetGrammarData(rawLang)
+	if data == nil {
+		t.Fatalf("GetGrammarData(%q) returned nil after merge", rawLang)
+	}
+	if data.Words["api"] != "API" {
+		t.Fatalf("merged word normalisation failed: %+v", data.Words)
+	}
+
+	SetGrammarData(rawLang, nil)
+	if got := GetGrammarData(canonicalLang); got != nil {
+		t.Fatalf("SetGrammarData(%q, nil) did not clear entry: %+v", rawLang, got)
+	}
+}
+
+func TestNewWithLoader_LoadsGrammarOnlyLocale(t *testing.T) {
+	loaderFS := fstest.MapFS{
+		"fr.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"article": {
+						"indefinite": { "default": "el", "vowel": "l'" },
+						"definite": "el",
+						"by_gender": { "m": "el", "f": "la" }
+					},
+					"punct": { "label": " !", "progress": " ..." },
+					"signal": {
+						"noun_determiner": ["el"],
+						"verb_auxiliary": ["va"],
+						"verb_infinitive": ["a"],
+						"verb_negation": ["no", "nunca"]
+					},
+					"number": { "thousands": ".", "decimal": ",", "percent": "%s %%"}
+				}
+			}`),
+		},
+	}
+
+	svc, err := NewWithLoader(NewFSLoader(loaderFS, "."))
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	data := GetGrammarData("fr")
+	if data == nil {
+		t.Fatal("grammar-only locale was not loaded")
+	}
+	if data.Articles.ByGender["f"] != "la" {
+		t.Errorf("article by_gender[f] = %q, want %q", data.Articles.ByGender["f"], "la")
+	}
+	if data.Punct.LabelSuffix != " !" || data.Punct.ProgressSuffix != " ..." {
+		t.Errorf("punctuation not loaded: %+v", data.Punct)
+	}
+	if len(data.Signals.NounDeterminers) != 1 || data.Signals.NounDeterminers[0] != "el" {
+		t.Errorf("signals not loaded: %+v", data.Signals)
+	}
+	if len(data.Signals.VerbNegation) != 2 || data.Signals.VerbNegation[0] != "no" || data.Signals.VerbNegation[1] != "nunca" {
+		t.Errorf("negation signal not loaded: %+v", data.Signals.VerbNegation)
+	}
+	if data.Number.DecimalSep != "," || data.Number.ThousandsSep != "." {
+		t.Errorf("number format not loaded: %+v", data.Number)
+	}
+
+	if err := svc.SetLanguage("fr"); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+	SetDefault(svc)
+	if got := Label("status"); got != "Status !" {
+		t.Errorf("Label(status) = %q, want %q", got, "Status !")
+	}
+}
+
+func TestNewWithLoader_AcceptsGrammarAliases(t *testing.T) {
+	loaderFS := fstest.MapFS{
+		"en.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"article": {
+						"byGender": { "f": "la", "m": "le" }
+					},
+					"noun": {
+						"user": { "one": "user", "other": "users", "gender": "f" }
+					},
+					"signals": {
+						"noun_determiner": ["the"],
+						"verb_auxiliary": ["will"],
+						"verb_infinitive": ["to"],
+						"verb_negation": ["never"]
+					}
+				}
+			}`),
+		},
+	}
+
+	svc, err := NewWithLoader(NewFSLoader(loaderFS, "."))
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("alias grammar data was not loaded")
+	}
+	if data.Articles.ByGender["f"] != "la" || data.Articles.ByGender["m"] != "le" {
+		t.Fatalf("article byGender alias not loaded: %+v", data.Articles.ByGender)
+	}
+	if got, want := data.Signals.NounDeterminers, []string{"the"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias noun_determiner = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbAuxiliaries, []string{"will"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias verb_auxiliary = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbInfinitive, []string{"to"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias verb_infinitive = %v, want %v", got, want)
+	}
+	if got, want := data.Signals.VerbNegation, []string{"never"}; !slices.Equal(got, want) {
+		t.Fatalf("signal alias verb_negation = %v, want %v", got, want)
+	}
+
+	if err := svc.SetLanguage("en"); err != nil {
+		t.Fatalf("SetLanguage(en) failed: %v", err)
+	}
+	SetDefault(svc)
+	if got := DefinitePhrase("user"); got != "la user" && got != "la User" {
+		t.Fatalf("DefinitePhrase(user) = %q, want article from byGender alias", got)
 	}
 }
 
@@ -261,7 +810,13 @@ func TestCustomFSLoader(t *testing.T) {
 			Data: []byte(`{
 				"gram": {
 					"verb": {
+						"draft": { "base": "draft", "past": "drafted", "gerund": "drafting" },
 						"zap": { "base": "zap", "past": "zapped", "gerund": "zapping" }
+					},
+					"signal": {
+						"priors": {
+							"draft": { "verb": 0.6, "noun": 0.4 }
+						}
 					},
 					"word": {
 						"hello": "Hello"
@@ -289,5 +844,46 @@ func TestCustomFSLoader(t *testing.T) {
 	}
 	if v, ok := gd.Verbs["zap"]; !ok || v.Past != "zapped" {
 		t.Errorf("verb 'zap' not loaded correctly")
+	}
+	if v, ok := gd.Verbs["draft"]; !ok || v.Past != "drafted" {
+		t.Errorf("verb base override 'draft' not loaded correctly")
+	}
+	if gd.Signals.Priors["draft"]["verb"] != 0.6 || gd.Signals.Priors["draft"]["noun"] != 0.4 {
+		t.Errorf("signal priors not loaded correctly: %+v", gd.Signals.Priors["draft"])
+	}
+}
+
+func TestCustomFSLoaderPreservesZeroSignalPriors(t *testing.T) {
+	fs := fstest.MapFS{
+		"locales/test.json": &fstest.MapFile{
+			Data: []byte(`{
+				"gram": {
+					"signal": {
+						"prior": {
+							"commit": { "verb": 0, "noun": 1 }
+						}
+					}
+				}
+			}`),
+		},
+	}
+
+	loader := NewFSLoader(fs, "locales")
+	_, grammar, err := loader.Load("test")
+	if err != nil {
+		t.Fatalf("Load(test) failed: %v", err)
+	}
+	if grammar == nil {
+		t.Fatal("expected grammar data")
+	}
+	bucket, ok := grammar.Signals.Priors["commit"]
+	if !ok {
+		t.Fatal("signal priors for commit were not loaded")
+	}
+	if got := bucket["verb"]; got != 0 {
+		t.Fatalf("signal priors verb = %v, want 0", got)
+	}
+	if got := bucket["noun"]; got != 1 {
+		t.Fatalf("signal priors noun = %v, want 1", got)
 	}
 }
