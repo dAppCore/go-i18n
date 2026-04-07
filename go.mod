@@ -6,11 +6,9 @@ require golang.org/x/text v0.35.0
 
 require (
 	dappco.re/go/core v0.8.0-alpha.1
+	dappco.re/go/core/inference v0.2.1
 	dappco.re/go/core/log v0.1.0
-	dappco.re/go/core/inference v0.1.4
 )
-
-require github.com/kr/text v0.2.0 // indirect
 
 require (
 	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect

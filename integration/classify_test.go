@@ -8,8 +8,8 @@ import (
 
 	"dappco.re/go/core"
 	i18n "dappco.re/go/core/i18n"
-	"forge.lthn.ai/core/go-inference"
-	_ "forge.lthn.ai/core/go-mlx" // registers Metal backend
+	"dappco.re/go/core/inference"
+	_ "dappco.re/go/core/mlx" // registers Metal backend
 )
 
 func TestClassifyCorpus_Integration(t *testing.T) {

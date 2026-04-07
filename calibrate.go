@@ -6,7 +6,7 @@ import (
 
 	"dappco.re/go/core"
 	log "dappco.re/go/core/log"
-	"forge.lthn.ai/core/go-inference"
+	"dappco.re/go/core/inference"
 )
 
 // CalibrationSample is a single text entry for model comparison.

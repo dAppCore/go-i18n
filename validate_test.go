@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"dappco.re/go/core"
-	"forge.lthn.ai/core/go-inference"
+	"dappco.re/go/core/inference"
 )
 
 // mockGenerateModel satisfies inference.TextModel for validator testing.
