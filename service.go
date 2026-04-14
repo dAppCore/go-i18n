@@ -312,9 +312,10 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 	}
 	messages := make(map[string]Message)
 	grammarData := &GrammarData{
-		Verbs: make(map[string]VerbForms),
-		Nouns: make(map[string]NounForms),
-		Words: make(map[string]string),
+		Verbs:   make(map[string]VerbForms),
+		Nouns:   make(map[string]NounForms),
+		Words:   make(map[string]string),
+		Intents: make(map[string]Intent),
 	}
 	flattenWithGrammar("", raw, messages, grammarData)
 	s.ingestLocaleData(lang, messages, grammarData)
@@ -376,22 +377,46 @@ func (s *Service) Prompt(key string) string {
 		if key == "" {
 			return ""
 		}
-		return namespaceLookupKey("prompt", key)
+		return promptLookupKeys(key)[0]
 	}
 	key = normalizeLookupKey(key)
 	if key == "" {
 		return ""
 	}
-	lookupKey := namespaceLookupKey("prompt", key)
-	if text, ok := s.translateWithStatus(lookupKey); ok {
-		return text
+	lookupKeys := promptLookupKeys(key)
+	for _, lookupKey := range lookupKeys {
+		s.mu.RLock()
+		text := s.resolveDirectLocked(lookupKey, nil)
+		s.mu.RUnlock()
+		if text != "" {
+			return text
+		}
 	}
-	return lookupKey
+	return lookupKeys[0]
 }
 
 // CurrentPrompt is a short alias for Prompt.
 func (s *Service) CurrentPrompt(key string) string {
 	return s.Prompt(key)
+}
+
+func promptLookupKeys(key string) []string {
+	switch {
+	case core.HasPrefix(key, "prompt."):
+		suffix := core.TrimPrefix(key, "prompt.")
+		if suffix == "" {
+			return []string{key, "common.prompt"}
+		}
+		return []string{key, namespaceLookupKey("common.prompt", suffix)}
+	case core.HasPrefix(key, "common.prompt."):
+		suffix := core.TrimPrefix(key, "common.prompt.")
+		if suffix == "" {
+			return []string{key, "prompt"}
+		}
+		return []string{key, namespaceLookupKey("prompt", suffix)}
+	default:
+		return []string{namespaceLookupKey("prompt", key), namespaceLookupKey("common.prompt", key)}
+	}
 }
 
 // Lang translates a language label from the lang namespace using this service.
@@ -681,6 +706,39 @@ func (s *Service) T(messageID string, args ...any) string {
 	return result
 }
 
+// Compose resolves a semantic intent key into the composed output forms
+// documented by the RFC-style intent blocks.
+func (s *Service) Compose(key string, subject *Subject) Composed {
+	if s == nil {
+		return Composed{}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	intent, hasIntent := s.lookupIntentDefinitionLocked(key)
+	if !core.HasPrefix(key, "core.") && !hasIntent {
+		return Composed{}
+	}
+	question := s.resolveIntentFieldLocked(key, "question", subject, intent)
+	confirm := s.resolveIntentFieldLocked(key, "confirm", subject, intent)
+	if confirm == "" && intent.Meta.Dangerous && question != "" {
+		confirm = question
+	}
+	success := s.resolveIntentFieldLocked(key, "success", subject, intent)
+	failure := s.resolveIntentFieldLocked(key, "failure", subject, intent)
+	return Composed{
+		Question: question,
+		Confirm:  confirm,
+		Success:  success,
+		Failure:  failure,
+		Meta:     intent.Meta,
+	}
+}
+
+// CurrentCompose is a short alias for Compose.
+func (s *Service) CurrentCompose(key string, subject *Subject) Composed {
+	return s.Compose(key, subject)
+}
+
 // Translate translates a message by its ID and returns a Core result.
 func (s *Service) Translate(messageID string, args ...any) core.Result {
 	if s == nil {
@@ -712,6 +770,9 @@ func (s *Service) translateWithStatus(messageID string, args ...any) (string, bo
 
 		s.mu.RLock()
 		text := s.resolveWithFallbackLocked(messageID, data)
+		if text == "" {
+			text = s.resolveIntentQuestionLocked(messageID, data)
+		}
 		s.mu.RUnlock()
 		return text
 	})
@@ -756,6 +817,171 @@ func (s *Service) resolveWithFallbackLocked(messageID string, data any) string {
 		if text := s.resolveDirectLocked(commonKey, data); text != "" {
 			return text
 		}
+	}
+	return ""
+}
+
+func (s *Service) lookupIntentDefinitionLocked(key string) (Intent, bool) {
+	if s == nil || key == "" {
+		return Intent{}, false
+	}
+	for _, lang := range []string{s.currentLang, s.fallbackLang} {
+		if intent, ok := lookupIntentInLanguage(lang, key); ok {
+			return intent, true
+		}
+	}
+	return Intent{}, false
+}
+
+func lookupIntentInLanguage(lang, key string) (Intent, bool) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" || key == "" {
+		return Intent{}, false
+	}
+	data := GetGrammarData(lang)
+	if data == nil || len(data.Intents) == 0 {
+		return Intent{}, false
+	}
+	intent, ok := data.Intents[key]
+	if !ok {
+		return Intent{}, false
+	}
+	return cloneIntent(intent), true
+}
+
+func (s *Service) resolveIntentQuestionLocked(key string, data any) string {
+	if s == nil || key == "" {
+		return ""
+	}
+	if !core.HasPrefix(key, "core.") {
+		if _, ok := s.lookupIntentDefinitionLocked(key); !ok {
+			return ""
+		}
+	}
+	intent, _ := s.lookupIntentDefinitionLocked(key)
+	return s.resolveIntentFieldLocked(key, "question", data, intent)
+}
+
+func (s *Service) resolveIntentFieldLocked(key, field string, data any, intent Intent) string {
+	if key == "" || field == "" {
+		return ""
+	}
+	fullKey := key + "." + field
+	if text := s.resolveDirectLocked(fullKey, data); text != "" {
+		if !strings.Contains(text, "{{") {
+			return text
+		}
+		if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+			if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
+				return rendered
+			}
+		}
+		return text
+	}
+	if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+		return renderIntentTemplate(tmpl, data)
+	}
+	switch field {
+	case "question":
+		if text := s.resolveWithFallbackLocked(key, data); text != "" {
+			if strings.Contains(text, "{{") {
+				if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+					if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
+						return rendered
+					}
+				}
+			}
+			return text
+		}
+		verb := intentVerbForKey(key, intent)
+		if verb == "" {
+			return ""
+		}
+		subject := intentSubjectText(data)
+		title := Title(renderWord(s.currentLang, verb))
+		if subject == "" {
+			return title + "?"
+		}
+		return title + " " + subject + "?"
+	case "success":
+		if verb := intentVerbForKey(key, intent); verb != "" {
+			return ActionResult(verb, intentSubjectText(data))
+		}
+	case "failure":
+		if verb := intentVerbForKey(key, intent); verb != "" {
+			return ActionFailed(verb, intentSubjectText(data))
+		}
+	}
+	return ""
+}
+
+func intentTemplateForField(intent Intent, field string) string {
+	switch field {
+	case "question":
+		return intent.Question
+	case "confirm":
+		return intent.Confirm
+	case "success":
+		return intent.Success
+	case "failure":
+		return intent.Failure
+	default:
+		return ""
+	}
+}
+
+func renderIntentTemplate(text string, data any) string {
+	if text == "" {
+		return ""
+	}
+	switch v := data.(type) {
+	case nil:
+		return executeIntentTemplate(text, newTemplateData(nil))
+	case *Subject:
+		return executeIntentTemplate(text, newTemplateData(v))
+	default:
+		return applyTemplate(text, data)
+	}
+}
+
+func intentVerbForKey(key string, intent Intent) string {
+	if verb := intentVerbBase(intent.Meta.Verb); verb != "" {
+		return verb
+	}
+	return intentBaseFromKey(key)
+}
+
+func intentVerbBase(verb string) string {
+	verb = core.Trim(verb)
+	if verb == "" {
+		return ""
+	}
+	if idx := strings.LastIndex(verb, "."); idx >= 0 {
+		verb = verb[idx+1:]
+	}
+	return core.Trim(verb)
+}
+
+func intentBaseFromKey(key string) string {
+	key = core.Trim(key)
+	if key == "" {
+		return ""
+	}
+	parts := core.Split(key, ".")
+	if len(parts) == 0 {
+		return key
+	}
+	return core.Trim(parts[len(parts)-1])
+}
+
+func intentSubjectText(data any) string {
+	switch v := data.(type) {
+	case *Subject:
+		if v != nil {
+			return v.String()
+		}
+	case string:
+		return v
 	}
 	return ""
 }

@@ -222,6 +222,19 @@ func (s *CoreService) T(messageID string, args ...any) string {
 	return messageID
 }
 
+// Compose resolves a semantic intent key through the wrapped i18n service.
+func (s *CoreService) Compose(key string, subject *Subject) Composed {
+	if svc := s.wrapped(); svc != nil {
+		return svc.Compose(key, subject)
+	}
+	return Composed{}
+}
+
+// CurrentCompose is a short alias for Compose.
+func (s *CoreService) CurrentCompose(key string, subject *Subject) Composed {
+	return s.Compose(key, subject)
+}
+
 // Translate translates a message through the wrapped i18n service.
 func (s *CoreService) Translate(messageID string, args ...any) core.Result {
 	if svc := s.wrapped(); svc != nil {

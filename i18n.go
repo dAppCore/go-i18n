@@ -42,6 +42,18 @@ func Raw(messageID string, args ...any) string {
 	})
 }
 
+// Compose resolves a semantic intent key using the default service.
+func Compose(key string, subject *Subject) Composed {
+	return defaultServiceValue(Composed{}, func(svc *Service) Composed {
+		return svc.Compose(key, subject)
+	})
+}
+
+// CurrentCompose is a short alias for Compose.
+func CurrentCompose(key string, subject *Subject) Composed {
+	return Compose(key, subject)
+}
+
 // ErrServiceNotInitialised is returned when the service is not initialised.
 var ErrServiceNotInitialised = core.NewError("i18n: service not initialised")
 

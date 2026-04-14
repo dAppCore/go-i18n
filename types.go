@@ -215,6 +215,7 @@ type GrammarData struct {
 	Words    map[string]string    // base word translations
 	Punct    PunctuationRules     // language-specific punctuation
 	Signals  SignalData           // disambiguation signal word lists
+	Intents  map[string]Intent    // semantic intent templates and metadata
 	Number   NumberFormat         // locale-specific number formatting
 }
 
