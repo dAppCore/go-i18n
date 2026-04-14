@@ -6,7 +6,6 @@ import (
 	"maps"
 	"reflect"
 	"slices"
-	"strings"
 	"sync"
 	"sync/atomic"
 	"unicode"
@@ -868,7 +867,7 @@ func (s *Service) resolveIntentFieldLocked(key, field string, data any, intent I
 	}
 	fullKey := key + "." + field
 	if text := s.resolveDirectLocked(fullKey, data); text != "" {
-		if !strings.Contains(text, "{{") {
+		if !core.Contains(text, "{{") {
 			return text
 		}
 		if tmpl := intentTemplateForField(intent, field); tmpl != "" {
@@ -884,7 +883,7 @@ func (s *Service) resolveIntentFieldLocked(key, field string, data any, intent I
 	switch field {
 	case "question":
 		if text := s.resolveWithFallbackLocked(key, data); text != "" {
-			if strings.Contains(text, "{{") {
+			if core.Contains(text, "{{") {
 				if tmpl := intentTemplateForField(intent, field); tmpl != "" {
 					if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
 						return rendered
@@ -956,8 +955,8 @@ func intentVerbBase(verb string) string {
 	if verb == "" {
 		return ""
 	}
-	if idx := strings.LastIndex(verb, "."); idx >= 0 {
-		verb = verb[idx+1:]
+	if parts := core.Split(verb, "."); len(parts) > 0 {
+		verb = parts[len(parts)-1]
 	}
 	return core.Trim(verb)
 }
@@ -1225,7 +1224,7 @@ func lookupExtraSuffix(extra map[string]any) string {
 		return ""
 	}
 	keys := slices.Sorted(maps.Keys(extra))
-	var b strings.Builder
+	b := core.NewBuilder()
 	for _, key := range keys {
 		name := lookupSegment(key)
 		if name == "" {
@@ -1248,7 +1247,7 @@ func lookupSegment(s string) string {
 	if s == "" {
 		return ""
 	}
-	var b strings.Builder
+	b := core.NewBuilder()
 	lastUnderscore := false
 	for _, r := range core.Lower(s) {
 		switch {
@@ -1262,7 +1261,61 @@ func lookupSegment(s string) string {
 			}
 		}
 	}
-	return strings.Trim(b.String(), "_")
+	return trimRuneRun(b.String(), '_')
+}
+
+// trimRuneRun strips repeated occurrences of r from both ends of s.
+//
+//	trimRuneRun("__foo__", '_') // "foo"
+func trimRuneRun(s string, r rune) string {
+	start := 0
+	for start < len(s) {
+		rn, size := firstRuneOf(s[start:])
+		if rn != r {
+			break
+		}
+		start += size
+	}
+	end := len(s)
+	for end > start {
+		rn, size := lastRuneOf(s[start:end])
+		if rn != r {
+			break
+		}
+		end -= size
+	}
+	return s[start:end]
+}
+
+// compareStrings compares two strings lexicographically (a < b: -1, a == b: 0, a > b: 1).
+//
+//	compareStrings("en", "fr") // -1
+func compareStrings(a, b string) int {
+	switch {
+	case a < b:
+		return -1
+	case a > b:
+		return 1
+	default:
+		return 0
+	}
+}
+
+func firstRuneOf(s string) (rune, int) {
+	for _, r := range s {
+		return r, len(string(r))
+	}
+	return 0, 0
+}
+
+func lastRuneOf(s string) (rune, int) {
+	var last rune
+	var size int
+	for _, r := range s {
+		last = r
+		size = len(string(r))
+	}
+	return last, size
 }
 
 func (s *Service) handleMissingKey(key string, args []any) string {
@@ -1496,7 +1549,7 @@ func (s *Service) addAvailableLanguageLocked(tag language.Tag) {
 	if !slices.Contains(s.availableLangs, tag) {
 		s.availableLangs = append(s.availableLangs, tag)
 		slices.SortFunc(s.availableLangs, func(a, b language.Tag) int {
-			return strings.Compare(a.String(), b.String())
+			return compareStrings(a.String(), b.String())
 		})
 	}
 }

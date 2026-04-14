@@ -1,10 +1,13 @@
 package i18n
 
 import (
-	"fmt"
-
 	"dappco.re/go/core"
 )
+
+// stringer mirrors fmt.Stringer without pulling in the banned fmt package.
+type stringer interface {
+	String() string
+}
 
 // S creates a new Subject with the given noun and value.
 //
@@ -83,8 +86,8 @@ func (s *Subject) String() string {
 	if s == nil {
 		return ""
 	}
-	if stringer, ok := s.Value.(fmt.Stringer); ok {
-		return stringer.String()
+	if s, ok := s.Value.(stringer); ok {
+		return s.String()
 	}
 	return core.Sprintf("%v", s.Value)
 }

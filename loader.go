@@ -1,7 +1,6 @@
 package i18n
 
 import (
-	"errors"
 	"io/fs"
 	"math"
 	"path"
@@ -39,7 +38,7 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 		if err == nil {
 			break
 		}
-		if firstNonMissingErr == nil && !errors.Is(err, fs.ErrNotExist) {
+		if firstNonMissingErr == nil && !core.Is(err, fs.ErrNotExist) {
 			firstNonMissingErr = err
 		}
 	}

@@ -1,8 +1,6 @@
 package i18n
 
 import (
-	"os"
-
 	"dappco.re/go/core"
 	"golang.org/x/text/language"
 )
@@ -187,10 +185,10 @@ func PluralCategoryOf(n int) PluralCategory {
 
 func detectLanguage(supported []language.Tag) string {
 	for _, langEnv := range []string{
-		os.Getenv("LC_ALL"),
-		firstLocaleFromList(os.Getenv("LANGUAGE")),
-		os.Getenv("LC_MESSAGES"),
-		os.Getenv("LANG"),
+		core.Env("LC_ALL"),
+		firstLocaleFromList(core.Env("LANGUAGE")),
+		core.Env("LC_MESSAGES"),
+		core.Env("LANG"),
 	} {
 		if langEnv == "" {
 			continue

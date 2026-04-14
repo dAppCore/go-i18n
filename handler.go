@@ -1,7 +1,6 @@
 package i18n
 
 import (
-	"fmt"
 	"unicode"
 
 	"dappco.re/go/core"
@@ -283,7 +282,7 @@ func subjectArgText(arg any) string {
 		return contextArgText(v)
 	case map[string]string:
 		return contextArgText(v)
-	case fmt.Stringer:
+	case stringer:
 		return v.String()
 	default:
 		return ""
