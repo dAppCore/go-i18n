@@ -1,6 +1,7 @@
 package i18n
 
 import (
+	"io/fs"
 	"path/filepath"
 	"sync"
 	"testing"
@@ -16,6 +17,29 @@ type testLocaleProvider struct {
 
 func (p testLocaleProvider) LocaleSources() []FSSource {
 	return p.sources
+}
+
+type testByteLocaleProvider struct {
+	langs map[string][]byte
+}
+
+func (p testByteLocaleProvider) Available() []string {
+	if len(p.langs) == 0 {
+		return nil
+	}
+	langs := make([]string, 0, len(p.langs))
+	for lang := range p.langs {
+		langs = append(langs, lang)
+	}
+	return langs
+}
+
+func (p testByteLocaleProvider) Load(lang string) ([]byte, error) {
+	data, ok := p.langs[lang]
+	if !ok {
+		return nil, fs.ErrNotExist
+	}
+	return data, nil
 }
 
 func TestRegisterLocales_Good(t *testing.T) {
@@ -83,6 +107,37 @@ func TestRegisterLocaleProvider_Good(t *testing.T) {
 
 	got := svc.T("provider.loaded")
 	assert.Equal(t, "loaded from provider", got)
+}
+
+func TestRegisterLocaleProvider_Good_ByteProvider(t *testing.T) {
+	registeredLocalesMu.Lock()
+	savedLocales := registeredLocales
+	savedProviders := registeredLocaleProviders
+	savedLoaded := localesLoaded
+	registeredLocales = nil
+	registeredLocaleProviders = nil
+	localesLoaded = false
+	registeredLocalesMu.Unlock()
+	defer func() {
+		registeredLocalesMu.Lock()
+		registeredLocales = savedLocales
+		registeredLocaleProviders = savedProviders
+		localesLoaded = savedLoaded
+		registeredLocalesMu.Unlock()
+	}()
+
+	svc, err := New()
+	require.NoError(t, err)
+	SetDefault(svc)
+
+	RegisterLocaleProvider(testByteLocaleProvider{
+		langs: map[string][]byte{
+			"en": []byte(`{"provider.bytes.loaded": "loaded from bytes"}`),
+		},
+	})
+
+	got := svc.T("provider.bytes.loaded")
+	assert.Equal(t, "loaded from bytes", got)
 }
 
 func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
