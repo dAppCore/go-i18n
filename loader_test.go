@@ -739,6 +739,56 @@ func TestNewWithLoader_AcceptsGrammarAliases(t *testing.T) {
 	}
 }
 
+func TestNewWithLoader_AcceptsRFCArticleSchema(t *testing.T) {
+	const lang = "en-US"
+	prevDefault := Default()
+	prevGrammar := GetGrammarData(lang)
+	t.Cleanup(func() {
+		SetDefault(prevDefault)
+		SetGrammarData(lang, prevGrammar)
+	})
+
+	loaderFS := fstest.MapFS{
+		"en-US.json": &fstest.MapFile{
+			Data: []byte(`{
+				"common": {
+					"article": {
+						"the": "the",
+						"a": { "one": "a", "vowel": "an" }
+					}
+				}
+			}`),
+		},
+	}
+
+	svc, err := NewWithLoader(NewFSLoader(loaderFS, "."))
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+
+	data := GetGrammarData(lang)
+	if data == nil {
+		t.Fatal("RFC-style article data was not loaded")
+	}
+	if data.Articles.Definite != "the" {
+		t.Fatalf("article.definite = %q, want %q", data.Articles.Definite, "the")
+	}
+	if data.Articles.IndefiniteDefault != "a" {
+		t.Fatalf("article.indefinite.default = %q, want %q", data.Articles.IndefiniteDefault, "a")
+	}
+	if data.Articles.IndefiniteVowel != "an" {
+		t.Fatalf("article.indefinite.vowel = %q, want %q", data.Articles.IndefiniteVowel, "an")
+	}
+
+	if err := svc.SetLanguage(lang); err != nil {
+		t.Fatalf("SetLanguage(%s) failed: %v", lang, err)
+	}
+	SetDefault(svc)
+	if got := DefiniteArticle("user"); got != "the" {
+		t.Fatalf("DefiniteArticle(user) = %q, want %q", got, "the")
+	}
+}
+
 func TestFlattenPluralObject(t *testing.T) {
 	messages := make(map[string]Message)
 	raw := map[string]any{

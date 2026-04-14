@@ -509,6 +509,35 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 	if grammar == nil || (fullKey != "gram.article" && fullKey != "common.article") {
 		return false
 	}
+	// Support both the canonical loader schema (`indefinite` / `definite`)
+	// and the RFC sample shape (`the` / `a`) so locale files can be shared
+	// across implementations without data loss.
+	if def, ok := v["the"].(string); ok && def != "" {
+		grammar.Articles.Definite = def
+	}
+	if aValue, ok := v["a"]; ok {
+		switch a := aValue.(type) {
+		case string:
+			if a != "" {
+				grammar.Articles.IndefiniteDefault = a
+				grammar.Articles.IndefiniteVowel = a
+			}
+		case map[string]any:
+			if def, ok := stringFromMap(a, "default", "one"); ok {
+				grammar.Articles.IndefiniteDefault = def
+			}
+			if vowel, ok := stringFromMap(a, "vowel"); ok {
+				grammar.Articles.IndefiniteVowel = vowel
+			}
+		case map[string]string:
+			if def := firstNonEmptyString(a["default"], a["one"]); def != "" {
+				grammar.Articles.IndefiniteDefault = def
+			}
+			if vowel := core.Trim(a["vowel"]); vowel != "" {
+				grammar.Articles.IndefiniteVowel = vowel
+			}
+		}
+	}
 	if indef, ok := v["indefinite"].(map[string]any); ok {
 		if def, ok := indef["default"].(string); ok {
 			grammar.Articles.IndefiniteDefault = def
@@ -537,6 +566,15 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 		}
 	}
 	return true
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if trimmed := core.Trim(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func loadGrammarPunctuation(fullKey string, v map[string]any, grammar *GrammarData) bool {
