@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 var missingKeyHandler atomic.Value

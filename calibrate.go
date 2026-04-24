@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 	"dappco.re/go/core/inference"
 )
 

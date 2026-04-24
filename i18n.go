@@ -9,7 +9,7 @@ import (
 	"text/template"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 // T translates a message using the default service.

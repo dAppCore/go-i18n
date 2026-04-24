@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 // FSLoader loads translations from a filesystem (embedded or disk).

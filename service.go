@@ -11,7 +11,7 @@ import (
 	"unicode"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 	"golang.org/x/text/language"
 )
 
