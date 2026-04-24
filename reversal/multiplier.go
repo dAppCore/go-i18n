@@ -4,7 +4,7 @@ import (
 	"unicode"
 
 	"dappco.re/go/core"
-	i18n "dappco.re/go/core/i18n"
+	i18n "dappco.re/go/i18n"
 )
 
 // Multiplier generates deterministic grammatical variants of text

@@ -7,7 +7,7 @@ import (
 
 	"dappco.re/go/core"
 	log "dappco.re/go/log"
-	"dappco.re/go/core/inference"
+	"dappco.re/go/inference"
 )
 
 // ArticlePair holds a noun and its proposed article for validation.

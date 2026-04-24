@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"dappco.re/go/core"
-	i18n "dappco.re/go/core/i18n"
-	"dappco.re/go/core/inference"
-	_ "dappco.re/go/core/mlx" // registers Metal backend
+	i18n "dappco.re/go/i18n"
+	"dappco.re/go/inference"
+	_ "dappco.re/go/mlx" // registers Metal backend
 )
 
 func TestClassifyCorpus_Integration(t *testing.T) {

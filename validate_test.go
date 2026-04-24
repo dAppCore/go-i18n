@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"dappco.re/go/core"
-	"dappco.re/go/core/inference"
+	"dappco.re/go/inference"
 )
 
 // mockGenerateModel satisfies inference.TextModel for validator testing.

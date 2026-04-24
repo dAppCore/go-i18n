@@ -8,7 +8,7 @@ import (
 
 	"dappco.re/go/core"
 	log "dappco.re/go/log"
-	"dappco.re/go/core/inference"
+	"dappco.re/go/inference"
 )
 
 // ClassifyStats reports metrics from a ClassifyCorpus run.

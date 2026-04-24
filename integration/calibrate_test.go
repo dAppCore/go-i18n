@@ -6,9 +6,9 @@ import (
 	"testing"
 
 	"dappco.re/go/core"
-	i18n "dappco.re/go/core/i18n"
-	"dappco.re/go/core/inference"
-	_ "dappco.re/go/core/mlx" // registers Metal backend
+	i18n "dappco.re/go/i18n"
+	"dappco.re/go/inference"
+	_ "dappco.re/go/mlx" // registers Metal backend
 )
 
 // buildCalibrationCorpus constructs 500 samples for 1B vs 27B comparison.

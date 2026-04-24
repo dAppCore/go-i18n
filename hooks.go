@@ -278,7 +278,7 @@ func cloneMissingKey(mk MissingKey) MissingKey {
 }
 
 func missingKeyCaller() (string, int) {
-	const packagePrefix = "dappco.re/go/core/i18n."
+	const packagePrefix = "dappco.re/go/i18n."
 
 	pcs := make([]uintptr, 16)
 	n := runtime.Callers(2, pcs)

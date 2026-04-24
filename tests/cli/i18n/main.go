@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"dappco.re/go/core/i18n"
+	"dappco.re/go/i18n"
 )
 
 func main() {

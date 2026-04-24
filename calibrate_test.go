@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"dappco.re/go/core/inference"
+	"dappco.re/go/inference"
 )
 
 func TestCalibrateDomains_FullAgreement(t *testing.T) {

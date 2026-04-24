@@ -6,7 +6,7 @@ import (
 
 	"dappco.re/go/core"
 	log "dappco.re/go/log"
-	"dappco.re/go/core/inference"
+	"dappco.re/go/inference"
 )
 
 // CalibrationSample is a single text entry for model comparison.
