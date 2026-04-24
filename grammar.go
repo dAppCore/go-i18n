@@ -2,8 +2,11 @@ package i18n
 
 import (
 	"maps"
+	// Note: numeric parsing in grammar rules; no core.ParseInt.
 	"strconv"
+	// Note: text/template for string interpolation with grammar vars; no core equivalent.
 	"text/template"
+	// Note: unicode.* for character class analysis; no core unicode helpers.
 	"unicode"
 
 	"dappco.re/go/core"

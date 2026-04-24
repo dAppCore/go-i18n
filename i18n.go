@@ -1,8 +1,11 @@
 package i18n
 
 import (
+	// Note: bytes.Buffer for locale file parsing; no core.Buffer equivalent.
 	"bytes"
+	// Note: fs.WalkDir for locale directory traversal; coreio.Local walker not mature enough.
 	"io/fs"
+	// Note: text/template for string interpolation with grammar vars; no core equivalent.
 	"text/template"
 
 	"dappco.re/go/core"
