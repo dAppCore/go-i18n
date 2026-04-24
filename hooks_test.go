@@ -3,12 +3,11 @@ package i18n
 import (
 	"io/fs"
 	"path/filepath"
+	"reflect"
+	"strings"
 	"sync"
 	"testing"
 	"testing/fstest"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 type testLocaleProvider struct {
@@ -71,7 +70,9 @@ func TestRegisterLocales_Good(t *testing.T) {
 	registeredLocalesMu.Lock()
 	count := len(registeredLocales)
 	registeredLocalesMu.Unlock()
-	assert.Equal(t, 1, count, "should have 1 registered locale")
+	if (1) != (count) {
+		t.Fatalf("want %v, got %v", 1, count)
+	}
 }
 
 func TestRegisterLocaleProvider_Good(t *testing.T) {
@@ -92,7 +93,10 @@ func TestRegisterLocaleProvider_Good(t *testing.T) {
 	}()
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	fs := fstest.MapFS{
@@ -106,7 +110,9 @@ func TestRegisterLocaleProvider_Good(t *testing.T) {
 	})
 
 	got := svc.T("provider.loaded")
-	assert.Equal(t, "loaded from provider", got)
+	if ("loaded from provider") != (got) {
+		t.Fatalf("want %v, got %v", "loaded from provider", got)
+	}
 }
 
 func TestRegisterLocaleProvider_Good_ByteProvider(t *testing.T) {
@@ -127,7 +133,10 @@ func TestRegisterLocaleProvider_Good_ByteProvider(t *testing.T) {
 	}()
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	RegisterLocaleProvider(testByteLocaleProvider{
@@ -137,13 +146,18 @@ func TestRegisterLocaleProvider_Good_ByteProvider(t *testing.T) {
 	})
 
 	got := svc.T("provider.bytes.loaded")
-	assert.Equal(t, "loaded from bytes", got)
+	if ("loaded from bytes") != (got) {
+		t.Fatalf("want %v, got %v", "loaded from bytes", got)
+	}
 }
 
 func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
 	// When localesLoaded is true, RegisterLocales should also call LoadFS immediately
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -175,12 +189,17 @@ func TestRegisterLocales_Good_AfterLocalesLoaded(t *testing.T) {
 
 	// Should be able to resolve the newly registered key
 	got := svc.T("late.registration")
-	assert.Equal(t, "arrived late", got)
+	if ("arrived late") != (got) {
+		t.Fatalf("want %v, got %v", "arrived late", got)
+	}
 }
 
 func TestRegisterLocales_Good_WithInitializedDefaultService(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	registeredLocalesMu.Lock()
@@ -208,7 +227,9 @@ func TestRegisterLocales_Good_WithInitializedDefaultService(t *testing.T) {
 	RegisterLocales(fs, "locales")
 
 	got := svc.T("eager.registration")
-	assert.Equal(t, "loaded immediately", got)
+	if ("loaded immediately") != (got) {
+		t.Fatalf("want %v, got %v", "loaded immediately", got)
+	}
 }
 
 func TestSetDefault_Good_LoadsQueuedRegisteredLocales(t *testing.T) {
@@ -236,11 +257,16 @@ func TestSetDefault_Good_LoadsQueuedRegisteredLocales(t *testing.T) {
 	RegisterLocales(fs, "locales")
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	got := svc.T("queued.registration")
-	assert.Equal(t, "loaded via setdefault", got)
+	if ("loaded via setdefault") != (got) {
+		t.Fatalf("want %v, got %v", "loaded via setdefault", got)
+	}
 }
 
 func TestSetDefault_Good_LoadsRegisteredLocalesIntoFreshService(t *testing.T) {
@@ -268,16 +294,26 @@ func TestSetDefault_Good_LoadsRegisteredLocalesIntoFreshService(t *testing.T) {
 	RegisterLocales(fs, "locales")
 
 	first, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(first)
-	require.Equal(t, "fresh value", first.T("fresh.registration"))
+	if ("fresh value") != (first.T("fresh.registration")) {
+		t.Fatalf("want %v, got %v", "fresh value", first.T("fresh.registration"))
+	}
 
 	second, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(second)
 
 	got := second.T("fresh.registration")
-	assert.Equal(t, "fresh value", got)
+	if ("fresh value") != (got) {
+		t.Fatalf("want %v, got %v", "fresh value", got)
+	}
 }
 
 func TestInit_LoadsRegisteredLocales(t *testing.T) {
@@ -308,14 +344,19 @@ func TestInit_LoadsRegisteredLocales(t *testing.T) {
 		},
 	}
 	RegisterLocales(fs, "locales")
-
-	require.NoError(t, Init())
+	if err := Init(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	svc := Default()
-	require.NotNil(t, svc)
+	if (svc) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
 
 	got := svc.T("init.registered")
-	assert.Equal(t, "loaded on init", got)
+	if ("loaded on init") != (got) {
+		t.Fatalf("want %v, got %v", "loaded on init", got)
+	}
 }
 
 func TestNewCoreService_LoadsRegisteredLocales(t *testing.T) {
@@ -346,24 +387,38 @@ func TestNewCoreService_LoadsRegisteredLocales(t *testing.T) {
 
 	factory := NewCoreService(ServiceOptions{})
 	_, err := factory(nil)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	svc := Default()
-	require.NotNil(t, svc)
+	if (svc) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
 	got := svc.T("core.registered")
-	assert.Equal(t, "loaded on core bootstrap", got)
+	if ("loaded on core bootstrap") != (got) {
+		t.Fatalf("want %v, got %v", "loaded on core bootstrap", got)
+	}
 }
 
 func TestNewCoreService_InvalidLanguagePreservesSetLanguageError(t *testing.T) {
 	factory := NewCoreService(ServiceOptions{Language: "es"})
 
 	_, err := factory(nil)
-	require.Error(t, err)
+	if err == nil {
+		t.Fatalf("expected error, got nil")
+	}
 
 	msg := err.Error()
-	assert.Contains(t, msg, "unsupported language: es")
-	assert.Contains(t, msg, "available:")
-	assert.NotContains(t, msg, "invalid language")
+	if !strings.Contains(msg, "unsupported language: es") {
+		t.Fatalf("expected %q to contain %q", msg, "unsupported language: es")
+	}
+	if !strings.Contains(msg, "available:") {
+		t.Fatalf("expected %q to contain %q", msg, "available:")
+	}
+	if strings.Contains(msg, "invalid language") {
+		t.Fatalf("did not expect %q to contain %q", msg, "invalid language")
+	}
 }
 
 func TestNewCoreService_AppliesOptions(t *testing.T) {
@@ -383,104 +438,214 @@ func TestNewCoreService_AppliesOptions(t *testing.T) {
 	})
 
 	_, err := factory(nil)
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	svc := Default()
-	require.NotNil(t, svc)
-	assert.Equal(t, "en", svc.Language())
-	assert.Equal(t, "fr", svc.Fallback())
-	assert.Equal(t, FormalityFormal, svc.Formality())
-	assert.Equal(t, "workspace", svc.Location())
-	assert.Equal(t, ModeCollect, svc.Mode())
-	assert.True(t, svc.Debug())
+	if (svc) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
+	if ("en") != (svc.Language()) {
+		t.Fatalf("want %v, got %v", "en", svc.Language())
+	}
+	if ("fr") != (svc.Fallback()) {
+		t.Fatalf("want %v, got %v", "fr", svc.Fallback())
+	}
+	if (FormalityFormal) != (svc.Formality()) {
+		t.Fatalf("want %v, got %v", FormalityFormal, svc.Formality())
+	}
+	if ("workspace") != (svc.Location()) {
+		t.Fatalf("want %v, got %v", "workspace", svc.Location())
+	}
+	if (ModeCollect) != (svc.Mode()) {
+		t.Fatalf("want %v, got %v", ModeCollect, svc.Mode())
+	}
+	if !(svc.Debug()) {
+		t.Fatal("expected true")
+	}
 }
 
 func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	coreSvc := &CoreService{svc: svc}
-
-	assert.Equal(t, svc.T("i18n.label.status"), coreSvc.T("i18n.label.status"))
-	assert.Equal(t, svc.Raw("i18n.label.status"), coreSvc.Raw("i18n.label.status"))
-	assert.Equal(t, svc.Translate("i18n.label.status"), coreSvc.Translate("i18n.label.status"))
-	assert.Equal(t, svc.AvailableLanguages(), coreSvc.AvailableLanguages())
-	assert.Equal(t, svc.AvailableLanguages(), coreSvc.CurrentAvailableLanguages())
-	assert.Equal(t, svc.Direction(), coreSvc.Direction())
-	assert.Equal(t, svc.Direction(), coreSvc.CurrentDirection())
-	assert.Equal(t, svc.Direction(), coreSvc.CurrentTextDirection())
-	assert.Equal(t, svc.IsRTL(), coreSvc.IsRTL())
-	assert.Equal(t, svc.IsRTL(), coreSvc.CurrentIsRTL())
-	assert.Equal(t, svc.IsRTL(), coreSvc.RTL())
-	assert.Equal(t, svc.IsRTL(), coreSvc.CurrentRTL())
-	assert.Equal(t, svc.PluralCategory(2), coreSvc.PluralCategory(2))
-	assert.Equal(t, svc.PluralCategory(2), coreSvc.CurrentPluralCategory(2))
-	assert.Equal(t, svc.PluralCategory(2), coreSvc.PluralCategoryOf(2))
-	assert.Equal(t, svc.Mode(), coreSvc.CurrentMode())
-	assert.Equal(t, svc.Language(), coreSvc.CurrentLanguage())
-	assert.Equal(t, svc.Language(), coreSvc.CurrentLang())
-	assert.Equal(t, svc.Prompt("confirm"), coreSvc.Prompt("confirm"))
-	assert.Equal(t, svc.Prompt("confirm"), coreSvc.CurrentPrompt("confirm"))
-	assert.Equal(t, svc.Lang("fr"), coreSvc.Lang("fr"))
-	assert.Equal(t, svc.Fallback(), coreSvc.CurrentFallback())
-	assert.Equal(t, svc.Formality(), coreSvc.CurrentFormality())
-	assert.Equal(t, svc.Location(), coreSvc.CurrentLocation())
-	assert.Equal(t, svc.Debug(), coreSvc.CurrentDebug())
-
-	require.NoError(t, coreSvc.SetLanguage("en"))
-	assert.Equal(t, "en", coreSvc.Language())
+	if (svc.T("i18n.label.status")) != (coreSvc.T("i18n.label.status")) {
+		t.Fatalf("want %v, got %v", svc.T("i18n.label.status"), coreSvc.T("i18n.label.status"))
+	}
+	if (svc.Raw("i18n.label.status")) != (coreSvc.Raw("i18n.label.status")) {
+		t.Fatalf("want %v, got %v", svc.Raw("i18n.label.status"), coreSvc.Raw("i18n.label.status"))
+	}
+	if (svc.Translate("i18n.label.status")) != (coreSvc.Translate("i18n.label.status")) {
+		t.Fatalf("want %v, got %v", svc.Translate("i18n.label.status"), coreSvc.Translate("i18n.label.status"))
+	}
+	if !reflect.DeepEqual(svc.AvailableLanguages(), coreSvc.AvailableLanguages()) {
+		t.Fatalf("want %v, got %v", svc.AvailableLanguages(), coreSvc.AvailableLanguages())
+	}
+	if !reflect.DeepEqual(svc.AvailableLanguages(), coreSvc.CurrentAvailableLanguages()) {
+		t.Fatalf("want %v, got %v", svc.AvailableLanguages(), coreSvc.CurrentAvailableLanguages())
+	}
+	if (svc.Direction()) != (coreSvc.Direction()) {
+		t.Fatalf("want %v, got %v", svc.Direction(), coreSvc.Direction())
+	}
+	if (svc.Direction()) != (coreSvc.CurrentDirection()) {
+		t.Fatalf("want %v, got %v", svc.Direction(), coreSvc.CurrentDirection())
+	}
+	if (svc.Direction()) != (coreSvc.CurrentTextDirection()) {
+		t.Fatalf("want %v, got %v", svc.Direction(), coreSvc.CurrentTextDirection())
+	}
+	if (svc.IsRTL()) != (coreSvc.IsRTL()) {
+		t.Fatalf("want %v, got %v", svc.IsRTL(), coreSvc.IsRTL())
+	}
+	if (svc.IsRTL()) != (coreSvc.CurrentIsRTL()) {
+		t.Fatalf("want %v, got %v", svc.IsRTL(), coreSvc.CurrentIsRTL())
+	}
+	if (svc.IsRTL()) != (coreSvc.RTL()) {
+		t.Fatalf("want %v, got %v", svc.IsRTL(), coreSvc.RTL())
+	}
+	if (svc.IsRTL()) != (coreSvc.CurrentRTL()) {
+		t.Fatalf("want %v, got %v", svc.IsRTL(), coreSvc.CurrentRTL())
+	}
+	if (svc.PluralCategory(2)) != (coreSvc.PluralCategory(2)) {
+		t.Fatalf("want %v, got %v", svc.PluralCategory(2), coreSvc.PluralCategory(2))
+	}
+	if (svc.PluralCategory(2)) != (coreSvc.CurrentPluralCategory(2)) {
+		t.Fatalf("want %v, got %v", svc.PluralCategory(2), coreSvc.CurrentPluralCategory(2))
+	}
+	if (svc.PluralCategory(2)) != (coreSvc.PluralCategoryOf(2)) {
+		t.Fatalf("want %v, got %v", svc.PluralCategory(2), coreSvc.PluralCategoryOf(2))
+	}
+	if (svc.Mode()) != (coreSvc.CurrentMode()) {
+		t.Fatalf("want %v, got %v", svc.Mode(), coreSvc.CurrentMode())
+	}
+	if (svc.Language()) != (coreSvc.CurrentLanguage()) {
+		t.Fatalf("want %v, got %v", svc.Language(), coreSvc.CurrentLanguage())
+	}
+	if (svc.Language()) != (coreSvc.CurrentLang()) {
+		t.Fatalf("want %v, got %v", svc.Language(), coreSvc.CurrentLang())
+	}
+	if (svc.Prompt("confirm")) != (coreSvc.Prompt("confirm")) {
+		t.Fatalf("want %v, got %v", svc.Prompt("confirm"), coreSvc.Prompt("confirm"))
+	}
+	if (svc.Prompt("confirm")) != (coreSvc.CurrentPrompt("confirm")) {
+		t.Fatalf("want %v, got %v", svc.Prompt("confirm"), coreSvc.CurrentPrompt("confirm"))
+	}
+	if (svc.Lang("fr")) != (coreSvc.Lang("fr")) {
+		t.Fatalf("want %v, got %v", svc.Lang("fr"), coreSvc.Lang("fr"))
+	}
+	if (svc.Fallback()) != (coreSvc.CurrentFallback()) {
+		t.Fatalf("want %v, got %v", svc.Fallback(), coreSvc.CurrentFallback())
+	}
+	if (svc.Formality()) != (coreSvc.CurrentFormality()) {
+		t.Fatalf("want %v, got %v", svc.Formality(), coreSvc.CurrentFormality())
+	}
+	if (svc.Location()) != (coreSvc.CurrentLocation()) {
+		t.Fatalf("want %v, got %v", svc.Location(), coreSvc.CurrentLocation())
+	}
+	if (svc.Debug()) != (coreSvc.CurrentDebug()) {
+		t.Fatalf("want %v, got %v", svc.Debug(), coreSvc.CurrentDebug())
+	}
+	if err := coreSvc.SetLanguage("en"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ("en") != (coreSvc.Language()) {
+		t.Fatalf("want %v, got %v", "en", coreSvc.Language())
+	}
 
 	coreSvc.SetFallback("fr")
-	assert.Equal(t, "fr", coreSvc.Fallback())
+	if ("fr") != (coreSvc.Fallback()) {
+		t.Fatalf("want %v, got %v", "fr", coreSvc.Fallback())
+	}
 
 	coreSvc.SetFormality(FormalityFormal)
-	assert.Equal(t, FormalityFormal, coreSvc.Formality())
+	if (FormalityFormal) != (coreSvc.Formality()) {
+		t.Fatalf("want %v, got %v", FormalityFormal, coreSvc.Formality())
+	}
 
 	coreSvc.SetLocation("workspace")
-	assert.Equal(t, "workspace", coreSvc.Location())
+	if ("workspace") != (coreSvc.Location()) {
+		t.Fatalf("want %v, got %v", "workspace", coreSvc.Location())
+	}
 
 	coreSvc.SetDebug(true)
-	assert.True(t, coreSvc.Debug())
+	if !(coreSvc.Debug()) {
+		t.Fatal("expected true")
+	}
 	coreSvc.SetDebug(false)
-	assert.False(t, coreSvc.Debug())
+	if coreSvc.Debug() {
+		t.Fatal("expected false")
+	}
 
 	handlers := coreSvc.Handlers()
-	assert.Equal(t, svc.Handlers(), handlers)
-	assert.Equal(t, svc.Handlers(), coreSvc.CurrentHandlers())
+	if !reflect.DeepEqual(svc.Handlers(), handlers) {
+		t.Fatalf("want %v, got %v", svc.Handlers(), handlers)
+	}
+	if !reflect.DeepEqual(svc.Handlers(), coreSvc.CurrentHandlers()) {
+		t.Fatalf("want %v, got %v", svc.Handlers(), coreSvc.CurrentHandlers())
+	}
 
 	coreSvc.SetHandlers(LabelHandler{})
-	require.Len(t, coreSvc.Handlers(), 1)
-	assert.IsType(t, LabelHandler{}, coreSvc.Handlers()[0])
+	if len(coreSvc.Handlers()) != 1 {
+		t.Fatalf("expected length %v, got %v", 1, coreSvc.Handlers())
+	}
+	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, coreSvc.Handlers()[0])
+	}
 
 	coreSvc.AddHandler(ProgressHandler{})
-	require.Len(t, coreSvc.Handlers(), 2)
-	assert.IsType(t, ProgressHandler{}, coreSvc.Handlers()[1])
+	if len(coreSvc.Handlers()) != 2 {
+		t.Fatalf("expected length %v, got %v", 2, coreSvc.Handlers())
+	}
+	if reflect.TypeOf(coreSvc.Handlers()[1]) != reflect.TypeOf(ProgressHandler{}) {
+		t.Fatalf("expected type %T, got %T", ProgressHandler{}, coreSvc.Handlers()[1])
+	}
 
 	coreSvc.PrependHandler(CountHandler{})
-	require.Len(t, coreSvc.Handlers(), 3)
-	assert.IsType(t, CountHandler{}, coreSvc.Handlers()[0])
+	if len(coreSvc.Handlers()) != 3 {
+		t.Fatalf("expected length %v, got %v", 3, coreSvc.Handlers())
+	}
+	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeOf(CountHandler{}) {
+		t.Fatalf("expected type %T, got %T", CountHandler{}, coreSvc.Handlers()[0])
+	}
 
 	coreSvc.ClearHandlers()
-	assert.Empty(t, coreSvc.Handlers())
+	if len(coreSvc.Handlers()) != 0 {
+		t.Fatalf("expected empty, got %v", coreSvc.Handlers())
+	}
 
 	coreSvc.ResetHandlers()
-	require.NotEmpty(t, coreSvc.Handlers())
-	assert.IsType(t, LabelHandler{}, coreSvc.Handlers()[0])
-
-	require.NoError(t, coreSvc.AddLoader(NewFSLoader(fstest.MapFS{
+	if len(coreSvc.Handlers()) == 0 {
+		t.Fatalf("expected non-empty")
+	}
+	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, coreSvc.Handlers()[0])
+	}
+	if err := coreSvc.AddLoader(NewFSLoader(fstest.MapFS{
 		"locales/en.json": &fstest.MapFile{Data: []byte(`{"core.service.loaded": "loaded"}`)},
-	}, "locales")))
-	assert.Equal(t, "loaded", coreSvc.T("core.service.loaded"))
-
-	require.NoError(t, coreSvc.LoadFS(fstest.MapFS{
+	}, "locales")); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ("loaded") != (coreSvc.T("core.service.loaded")) {
+		t.Fatalf("want %v, got %v", "loaded", coreSvc.T("core.service.loaded"))
+	}
+	if err := coreSvc.LoadFS(fstest.MapFS{
 		"locales/en.json": &fstest.MapFile{Data: []byte(`{"core.service.loaded.fs": "loaded via fs"}`)},
-	}, "locales"))
-	assert.Equal(t, "loaded via fs", coreSvc.T("core.service.loaded.fs"))
+	}, "locales"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if ("loaded via fs") != (coreSvc.T("core.service.loaded.fs")) {
+		t.Fatalf("want %v, got %v", "loaded via fs", coreSvc.T("core.service.loaded.fs"))
+	}
 
 	coreSvc.AddMessages("en", map[string]string{
 		"core.service.add.messages": "loaded via add messages",
 	})
-	assert.Equal(t, "loaded via add messages", coreSvc.T("core.service.add.messages"))
+	if ("loaded via add messages") != (coreSvc.T("core.service.add.messages")) {
+		t.Fatalf("want %v, got %v", "loaded via add messages", coreSvc.T("core.service.add.messages"))
+	}
 }
 
 func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
@@ -511,13 +676,20 @@ func TestInit_ReDetectsRegisteredLocales(t *testing.T) {
 		},
 	}
 	RegisterLocales(fs, "locales")
-
-	require.NoError(t, Init())
+	if err := Init(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	svc := Default()
-	require.NotNil(t, svc)
-	assert.Contains(t, svc.Language(), "de")
-	assert.Equal(t, "hallo", svc.T("hello"))
+	if (svc) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
+	if !strings.Contains(svc.Language(), "de") {
+		t.Fatalf("expected %q to contain %q", svc.Language(), "de")
+	}
+	if ("hallo") != (svc.T("hello")) {
+		t.Fatalf("want %v, got %v", "hallo", svc.T("hello"))
+	}
 }
 
 func TestDefault_ReinitialisesAfterClear(t *testing.T) {
@@ -527,17 +699,24 @@ func TestDefault_ReinitialisesAfterClear(t *testing.T) {
 	})
 
 	SetDefault(nil)
-
-	require.NoError(t, Init())
+	if err := Init(); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	svc := Default()
-	require.NotNil(t, svc)
-	assert.Equal(t, "y", svc.T("prompt.yes"))
+	if (svc) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
+	if ("y") != (svc.T("prompt.yes")) {
+		t.Fatalf("want %v, got %v", "y", svc.T("prompt.yes"))
+	}
 }
 
 func TestLoadRegisteredLocales_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	// Save and restore state
 	registeredLocalesMu.Lock()
@@ -570,15 +749,22 @@ func TestLoadRegisteredLocales_Good(t *testing.T) {
 	registeredLocalesMu.Lock()
 	loaded := localesLoaded
 	registeredLocalesMu.Unlock()
-	assert.True(t, loaded, "localesLoaded should be true after loadRegisteredLocales")
+	if !(loaded) {
+		t.Fatal("expected true")
+	}
 
 	got := svc.T("extra.key")
-	assert.Equal(t, "extra value", got)
+	if ("extra value") != (got) {
+		t.Fatalf("want %v, got %v", "extra value", got)
+	}
 }
 
 func TestOnMissingKey_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -592,15 +778,23 @@ func TestOnMissingKey_Good(t *testing.T) {
 	})
 
 	_ = T("missing.test.key", map[string]any{"foo": "bar"})
-
-	assert.Equal(t, "missing.test.key", captured.Key)
-	assert.Equal(t, "bar", captured.Args["foo"])
-	assert.Equal(t, "hooks_test.go", filepath.Base(captured.CallerFile))
+	if ("missing.test.key") != (captured.Key) {
+		t.Fatalf("want %v, got %v", "missing.test.key", captured.Key)
+	}
+	if ("bar") != (captured.Args["foo"]) {
+		t.Fatalf("want %v, got %v", "bar", captured.Args["foo"])
+	}
+	if ("hooks_test.go") != (filepath.Base(captured.CallerFile)) {
+		t.Fatalf("want %v, got %v", "hooks_test.go", filepath.Base(captured.CallerFile))
+	}
 }
 
 func TestOnMissingKey_Good_AppendsHandlers(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	prevHandlers := missingKeyHandlers()
@@ -620,14 +814,20 @@ func TestOnMissingKey_Good_AppendsHandlers(t *testing.T) {
 	OnMissingKey(func(MissingKey) { second++ })
 
 	_ = T("missing.on.handler.append")
-
-	assert.Equal(t, 1, first)
-	assert.Equal(t, 1, second)
+	if (1) != (first) {
+		t.Fatalf("want %v, got %v", 1, first)
+	}
+	if (1) != (second) {
+		t.Fatalf("want %v, got %v", 1, second)
+	}
 }
 
 func TestAddMissingKeyHandler_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	prevHandlers := missingKeyHandlers()
@@ -651,14 +851,20 @@ func TestAddMissingKeyHandler_Good(t *testing.T) {
 	})
 
 	_ = T("missing.multiple.handlers")
-
-	assert.Equal(t, 1, first)
-	assert.Equal(t, 1, second)
+	if (1) != (first) {
+		t.Fatalf("want %v, got %v", 1, first)
+	}
+	if (1) != (second) {
+		t.Fatalf("want %v, got %v", 1, second)
+	}
 }
 
 func TestSetMissingKeyHandlers_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	prevHandlers := missingKeyHandlers()
@@ -676,15 +882,23 @@ func TestSetMissingKeyHandlers_Good(t *testing.T) {
 	)
 
 	_ = T("missing.set.handlers")
-
-	assert.Equal(t, 1, first)
-	assert.Equal(t, 1, second)
-	assert.Len(t, missingKeyHandlers().handlers, 2)
+	if (1) != (first) {
+		t.Fatalf("want %v, got %v", 1, first)
+	}
+	if (1) != (second) {
+		t.Fatalf("want %v, got %v", 1, second)
+	}
+	if len(missingKeyHandlers().handlers) != 2 {
+		t.Fatalf("expected length %v, got %v", 2, missingKeyHandlers().handlers)
+	}
 }
 
 func TestSetMissingKeyHandlers_Good_Clear(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	prevHandlers := missingKeyHandlers()
@@ -699,14 +913,20 @@ func TestSetMissingKeyHandlers_Good_Clear(t *testing.T) {
 	SetMissingKeyHandlers(nil)
 
 	_ = T("missing.set.handlers.clear")
-
-	assert.Equal(t, 0, called)
-	assert.Empty(t, missingKeyHandlers().handlers)
+	if (0) != (called) {
+		t.Fatalf("want %v, got %v", 0, called)
+	}
+	if len(missingKeyHandlers().handlers) != 0 {
+		t.Fatalf("expected empty, got %v", missingKeyHandlers().handlers)
+	}
 }
 
 func TestAddMissingKeyHandler_Good_Concurrent(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	prevHandlers := missingKeyHandlers()
@@ -733,12 +953,17 @@ func TestAddMissingKeyHandler_Good_Concurrent(t *testing.T) {
 	wg.Wait()
 
 	state := missingKeyHandlers()
-	assert.Len(t, state.handlers, handlers)
+	if len(state.handlers) != handlers {
+		t.Fatalf("expected length %v, got %v", handlers, state.handlers)
+	}
 }
 
 func TestClearMissingKeyHandlers_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	prevHandlers := missingKeyHandlers()
@@ -756,13 +981,17 @@ func TestClearMissingKeyHandlers_Good(t *testing.T) {
 	ClearMissingKeyHandlers()
 
 	_ = T("missing.after.clear")
-
-	assert.Equal(t, 0, called)
+	if (0) != (called) {
+		t.Fatalf("want %v, got %v", 0, called)
+	}
 }
 
 func TestOnMissingKey_Good_SubjectArgs(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -776,18 +1005,32 @@ func TestOnMissingKey_Good_SubjectArgs(t *testing.T) {
 	})
 
 	_ = T("missing.subject.key", S("file", "config.yaml").Count(3).In("workspace").Formal())
-
-	assert.Equal(t, "missing.subject.key", captured.Key)
-	assert.Equal(t, "config.yaml", captured.Args["Subject"])
-	assert.Equal(t, "file", captured.Args["Noun"])
-	assert.Equal(t, 3, captured.Args["Count"])
-	assert.Equal(t, "workspace", captured.Args["Location"])
-	assert.Equal(t, FormalityFormal, captured.Args["Formality"])
+	if ("missing.subject.key") != (captured.Key) {
+		t.Fatalf("want %v, got %v", "missing.subject.key", captured.Key)
+	}
+	if ("config.yaml") != (captured.Args["Subject"]) {
+		t.Fatalf("want %v, got %v", "config.yaml", captured.Args["Subject"])
+	}
+	if ("file") != (captured.Args["Noun"]) {
+		t.Fatalf("want %v, got %v", "file", captured.Args["Noun"])
+	}
+	if (3) != (captured.Args["Count"]) {
+		t.Fatalf("want %v, got %v", 3, captured.Args["Count"])
+	}
+	if ("workspace") != (captured.Args["Location"]) {
+		t.Fatalf("want %v, got %v", "workspace", captured.Args["Location"])
+	}
+	if (FormalityFormal) != (captured.Args["Formality"]) {
+		t.Fatalf("want %v, got %v", FormalityFormal, captured.Args["Formality"])
+	}
 }
 
 func TestOnMissingKey_Good_TranslationContextArgs(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -801,17 +1044,29 @@ func TestOnMissingKey_Good_TranslationContextArgs(t *testing.T) {
 	})
 
 	_ = T("missing.context.key", C("navigation").WithGender("feminine").In("workspace").Formal())
-
-	assert.Equal(t, "missing.context.key", captured.Key)
-	assert.Equal(t, "navigation", captured.Args["Context"])
-	assert.Equal(t, "feminine", captured.Args["Gender"])
-	assert.Equal(t, "workspace", captured.Args["Location"])
-	assert.Equal(t, FormalityFormal, captured.Args["Formality"])
+	if ("missing.context.key") != (captured.Key) {
+		t.Fatalf("want %v, got %v", "missing.context.key", captured.Key)
+	}
+	if ("navigation") != (captured.Args["Context"]) {
+		t.Fatalf("want %v, got %v", "navigation", captured.Args["Context"])
+	}
+	if ("feminine") != (captured.Args["Gender"]) {
+		t.Fatalf("want %v, got %v", "feminine", captured.Args["Gender"])
+	}
+	if ("workspace") != (captured.Args["Location"]) {
+		t.Fatalf("want %v, got %v", "workspace", captured.Args["Location"])
+	}
+	if (FormalityFormal) != (captured.Args["Formality"]) {
+		t.Fatalf("want %v, got %v", FormalityFormal, captured.Args["Formality"])
+	}
 }
 
 func TestOnMissingKey_Good_MergesAdditionalArgs(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -825,10 +1080,15 @@ func TestOnMissingKey_Good_MergesAdditionalArgs(t *testing.T) {
 	})
 
 	_ = T("missing.extra.args", S("file", "config.yaml"), map[string]any{"trace": "abc123"})
-
-	assert.Equal(t, "missing.extra.args", captured.Key)
-	assert.Equal(t, "config.yaml", captured.Args["Subject"])
-	assert.Equal(t, "abc123", captured.Args["trace"])
+	if ("missing.extra.args") != (captured.Key) {
+		t.Fatalf("want %v, got %v", "missing.extra.args", captured.Key)
+	}
+	if ("config.yaml") != (captured.Args["Subject"]) {
+		t.Fatalf("want %v, got %v", "config.yaml", captured.Args["Subject"])
+	}
+	if ("abc123") != (captured.Args["trace"]) {
+		t.Fatalf("want %v, got %v", "abc123", captured.Args["trace"])
+	}
 }
 
 func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
@@ -841,7 +1101,9 @@ func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
 
 func TestCoreServiceSetMode_Good_PreservesMissingKeyHandlers(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	prev := missingKeyHandlers()
 	t.Cleanup(func() {

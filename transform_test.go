@@ -1,9 +1,8 @@
 package i18n
 
 import (
+	"math"
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 // --- getCount ---
@@ -25,22 +24,26 @@ func TestGetCount_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := getCount(tt.data)
-			assert.Equal(t, tt.want, got)
+			if (tt.want) != (got) {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
 
 func TestGetCount_Good_TranslationContextDefault(t *testing.T) {
 	ctx := C("test")
-	assert.Equal(t, 1, getCount(ctx))
+	if (1) != (getCount(ctx)) {
+		t.Fatalf("want %v, got %v", 1, getCount(ctx))
+	}
 }
 
 func TestGetCount_Good_TranslationContextExtraCount(t *testing.T) {
 	ctx := C("test").Set("Count", 3)
-	assert.Equal(t, 3, getCount(ctx))
+	if (3) != (getCount(ctx)) {
+		t.Fatalf("want %v, got %v", 3, getCount(ctx))
+	}
 }
-
-// --- toInt ---
 
 func TestToInt_Good(t *testing.T) {
 	tests := []struct {
@@ -68,7 +71,9 @@ func TestToInt_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := toInt(tt.val)
-			assert.Equal(t, tt.want, got)
+			if (tt.want) != (got) {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
@@ -101,7 +106,9 @@ func TestToInt64_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := toInt64(tt.val)
-			assert.Equal(t, tt.want, got)
+			if (tt.want) != (got) {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
@@ -134,7 +141,9 @@ func TestToFloat64_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := toFloat64(tt.val)
-			assert.InDelta(t, tt.want, got, 0.01)
+			if math.Abs((tt.want)-(got)) > 0.01 {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }

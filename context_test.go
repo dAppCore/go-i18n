@@ -2,86 +2,142 @@ package i18n
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // --- C() constructor ---
 
 func TestC_Good(t *testing.T) {
 	ctx := C("navigation")
-	require.NotNil(t, ctx)
-	assert.Equal(t, "navigation", ctx.Context)
-	assert.Equal(t, "navigation", ctx.ContextString())
-	assert.Equal(t, "navigation", ctx.String())
-	assert.Equal(t, 1, ctx.CountInt())
-	assert.Equal(t, "1", ctx.CountString())
-	assert.False(t, ctx.IsPlural())
+	if (ctx) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
+	if ("navigation") != (ctx.Context) {
+		t.Fatalf("want %v, got %v", "navigation", ctx.Context)
+	}
+	if ("navigation") != (ctx.ContextString()) {
+		t.Fatalf("want %v, got %v", "navigation", ctx.ContextString())
+	}
+	if ("navigation") != (ctx.String()) {
+		t.Fatalf("want %v, got %v", "navigation", ctx.String())
+	}
+	if (1) != (ctx.CountInt()) {
+		t.Fatalf("want %v, got %v", 1, ctx.CountInt())
+	}
+	if ("1") != (ctx.CountString()) {
+		t.Fatalf("want %v, got %v", "1", ctx.CountString())
+	}
+	if ctx.IsPlural() {
+		t.Fatal("expected false")
+	}
 }
 
 func TestC_Good_EmptyContext(t *testing.T) {
 	ctx := C("")
-	require.NotNil(t, ctx)
-	assert.Equal(t, "", ctx.ContextString())
+	if (ctx) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
+	if ("") != (ctx.ContextString()) {
+		t.Fatalf("want %v, got %v", "", ctx.ContextString())
+	}
 }
-
-// --- Nil receiver safety ---
 
 func TestTranslationContext_NilReceiver_Good(t *testing.T) {
 	var ctx *TranslationContext
-
-	assert.Nil(t, ctx.Count(2))
-	assert.Nil(t, ctx.WithGender("masculine"))
-	assert.Nil(t, ctx.In("workspace"))
-	assert.Nil(t, ctx.Formal())
-	assert.Nil(t, ctx.Informal())
-	assert.Nil(t, ctx.WithFormality(FormalityFormal))
-	assert.Nil(t, ctx.Set("key", "value"))
-	assert.Nil(t, ctx.Get("key"))
-	assert.Equal(t, "", ctx.ContextString())
-	assert.Equal(t, "", ctx.GenderString())
-	assert.Equal(t, "", ctx.LocationString())
-	assert.Equal(t, FormalityNeutral, ctx.FormalityValue())
-	assert.Equal(t, 1, ctx.CountInt())
-	assert.Equal(t, "1", ctx.CountString())
-	assert.False(t, ctx.IsPlural())
+	if (ctx.Count(2)) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Count(2))
+	}
+	if (ctx.WithGender("masculine")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.WithGender("masculine"))
+	}
+	if (ctx.In("workspace")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.In("workspace"))
+	}
+	if (ctx.Formal()) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Formal())
+	}
+	if (ctx.Informal()) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Informal())
+	}
+	if (ctx.WithFormality(FormalityFormal)) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.WithFormality(FormalityFormal))
+	}
+	if (ctx.Set("key", "value")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Set("key", "value"))
+	}
+	if (ctx.Get("key")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Get("key"))
+	}
+	if ("") != (ctx.ContextString()) {
+		t.Fatalf("want %v, got %v", "", ctx.ContextString())
+	}
+	if ("") != (ctx.GenderString()) {
+		t.Fatalf("want %v, got %v", "", ctx.GenderString())
+	}
+	if ("") != (ctx.LocationString()) {
+		t.Fatalf("want %v, got %v", "", ctx.LocationString())
+	}
+	if (FormalityNeutral) != (ctx.FormalityValue()) {
+		t.Fatalf("want %v, got %v", FormalityNeutral, ctx.FormalityValue())
+	}
+	if (1) != (ctx.CountInt()) {
+		t.Fatalf("want %v, got %v", 1, ctx.CountInt())
+	}
+	if ("1") != (ctx.CountString()) {
+		t.Fatalf("want %v, got %v", "1", ctx.CountString())
+	}
+	if ctx.IsPlural() {
+		t.Fatal("expected false")
+	}
 }
-
-// --- WithGender ---
 
 func TestTranslationContext_WithGender_Good(t *testing.T) {
 	ctx := C("test").WithGender("feminine")
-	assert.Equal(t, "feminine", ctx.Gender)
-	assert.Equal(t, "feminine", ctx.GenderString())
+	if ("feminine") != (ctx.Gender) {
+		t.Fatalf("want %v, got %v", "feminine", ctx.Gender)
+	}
+	if ("feminine") != (ctx.GenderString()) {
+		t.Fatalf("want %v, got %v", "feminine", ctx.GenderString())
+	}
 }
 
 func TestTranslationContext_In_Good(t *testing.T) {
 	ctx := C("test").In("workspace")
-	assert.Equal(t, "workspace", ctx.Location)
-	assert.Equal(t, "workspace", ctx.LocationString())
+	if ("workspace") != (ctx.Location) {
+		t.Fatalf("want %v, got %v", "workspace", ctx.Location)
+	}
+	if ("workspace") != (ctx.LocationString()) {
+		t.Fatalf("want %v, got %v", "workspace", ctx.LocationString())
+	}
 }
 
 func TestTranslationContext_In_Bad_NilReceiver(t *testing.T) {
 	var ctx *TranslationContext
-	assert.Nil(t, ctx.In("workspace"))
+	if (ctx.In("workspace")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.In("workspace"))
+	}
 }
 
 // --- Formal / Informal ---
 
 func TestTranslationContext_Formal_Good(t *testing.T) {
 	ctx := C("greeting").Formal()
-	assert.Equal(t, FormalityFormal, ctx.Formality)
-	assert.Equal(t, FormalityFormal, ctx.FormalityValue())
+	if (FormalityFormal) != (ctx.Formality) {
+		t.Fatalf("want %v, got %v", FormalityFormal, ctx.Formality)
+	}
+	if (FormalityFormal) != (ctx.FormalityValue()) {
+		t.Fatalf("want %v, got %v", FormalityFormal, ctx.FormalityValue())
+	}
 }
 
 func TestTranslationContext_Informal_Good(t *testing.T) {
 	ctx := C("greeting").Informal()
-	assert.Equal(t, FormalityInformal, ctx.Formality)
-	assert.Equal(t, FormalityInformal, ctx.FormalityValue())
+	if (FormalityInformal) != (ctx.Formality) {
+		t.Fatalf("want %v, got %v", FormalityInformal, ctx.Formality)
+	}
+	if (FormalityInformal) != (ctx.FormalityValue()) {
+		t.Fatalf("want %v, got %v", FormalityInformal, ctx.FormalityValue())
+	}
 }
-
-// --- WithFormality ---
 
 func TestTranslationContext_WithFormality_Good(t *testing.T) {
 	tests := []struct {
@@ -96,45 +152,58 @@ func TestTranslationContext_WithFormality_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			ctx := C("test").WithFormality(tt.f)
-			assert.Equal(t, tt.want, ctx.FormalityValue())
+			if (tt.want) != (ctx.FormalityValue()) {
+				t.Fatalf("want %v, got %v", tt.want, ctx.FormalityValue())
+			}
 		})
 	}
 }
 
 func TestTranslationContext_CountString_UsesLocaleFormatting(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
 		SetDefault(prev)
 	})
-
-	require.NoError(t, SetLanguage("fr"))
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	ctx := C("test").Count(1234)
-	assert.Equal(t, "1 234", ctx.CountString())
+	if ("1 234") != (ctx.CountString()) {
+		t.Fatalf("want %v, got %v", "1 234", ctx.CountString())
+	}
 }
-
-// --- Set / Get ---
 
 func TestTranslationContext_SetGet_Good(t *testing.T) {
 	ctx := C("test").
 		Set("region", "europe").
 		Set("audience", "developers")
-
-	assert.Equal(t, "europe", ctx.Get("region"))
-	assert.Equal(t, "developers", ctx.Get("audience"))
+	if ("europe") != (ctx.Get("region")) {
+		t.Fatalf("want %v, got %v", "europe", ctx.Get("region"))
+	}
+	if ("developers") != (ctx.Get("audience")) {
+		t.Fatalf("want %v, got %v", "developers", ctx.Get("audience"))
+	}
 }
 
 func TestTranslationContext_Get_Bad_MissingKey(t *testing.T) {
 	ctx := C("test")
-	assert.Nil(t, ctx.Get("nonexistent"), "Get on empty Extra should return nil")
+	if (ctx.Get("nonexistent")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Get("nonexistent"))
+	}
 }
 
 func TestTranslationContext_Get_Bad_NilExtra(t *testing.T) {
 	ctx := &TranslationContext{Context: "test"}
-	assert.Nil(t, ctx.Get("anything"), "Get on nil Extra should return nil")
+	if (ctx.Get("anything")) != (nil) {
+		t.Fatalf("expected nil, got %v", ctx.Get("anything"))
+	}
 }
 
 // --- Full chaining ---
@@ -146,13 +215,28 @@ func TestTranslationContext_FullChain_Good(t *testing.T) {
 		In("clinic").
 		Formal().
 		Set("speciality", "cardiology")
-
-	assert.Equal(t, "medical", ctx.ContextString())
-	assert.Equal(t, 3, ctx.CountInt())
-	assert.Equal(t, "3", ctx.CountString())
-	assert.True(t, ctx.IsPlural())
-	assert.Equal(t, "feminine", ctx.GenderString())
-	assert.Equal(t, "clinic", ctx.LocationString())
-	assert.Equal(t, FormalityFormal, ctx.FormalityValue())
-	assert.Equal(t, "cardiology", ctx.Get("speciality"))
+	if ("medical") != (ctx.ContextString()) {
+		t.Fatalf("want %v, got %v", "medical", ctx.ContextString())
+	}
+	if (3) != (ctx.CountInt()) {
+		t.Fatalf("want %v, got %v", 3, ctx.CountInt())
+	}
+	if ("3") != (ctx.CountString()) {
+		t.Fatalf("want %v, got %v", "3", ctx.CountString())
+	}
+	if !(ctx.IsPlural()) {
+		t.Fatal("expected true")
+	}
+	if ("feminine") != (ctx.GenderString()) {
+		t.Fatalf("want %v, got %v", "feminine", ctx.GenderString())
+	}
+	if ("clinic") != (ctx.LocationString()) {
+		t.Fatalf("want %v, got %v", "clinic", ctx.LocationString())
+	}
+	if (FormalityFormal) != (ctx.FormalityValue()) {
+		t.Fatalf("want %v, got %v", FormalityFormal, ctx.FormalityValue())
+	}
+	if ("cardiology") != (ctx.Get("speciality")) {
+		t.Fatalf("want %v, got %v", "cardiology", ctx.Get("speciality"))
+	}
 }

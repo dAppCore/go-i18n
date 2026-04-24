@@ -1,72 +1,101 @@
 package i18n
 
 import (
+	"reflect"
+	"strings"
 	"testing"
 	"testing/fstest"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // --- Package-level T() ---
 
 func TestT_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	got := T("prompt.yes")
-	assert.Equal(t, "y", got)
+	if "y" != got {
+		t.Fatalf("want %v, got %v", "y", got)
+	}
 }
 
 func TestT_Good_WithHandlers(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	got := T("i18n.label.status")
-	assert.Equal(t, "Status:", got)
+	if "Status:" != got {
+		t.Fatalf("want %v, got %v", "Status:", got)
+	}
 }
 
 func TestT_Good_MissingKey(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	got := T("nonexistent.key.test")
-	assert.Equal(t, "nonexistent.key.test", got)
+	if "nonexistent.key.test" != got {
+		t.Fatalf("want %v, got %v", "nonexistent.key.test", got)
+	}
 }
-
-// --- Package-level Translate() ---
 
 func TestTranslate_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	result := Translate("prompt.yes")
-	require.True(t, result.OK)
-	assert.Equal(t, "y", result.Value)
+	if !(result.OK) {
+		t.Fatal("expected true")
+	}
+	if "y" != result.Value {
+		t.Fatalf("want %v, got %v", "y", result.Value)
+	}
 }
 
 func TestTranslate_Good_MissingKey(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	result := Translate("nonexistent.translation.key")
-	require.False(t, result.OK)
-	assert.Equal(t, "nonexistent.translation.key", result.Value)
+	if result.OK {
+		t.Fatal("expected false")
+	}
+	if "nonexistent.translation.key" != result.Value {
+		t.Fatalf("want %v, got %v", "nonexistent.translation.key", result.Value)
+	}
 }
 
 func TestTranslate_Good_SameTextAsKey(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -78,36 +107,51 @@ func TestTranslate_Good_SameTextAsKey(t *testing.T) {
 	})
 
 	result := Translate("exact.same.key")
-	require.True(t, result.OK)
-	assert.Equal(t, "exact.same.key", result.Value)
+	if !(result.OK) {
+		t.Fatal("expected true")
+	}
+	if "exact.same.key" != result.Value {
+		t.Fatalf("want %v, got %v", "exact.same.key", result.Value)
+	}
 }
-
-// --- Package-level Raw() ---
 
 func TestRaw_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	got := Raw("prompt.yes")
-	assert.Equal(t, "y", got)
+	if "y" != got {
+		t.Fatalf("want %v, got %v", "y", got)
+	}
 }
 
 func TestRaw_Good_BypassesHandlers(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	// i18n.label.status is not in messages, handlers don't apply in Raw
 	got := Raw("i18n.label.status")
-	assert.Equal(t, "i18n.label.status", got)
+	if "i18n.label.status" != got {
+		t.Fatalf("want %v, got %v", "i18n.label.status", got)
+	}
 }
 
 func TestLoadFS_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -123,12 +167,17 @@ func TestLoadFS_Good(t *testing.T) {
 	LoadFS(fsys, "locales")
 
 	got := T("loadfs.key")
-	assert.Equal(t, "loaded via package helper", got)
+	if "loaded via package helper" != got {
+		t.Fatalf("want %v, got %v", "loaded via package helper", got)
+	}
 }
 
 func TestAddMessages_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -140,46 +189,69 @@ func TestAddMessages_Good(t *testing.T) {
 	})
 
 	got := T("add.messages.key")
-	assert.Equal(t, "loaded via package helper", got)
+	if "loaded via package helper" != got {
+		t.Fatalf("want %v, got %v", "loaded via package helper", got)
+	}
 }
-
-// --- SetLanguage / CurrentLanguage ---
 
 func TestSetLanguage_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	err = SetLanguage("en")
-	assert.NoError(t, err)
-	assert.Contains(t, CurrentLanguage(), "en")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(CurrentLanguage(), "en") {
+		t.Fatalf("expected %q to contain %q", CurrentLanguage(), "en")
+	}
 }
 
 func TestSetLanguage_Good_UnderscoreTag(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	err = SetLanguage("fr_CA")
-	assert.NoError(t, err)
-	assert.True(t, len(CurrentLanguage()) >= 2)
-	assert.Equal(t, "fr", CurrentLanguage()[:2])
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !(len(CurrentLanguage()) >= 2) {
+		t.Fatal("expected true")
+	}
+	if "fr" != CurrentLanguage()[:2] {
+		t.Fatalf("want %v, got %v", "fr", CurrentLanguage()[:2])
+	}
 }
 
 func TestLanguage_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
-
-	assert.Equal(t, CurrentLanguage(), Language())
+	if CurrentLanguage() != Language() {
+		t.Fatalf("want %v, got %v", CurrentLanguage(), Language())
+	}
 }
 
 func TestSetLanguage_Bad_Unsupported(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -188,13 +260,20 @@ func TestSetLanguage_Bad_Unsupported(t *testing.T) {
 
 func TestCurrentLanguage_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	lang := CurrentLanguage()
-	assert.NotEmpty(t, lang)
-	assert.Equal(t, lang, CurrentLang())
+	if len(lang) == 0 {
+		t.Fatalf("expected non-empty")
+	}
+	if lang != CurrentLang() {
+		t.Fatalf("want %v, got %v", lang, CurrentLang())
+	}
 }
 
 func TestAvailableLanguages_Good(t *testing.T) {
@@ -204,15 +283,24 @@ func TestAvailableLanguages_Good(t *testing.T) {
 	})
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	langs := AvailableLanguages()
-	require.NotEmpty(t, langs)
-	assert.Equal(t, svc.AvailableLanguages(), langs)
+	if len(langs) == 0 {
+		t.Fatalf("expected non-empty")
+	}
+	if !reflect.DeepEqual(svc.AvailableLanguages(), langs) {
+		t.Fatalf("want %v, got %v", svc.AvailableLanguages(), langs)
+	}
 
 	langs[0] = "zz"
-	assert.NotEqual(t, "zz", svc.AvailableLanguages()[0])
+	if "zz" == svc.AvailableLanguages()[0] {
+		t.Fatalf("did not expect %v", svc.AvailableLanguages()[0])
+	}
 }
 
 func TestCurrentAvailableLanguages_Good(t *testing.T) {
@@ -222,39 +310,61 @@ func TestCurrentAvailableLanguages_Good(t *testing.T) {
 	})
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	langs := CurrentAvailableLanguages()
-	require.NotEmpty(t, langs)
-	assert.Equal(t, svc.AvailableLanguages(), langs)
+	if len(langs) == 0 {
+		t.Fatalf("expected non-empty")
+	}
+	if !reflect.DeepEqual(svc.AvailableLanguages(), langs) {
+		t.Fatalf("want %v, got %v", svc.AvailableLanguages(), langs)
+	}
 }
 
 func TestFallback_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.Equal(t, "en", Fallback())
+	SetDefault(svc)
+	if "en" != Fallback() {
+		t.Fatalf("want %v, got %v", "en", Fallback())
+	}
 
 	SetFallback("fr")
-	assert.Equal(t, "fr", Fallback())
+	if "fr" != Fallback() {
+		t.Fatalf("want %v, got %v", "fr", Fallback())
+	}
 }
 
 func TestDebug_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.False(t, Debug())
+	SetDefault(svc)
+	if Debug() {
+		t.Fatal("expected false")
+	}
 
 	SetDebug(true)
-	assert.True(t, Debug())
+	if !(Debug()) {
+		t.Fatal("expected true")
+	}
 }
 
 func TestCurrentState_Good(t *testing.T) {
 	svc, err := NewWithLoader(messageBaseFallbackLoader{})
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -262,58 +372,94 @@ func TestCurrentState_Good(t *testing.T) {
 	})
 
 	state := CurrentState()
-	assert.Equal(t, svc.Language(), state.Language)
-	assert.Equal(t, svc.AvailableLanguages(), state.AvailableLanguages)
-	assert.Equal(t, svc.Mode(), state.Mode)
-	assert.Equal(t, svc.Fallback(), state.Fallback)
-	assert.Equal(t, svc.Formality(), state.Formality)
-	assert.Equal(t, svc.Location(), state.Location)
-	assert.Equal(t, svc.Direction(), state.Direction)
-	assert.Equal(t, svc.IsRTL(), state.IsRTL)
-	assert.Equal(t, svc.Debug(), state.Debug)
-	assert.Len(t, state.Handlers, len(svc.Handlers()))
+	if svc.Language() != state.Language {
+		t.Fatalf("want %v, got %v", svc.Language(), state.Language)
+	}
+	if !reflect.DeepEqual(svc.AvailableLanguages(), state.AvailableLanguages) {
+		t.Fatalf("want %v, got %v", svc.AvailableLanguages(), state.AvailableLanguages)
+	}
+	if svc.Mode() != state.Mode {
+		t.Fatalf("want %v, got %v", svc.Mode(), state.Mode)
+	}
+	if svc.Fallback() != state.Fallback {
+		t.Fatalf("want %v, got %v", svc.Fallback(), state.Fallback)
+	}
+	if svc.Formality() != state.Formality {
+		t.Fatalf("want %v, got %v", svc.Formality(), state.Formality)
+	}
+	if svc.Location() != state.Location {
+		t.Fatalf("want %v, got %v", svc.Location(), state.Location)
+	}
+	if svc.Direction() != state.Direction {
+		t.Fatalf("want %v, got %v", svc.Direction(), state.Direction)
+	}
+	if svc.IsRTL() != state.IsRTL {
+		t.Fatalf("want %v, got %v", svc.IsRTL(), state.IsRTL)
+	}
+	if svc.Debug() != state.Debug {
+		t.Fatalf("want %v, got %v", svc.Debug(), state.Debug)
+	}
+	if len(state.Handlers) != len(svc.Handlers()) {
+		t.Fatalf("expected length %v, got %v", len(svc.Handlers()), state.Handlers)
+	}
 
 	state.AvailableLanguages[0] = "zz"
-	assert.NotEqual(t, "zz", CurrentState().AvailableLanguages[0])
+	if "zz" == CurrentState().AvailableLanguages[0] {
+		t.Fatalf("did not expect %v", CurrentState().AvailableLanguages[0])
+	}
 	state.Handlers[0] = nil
-	assert.NotNil(t, CurrentState().Handlers[0])
+	if CurrentState().Handlers[0] == nil {
+		t.Fatalf("expected non-nil")
+	}
 }
 
 func TestState_Good_WithoutDefaultService(t *testing.T) {
 	var svc *Service
 	state := svc.State()
-	assert.Equal(t, defaultServiceStateSnapshot(), state)
+	if !reflect.DeepEqual(defaultServiceStateSnapshot(), state) {
+		t.Fatalf("want %v, got %v", defaultServiceStateSnapshot(), state)
+	}
 }
-
-// --- SetMode / CurrentMode ---
 
 func TestSetMode_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	SetMode(ModeCollect)
-	assert.Equal(t, ModeCollect, CurrentMode())
+	if ModeCollect != CurrentMode() {
+		t.Fatalf("want %v, got %v", ModeCollect, CurrentMode())
+	}
 
 	SetMode(ModeNormal)
-	assert.Equal(t, ModeNormal, CurrentMode())
+	if ModeNormal != CurrentMode() {
+		t.Fatalf("want %v, got %v", ModeNormal, CurrentMode())
+	}
 }
 
 func TestCurrentMode_Good_Default(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
-
-	assert.Equal(t, ModeNormal, CurrentMode())
+	if ModeNormal != CurrentMode() {
+		t.Fatalf("want %v, got %v", ModeNormal, CurrentMode())
+	}
 }
-
-// --- N() numeric shorthand ---
 
 func TestN_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -333,7 +479,9 @@ func TestN_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := N(tt.format, tt.value, tt.args...)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
@@ -360,7 +508,9 @@ func TestN_Good_WithoutDefaultService(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := N(tt.format, tt.value, tt.args...)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
@@ -369,7 +519,10 @@ func TestN_Good_WithoutDefaultService(t *testing.T) {
 
 func TestPrompt_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -388,25 +541,32 @@ func TestPrompt_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := Prompt(tt.key)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
 
 func TestCurrentPrompt_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
-
-	assert.Equal(t, Prompt("confirm"), CurrentPrompt("confirm"))
+	if Prompt("confirm") != CurrentPrompt("confirm") {
+		t.Fatalf("want %v, got %v", Prompt("confirm"), CurrentPrompt("confirm"))
+	}
 }
-
-// --- Lang() language label shorthand ---
 
 func TestLang_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -424,14 +584,19 @@ func TestLang_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := Lang(tt.key)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
 
 func TestLang_MissingKeyHandler_FiresOnce(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -447,40 +612,59 @@ func TestLang_MissingKeyHandler_FiresOnce(t *testing.T) {
 	})
 
 	got := Lang("zz")
-	assert.Equal(t, "[lang.zz]", got)
-	assert.Equal(t, 1, calls)
+	if "[lang.zz]" != got {
+		t.Fatalf("want %v, got %v", "[lang.zz]", got)
+	}
+	if 1 != calls {
+		t.Fatalf("want %v, got %v", 1, calls)
+	}
 }
-
-// --- AddHandler / PrependHandler ---
 
 func TestAddHandler_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	initialCount := len(svc.Handlers())
 
 	AddHandler(LabelHandler{})
-	assert.Equal(t, initialCount+1, len(svc.Handlers()))
+	if initialCount+1 != len(svc.Handlers()) {
+		t.Fatalf("want %v, got %v", initialCount+1, len(svc.Handlers()))
+	}
 }
 
 func TestAddHandler_Good_Variadic(t *testing.T) {
 	svc, err := New(WithHandlers())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	AddHandler(LabelHandler{}, ProgressHandler{})
 	handlers := svc.Handlers()
-	assert.Equal(t, 2, len(handlers))
-	assert.IsType(t, LabelHandler{}, handlers[0])
-	assert.IsType(t, ProgressHandler{}, handlers[1])
+	if 2 != len(handlers) {
+		t.Fatalf("want %v, got %v", 2, len(handlers))
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
+	}
+	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(ProgressHandler{}) {
+		t.Fatalf("expected type %T, got %T", ProgressHandler{}, handlers[1])
+	}
 }
 
 func TestAddHandler_Good_SkipsNil(t *testing.T) {
 	svc, err := New(WithHandlers())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -488,54 +672,82 @@ func TestAddHandler_Good_SkipsNil(t *testing.T) {
 	AddHandler(nilHandler, LabelHandler{})
 
 	handlers := svc.Handlers()
-	require.Len(t, handlers, 1)
-	assert.IsType(t, LabelHandler{}, handlers[0])
+	if len(handlers) != 1 {
+		t.Fatalf("expected length %v, got %v", 1, handlers)
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
+	}
 }
 
 func TestAddHandler_DoesNotMutateInputSlice(t *testing.T) {
 	svc, err := New(WithHandlers())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	handlers := []KeyHandler{nil, LabelHandler{}}
 	AddHandler(handlers...)
-
-	assert.Nil(t, handlers[0])
-	assert.IsType(t, LabelHandler{}, handlers[1])
+	if handlers[0] != nil {
+		t.Fatalf("expected nil, got %v", handlers[0])
+	}
+	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[1])
+	}
 }
 
 func TestPrependHandler_Good(t *testing.T) {
 	svc, err := New(WithHandlers()) // start with no handlers
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	PrependHandler(LabelHandler{})
-	assert.Equal(t, 1, len(svc.Handlers()))
+	if 1 != len(svc.Handlers()) {
+		t.Fatalf("want %v, got %v", 1, len(svc.Handlers()))
+	}
 
-	// Prepend another
 	PrependHandler(ProgressHandler{})
 	handlers := svc.Handlers()
-	assert.Equal(t, 2, len(handlers))
+	if 2 != len(handlers) {
+		t.Fatalf("want %v, got %v", 2, len(handlers))
+	}
 }
 
 func TestPrependHandler_Good_Variadic(t *testing.T) {
 	svc, err := New(WithHandlers())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	PrependHandler(LabelHandler{}, ProgressHandler{})
 	handlers := svc.Handlers()
-	assert.Equal(t, 2, len(handlers))
-	assert.IsType(t, LabelHandler{}, handlers[0])
-	assert.IsType(t, ProgressHandler{}, handlers[1])
+	if 2 != len(handlers) {
+		t.Fatalf("want %v, got %v", 2, len(handlers))
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
+	}
+	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(ProgressHandler{}) {
+		t.Fatalf("expected type %T, got %T", ProgressHandler{}, handlers[1])
+	}
 }
 
 func TestPrependHandler_Good_SkipsNil(t *testing.T) {
 	svc, err := New(WithHandlers())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
@@ -543,26 +755,39 @@ func TestPrependHandler_Good_SkipsNil(t *testing.T) {
 	PrependHandler(nilHandler, LabelHandler{})
 
 	handlers := svc.Handlers()
-	require.Len(t, handlers, 1)
-	assert.IsType(t, LabelHandler{}, handlers[0])
+	if len(handlers) != 1 {
+		t.Fatalf("expected length %v, got %v", 1, handlers)
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
+	}
 }
 
 func TestPrependHandler_DoesNotMutateInputSlice(t *testing.T) {
 	svc, err := New(WithHandlers())
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	SetDefault(svc)
 
 	handlers := []KeyHandler{nil, ProgressHandler{}}
 	PrependHandler(handlers...)
-
-	assert.Nil(t, handlers[0])
-	assert.IsType(t, ProgressHandler{}, handlers[1])
+	if handlers[0] != nil {
+		t.Fatalf("expected nil, got %v", handlers[0])
+	}
+	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(ProgressHandler{}) {
+		t.Fatalf("expected type %T, got %T", ProgressHandler{}, handlers[1])
+	}
 }
 
 func TestClearHandlers_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	prev := Default()
 	SetDefault(svc)
@@ -571,15 +796,22 @@ func TestClearHandlers_Good(t *testing.T) {
 	})
 
 	AddHandler(LabelHandler{})
-	require.NotEmpty(t, svc.Handlers())
+	if len(svc.Handlers()) == 0 {
+		t.Fatalf("expected non-empty")
+	}
 
 	ClearHandlers()
-	assert.Empty(t, svc.Handlers())
+	if len(svc.Handlers()) != 0 {
+		t.Fatalf("expected empty, got %v", svc.Handlers())
+	}
 }
 
 func TestResetHandlers_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	prev := Default()
 	SetDefault(svc)
@@ -588,25 +820,42 @@ func TestResetHandlers_Good(t *testing.T) {
 	})
 
 	ClearHandlers()
-	require.Empty(t, svc.Handlers())
+	if len(svc.Handlers()) != 0 {
+		t.Fatalf("expected empty, got %v", svc.Handlers())
+	}
 
 	svc.ResetHandlers()
-	require.Len(t, svc.Handlers(), len(DefaultHandlers()))
-	assert.IsType(t, LabelHandler{}, svc.Handlers()[0])
+	if len(svc.Handlers()) != len(DefaultHandlers()) {
+		t.Fatalf("expected length %v, got %v", len(DefaultHandlers()), svc.Handlers())
+	}
+	if reflect.TypeOf(svc.Handlers()[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, svc.Handlers()[0])
+	}
 
 	ClearHandlers()
-	require.Empty(t, svc.Handlers())
+	if len(svc.Handlers()) != 0 {
+		t.Fatalf("expected empty, got %v", svc.Handlers())
+	}
 
 	ResetHandlers()
 	handlers := svc.Handlers()
-	require.Len(t, handlers, len(DefaultHandlers()))
-	assert.IsType(t, LabelHandler{}, handlers[0])
-	assert.Equal(t, "Status:", T("i18n.label.status"))
+	if len(handlers) != len(DefaultHandlers()) {
+		t.Fatalf("expected length %v, got %v", len(DefaultHandlers()), handlers)
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
+	}
+	if "Status:" != T("i18n.label.status") {
+		t.Fatalf("want %v, got %v", "Status:", T("i18n.label.status"))
+	}
 }
 
 func TestSetHandlers_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	_ = Init()
 	prev := Default()
 	SetDefault(svc)
@@ -617,15 +866,26 @@ func TestSetHandlers_Good(t *testing.T) {
 	SetHandlers(serviceStubHandler{})
 
 	handlers := CurrentHandlers()
-	require.Len(t, handlers, 1)
-	assert.IsType(t, serviceStubHandler{}, handlers[0])
-	assert.Equal(t, "stub", T("custom.stub"))
-	assert.Equal(t, "i18n.label.status", T("i18n.label.status"))
+	if len(handlers) != 1 {
+		t.Fatalf("expected length %v, got %v", 1, handlers)
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(serviceStubHandler{}) {
+		t.Fatalf("expected type %T, got %T", serviceStubHandler{}, handlers[0])
+	}
+	if "stub" != T("custom.stub") {
+		t.Fatalf("want %v, got %v", "stub", T("custom.stub"))
+	}
+	if "i18n.label.status" != T("i18n.label.status") {
+		t.Fatalf("want %v, got %v", "i18n.label.status", T("i18n.label.status"))
+	}
 }
 
 func TestHandlers_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
@@ -633,20 +893,28 @@ func TestHandlers_Good(t *testing.T) {
 	})
 
 	handlers := Handlers()
-	require.Len(t, handlers, len(svc.Handlers()))
-	assert.Equal(t, svc.Handlers(), handlers)
+	if len(handlers) != len(svc.Handlers()) {
+		t.Fatalf("expected length %v, got %v", len(svc.Handlers()), handlers)
+	}
+	if !reflect.DeepEqual(svc.Handlers(), handlers) {
+		t.Fatalf("want %v, got %v", svc.Handlers(), handlers)
+	}
 }
 
 func TestNewWithHandlers_SkipsNil(t *testing.T) {
 	svc, err := New(WithHandlers(nil, LabelHandler{}))
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	handlers := svc.Handlers()
-	require.Len(t, handlers, 1)
-	assert.IsType(t, LabelHandler{}, handlers[0])
+	if len(handlers) != 1 {
+		t.Fatalf("expected length %v, got %v", 1, handlers)
+	}
+	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
+	}
 }
-
-// --- executeIntentTemplate ---
 
 func TestExecuteIntentTemplate_Good(t *testing.T) {
 	data := templateData{
@@ -656,17 +924,23 @@ func TestExecuteIntentTemplate_Good(t *testing.T) {
 	}
 
 	got := executeIntentTemplate("Delete {{.Subject}}?", data)
-	assert.Equal(t, "Delete config.yaml?", got)
+	if "Delete config.yaml?" != got {
+		t.Fatalf("want %v, got %v", "Delete config.yaml?", got)
+	}
 }
 
 func TestExecuteIntentTemplate_Good_Empty(t *testing.T) {
 	got := executeIntentTemplate("", templateData{})
-	assert.Equal(t, "", got)
+	if "" != got {
+		t.Fatalf("want %v, got %v", "", got)
+	}
 }
 
 func TestExecuteIntentTemplate_Bad_InvalidTemplate(t *testing.T) {
 	got := executeIntentTemplate("{{.Invalid", templateData{})
-	assert.Equal(t, "{{.Invalid", got, "should return raw template on parse error")
+	if "{{.Invalid" != got {
+		t.Fatalf("want %v, got %v", "{{.Invalid", got)
+	}
 }
 
 func TestExecuteIntentTemplate_Good_Cached(t *testing.T) {
@@ -675,18 +949,23 @@ func TestExecuteIntentTemplate_Good_Cached(t *testing.T) {
 
 	// First call caches
 	got1 := executeIntentTemplate(tmplStr, data)
-	assert.Equal(t, "Hello test intent", got1)
+	if "Hello test intent" != got1 {
+		t.Fatalf("want %v, got %v", "Hello test intent", got1)
+	}
 
-	// Second call hits cache
 	got2 := executeIntentTemplate(tmplStr, data)
-	assert.Equal(t, "Hello test intent", got2)
+	if "Hello test intent" != got2 {
+		t.Fatalf("want %v, got %v", "Hello test intent", got2)
+	}
 }
 
 func TestExecuteIntentTemplate_Good_WithFuncs(t *testing.T) {
 	data := templateData{Subject: "build"}
 
 	got := executeIntentTemplate("{{past .Subject}}!", data)
-	assert.Equal(t, "built!", got)
+	if "built!" != got {
+		t.Fatalf("want %v, got %v", "built!", got)
+	}
 }
 
 func TestComposeIntent_Good(t *testing.T) {
@@ -705,12 +984,21 @@ func TestComposeIntent_Good(t *testing.T) {
 	}
 
 	got := ComposeIntent(intent, S("file", "config.yaml"))
-
-	assert.Equal(t, "Delete config.yaml?", got.Question)
-	assert.Equal(t, "Really delete a config.yaml?", got.Confirm)
-	assert.Equal(t, "Config.yaml deleted", got.Success)
-	assert.Equal(t, "Failed to delete config.yaml", got.Failure)
-	assert.Equal(t, intent.Meta, got.Meta)
+	if "Delete config.yaml?" != got.Question {
+		t.Fatalf("want %v, got %v", "Delete config.yaml?", got.Question)
+	}
+	if "Really delete a config.yaml?" != got.Confirm {
+		t.Fatalf("want %v, got %v", "Really delete a config.yaml?", got.Confirm)
+	}
+	if "Config.yaml deleted" != got.Success {
+		t.Fatalf("want %v, got %v", "Config.yaml deleted", got.Success)
+	}
+	if "Failed to delete config.yaml" != got.Failure {
+		t.Fatalf("want %v, got %v", "Failed to delete config.yaml", got.Failure)
+	}
+	if !reflect.DeepEqual(intent.Meta, got.Meta) {
+		t.Fatalf("want %v, got %v", intent.Meta, got.Meta)
+	}
 }
 
 func TestIntentCompose_Good_NilSubject(t *testing.T) {
@@ -719,28 +1007,41 @@ func TestIntentCompose_Good_NilSubject(t *testing.T) {
 	}
 
 	got := intent.Compose(nil)
-
-	assert.Equal(t, "Proceed?", got.Question)
-	assert.Empty(t, got.Confirm)
-	assert.Empty(t, got.Success)
-	assert.Empty(t, got.Failure)
+	if "Proceed?" != got.Question {
+		t.Fatalf("want %v, got %v", "Proceed?", got.Question)
+	}
+	if len(got.Confirm) != 0 {
+		t.Fatalf("expected empty, got %v", got.Confirm)
+	}
+	if len(got.Success) != 0 {
+		t.Fatalf("expected empty, got %v", got.Success)
+	}
+	if len(got.Failure) != 0 {
+		t.Fatalf("expected empty, got %v", got.Failure)
+	}
 }
 
 // --- applyTemplate ---
 
 func TestApplyTemplate_Good(t *testing.T) {
 	got := applyTemplate("Hello {{.Name}}", map[string]any{"Name": "World"})
-	assert.Equal(t, "Hello World", got)
+	if "Hello World" != got {
+		t.Fatalf("want %v, got %v", "Hello World", got)
+	}
 }
 
 func TestApplyTemplate_Good_NoTemplate(t *testing.T) {
 	got := applyTemplate("plain text", nil)
-	assert.Equal(t, "plain text", got, "should return text as-is without template markers")
+	if "plain text" != got {
+		t.Fatalf("want %v, got %v", "plain text", got)
+	}
 }
 
 func TestApplyTemplate_Bad_InvalidTemplate(t *testing.T) {
 	got := applyTemplate("{{.Invalid", nil)
-	assert.Equal(t, "{{.Invalid", got, "should return raw text on parse error")
+	if "{{.Invalid" != got {
+		t.Fatalf("want %v, got %v", "{{.Invalid", got)
+	}
 }
 
 func TestApplyTemplate_Good_Cached(t *testing.T) {
@@ -748,25 +1049,32 @@ func TestApplyTemplate_Good_Cached(t *testing.T) {
 	data := map[string]any{"Val": "test"}
 
 	got1 := applyTemplate(tmpl, data)
-	assert.Equal(t, "Cached test template test", got1)
+	if "Cached test template test" != got1 {
+		t.Fatalf("want %v, got %v", "Cached test template test", got1)
+	}
 
-	// Hit cache
 	got2 := applyTemplate(tmpl, data)
-	assert.Equal(t, "Cached test template test", got2)
+	if "Cached test template test" != got2 {
+		t.Fatalf("want %v, got %v", "Cached test template test", got2)
+	}
 }
 
 func TestApplyTemplate_Bad_ExecuteError(t *testing.T) {
 	// A template that references a method on a non-struct type
 	got := applyTemplate("{{.Missing}}", "not a map")
-	assert.Equal(t, "{{.Missing}}", got)
+	if "{{.Missing}}" != got {
+		t.Fatalf("want %v, got %v", "{{.Missing}}", got)
+	}
 }
 
-// --- ErrServiceNotInitialised ---
-
 func TestErrServiceNotInitialised_Good(t *testing.T) {
-	assert.Equal(t, "i18n: service not initialised", ErrServiceNotInitialised.Error())
+	if "i18n: service not initialised" != ErrServiceNotInitialised.Error() {
+		t.Fatalf("want %v, got %v", "i18n: service not initialised", ErrServiceNotInitialised.Error())
+	}
 }
 
 func TestErrServiceNotInitialized_DeprecatedAlias(t *testing.T) {
-	assert.Equal(t, ErrServiceNotInitialised, ErrServiceNotInitialized, "deprecated alias must point to the same error")
+	if ErrServiceNotInitialised != ErrServiceNotInitialized {
+		t.Fatalf("want %v, got %v", ErrServiceNotInitialised, ErrServiceNotInitialized)
+	}
 }
