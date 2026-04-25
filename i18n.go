@@ -1,11 +1,10 @@
 package i18n
 
 import (
-	// Note: bytes.Buffer for locale file parsing; no core.Buffer equivalent.
-	"bytes"
 	// Note: fs.WalkDir for locale directory traversal; coreio.Local walker not mature enough.
 	"io/fs"
-	// Note: text/template for string interpolation with grammar vars; no core equivalent.
+	// Note: AX-6 - message interpolation requires Go template parsing/execution,
+	// and the pinned core module exposes no template primitive.
 	"text/template"
 
 	"dappco.re/go/core"
@@ -407,22 +406,14 @@ func executeIntentTemplate(tmplStr string, data templateData) string {
 		return ""
 	}
 	if cached, ok := templateCache.Load(tmplStr); ok {
-		var buf bytes.Buffer
-		if err := cached.(*template.Template).Execute(&buf, data); err != nil {
-			return tmplStr
-		}
-		return buf.String()
+		return executeParsedTemplate(cached.(*template.Template), data, tmplStr)
 	}
 	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(tmplStr)
 	if err != nil {
 		return tmplStr
 	}
 	templateCache.Store(tmplStr, tmpl)
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return tmplStr
-	}
-	return buf.String()
+	return executeParsedTemplate(tmpl, data, tmplStr)
 }
 
 func applyTemplate(text string, data any) string {
@@ -431,22 +422,37 @@ func applyTemplate(text string, data any) string {
 	}
 	data = templateDataForRendering(data)
 	if cached, ok := templateCache.Load(text); ok {
-		var buf bytes.Buffer
-		if err := cached.(*template.Template).Execute(&buf, data); err != nil {
-			return text
-		}
-		return buf.String()
+		return executeParsedTemplate(cached.(*template.Template), data, text)
 	}
 	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(text)
 	if err != nil {
 		return text
 	}
 	templateCache.Store(text, tmpl)
-	var buf bytes.Buffer
+	return executeParsedTemplate(tmpl, data, text)
+}
+
+func executeParsedTemplate(tmpl *template.Template, data any, fallback string) string {
+	var buf templateBuffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return text
+		return fallback
 	}
 	return buf.String()
+}
+
+// Note: AX-6 - core.NewBuffer is unavailable in the pinned core module; this is
+// the minimal intrinsic writer needed by text/template execution.
+type templateBuffer struct {
+	data []byte
+}
+
+func (buf *templateBuffer) Write(data []byte) (int, error) {
+	buf.data = append(buf.data, data...)
+	return len(data), nil
+}
+
+func (buf *templateBuffer) String() string {
+	return string(buf.data)
 }
 
 func templateDataForRendering(data any) any {
