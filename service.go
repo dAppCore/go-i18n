@@ -1,14 +1,16 @@
 package i18n
 
 import (
+	// Note: AX-6 — go:embed requires embed.FS for bundled locale assets; core.Embed cannot be the target type.
 	"embed"
+	// Note: AX-6 — fs.FS is the structural public API for caller-provided locale filesystems.
 	"io/fs"
+	// Note: AX-6 — locale lookup composes maps with deterministic key iteration; core has no map key/copy primitive.
 	"maps"
+	// Note: AX-6 — handler de-duplication requires concrete type introspection; core has no reflection primitive.
 	"reflect"
+	// Note: AX-6 — language lists and lookup variants need generic slice sort/clone helpers; core has no equivalent.
 	"slices"
-	"sync"
-	"sync/atomic"
-	"unicode"
 
 	"dappco.re/go/core"
 	log "dappco.re/go/log"
@@ -34,7 +36,7 @@ type Service struct {
 	handlers         []KeyHandler
 	loadedLocales    map[int]struct{}
 	loadedProviders  map[int]struct{}
-	mu               sync.RWMutex
+	mu               core.RWMutex
 }
 
 // Option configures a Service during construction.
@@ -96,8 +98,8 @@ func WithDebug(enabled bool) Option {
 }
 
 var (
-	defaultService atomic.Pointer[Service]
-	defaultInitMu  sync.Mutex
+	defaultService core.AtomicPointer[Service]
+	defaultInitMu  core.Mutex
 )
 
 //go:embed locales/*.json
@@ -1251,10 +1253,10 @@ func lookupSegment(s string) string {
 	lastUnderscore := false
 	for _, r := range core.Lower(s) {
 		switch {
-		case unicode.IsLetter(r), unicode.IsDigit(r):
+		case core.IsLetter(r), core.IsDigit(r):
 			b.WriteRune(r)
 			lastUnderscore = false
-		case r == '_' || r == '-' || r == '.' || unicode.IsSpace(r):
+		case r == '_' || r == '-' || r == '.' || core.IsSpace(r):
 			if !lastUnderscore {
 				b.WriteByte('_')
 				lastUnderscore = true
