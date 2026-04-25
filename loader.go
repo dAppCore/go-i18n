@@ -1,11 +1,14 @@
 package i18n
 
 import (
+	// Note: AX-6 — fs.FS is the loader's public filesystem contract and fs.ReadFile/fs.ReadDir/fs.ErrNotExist have no verified core equivalents.
 	"io/fs"
+	// Note: AX-6 — math.IsNaN and math.IsInf validate signal prior scores; core only provides Min/Max helpers.
 	"math"
+	// Note: AX-6 — path.Join preserves fs.FS-relative locale paths; core.PathJoin is unavailable and core.Path anchors relative paths.
 	"path"
+	// Note: AX-6 — slices.Sort provides deterministic language ordering; no verified core sort helper exists.
 	"slices"
-	"sync"
 
 	"dappco.re/go/core"
 	log "dappco.re/go/log"
@@ -17,7 +20,7 @@ type FSLoader struct {
 	dir  string
 
 	languages []string
-	langOnce  sync.Once
+	langOnce  core.Once
 	langErr   error
 }
 
