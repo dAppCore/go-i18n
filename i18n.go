@@ -1,10 +1,9 @@
 package i18n
 
 import (
-	// Note: fs.WalkDir for locale directory traversal; coreio.Local walker not mature enough.
+	// Note: AX-6 — fs.FS is the structural public API for embedded locale packs; pinned core has no equivalent.
 	"io/fs"
-	// Note: AX-6 - message interpolation requires Go template parsing/execution,
-	// and the pinned core module exposes no template primitive.
+	// Note: AX-6 — message interpolation requires Go template parsing/execution; pinned core has no template primitive.
 	"text/template"
 
 	"dappco.re/go/core"

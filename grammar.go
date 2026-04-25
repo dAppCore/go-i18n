@@ -1,12 +1,13 @@
 package i18n
 
 import (
+	// Note: AX-6 — grammar data merge/copy needs map cloning; pinned core has no map-copy primitive.
 	"maps"
-	// Note: numeric parsing in grammar rules; no core.ParseInt.
+	// Note: AX-6 — grammar quote helper needs Go string escaping; pinned core has no quote primitive.
 	"strconv"
-	// Note: text/template for string interpolation with grammar vars; no core equivalent.
+	// Note: AX-6 — grammar interpolation exposes template.FuncMap; pinned core has no template primitive.
 	"text/template"
-	// Note: unicode.* for character class analysis; no core unicode helpers.
+	// Note: AX-6 — grammar casing and initialism rules need Unicode rune classes; pinned core has no rune helpers.
 	"unicode"
 
 	"dappco.re/go/core"
