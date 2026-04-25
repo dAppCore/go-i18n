@@ -5,10 +5,6 @@ import (
 	"embed"
 	// Note: AX-6 — fs.FS is the structural public API for caller-provided locale filesystems.
 	"io/fs"
-	// Note: AX-6 — locale lookup composes maps with deterministic key iteration; core has no map key/copy primitive.
-	"maps"
-	// Note: AX-6 — handler de-duplication requires concrete type introspection; core has no reflection primitive.
-	"reflect"
 	// Note: AX-6 — language lists and lookup variants need generic slice sort/clone helpers; core has no equivalent.
 	"slices"
 
@@ -1225,7 +1221,11 @@ func lookupExtraSuffix(extra map[string]any) string {
 	if len(extra) == 0 {
 		return ""
 	}
-	keys := slices.Sorted(maps.Keys(extra))
+	keys := make([]string, 0, len(extra))
+	for key := range extra {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
 	b := core.NewBuilder()
 	for _, key := range keys {
 		name := lookupSegment(key)
@@ -1485,7 +1485,9 @@ func (s *Service) ingestLocaleData(lang string, messages map[string]Message, gra
 	if existing == nil {
 		s.messages[lang] = make(map[string]Message, len(messages))
 	}
-	maps.Copy(s.messages[lang], messages)
+	for key, message := range messages {
+		s.messages[lang][key] = message
+	}
 	s.addAvailableLanguageLocked(language.Make(lang))
 	s.mu.Unlock()
 
@@ -1593,9 +1595,71 @@ func (s *Service) autoDetectLanguage() {
 }
 
 func hasHandlerType(handlers []KeyHandler, candidate KeyHandler) bool {
-	want := reflect.TypeOf(candidate)
+	switch candidate.(type) {
+	case LabelHandler:
+		return hasLabelHandler(handlers)
+	case ProgressHandler:
+		return hasProgressHandler(handlers)
+	case CountHandler:
+		return hasCountHandler(handlers)
+	case DoneHandler:
+		return hasDoneHandler(handlers)
+	case FailHandler:
+		return hasFailHandler(handlers)
+	case NumericHandler:
+		return hasNumericHandler(handlers)
+	}
+	return false
+}
+
+func hasLabelHandler(handlers []KeyHandler) bool {
 	for _, handler := range handlers {
-		if reflect.TypeOf(handler) == want {
+		if _, ok := handler.(LabelHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasProgressHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(ProgressHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasCountHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(CountHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasDoneHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(DoneHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFailHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(FailHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasNumericHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(NumericHandler); ok {
 			return true
 		}
 	}
