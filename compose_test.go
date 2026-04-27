@@ -4,106 +4,168 @@ import (
 	"testing"
 
 	"dappco.re/go/core"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // --- S() constructor ---
 
 func TestS_Good(t *testing.T) {
 	subj := S("file", "config.yaml")
-	require.NotNil(t, subj)
-	assert.Equal(t, "file", subj.Noun)
-	assert.Equal(t, "config.yaml", subj.Value)
-	assert.Equal(t, 1, subj.CountInt(), "default count should be 1")
+	if (subj) == (nil) {
+		t.Fatalf("expected non-nil")
+	}
+	if ("file") != (subj.Noun) {
+		t.Fatalf("want %v, got %v", "file", subj.Noun)
+	}
+	if ("config.yaml") != (subj.Value) {
+		t.Fatalf("want %v, got %v", "config.yaml", subj.Value)
+	}
+	if (1) != (subj.CountInt()) {
+		t.Fatalf("want %v, got %v", 1, subj.CountInt())
+	}
 }
 
 func TestS_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
-	assert.Equal(t, "", s.String())
-	assert.False(t, s.IsPlural())
-	assert.Equal(t, 1, s.CountInt())
-	assert.Equal(t, "1", s.CountString())
-	assert.Equal(t, "", s.GenderString())
-	assert.Equal(t, "", s.LocationString())
-	assert.Equal(t, "", s.NounString())
-	assert.Equal(t, "neutral", s.FormalityString())
-	assert.False(t, s.IsFormal())
-	assert.False(t, s.IsInformal())
+	if ("") != (s.String()) {
+		t.Fatalf("want %v, got %v", "", s.String())
+	}
+	if s.IsPlural() {
+		t.Fatal("expected false")
+	}
+	if (1) != (s.CountInt()) {
+		t.Fatalf("want %v, got %v", 1, s.CountInt())
+	}
+	if ("1") != (s.CountString()) {
+		t.Fatalf("want %v, got %v", "1", s.CountString())
+	}
+	if ("") != (s.GenderString()) {
+		t.Fatalf("want %v, got %v", "", s.GenderString())
+	}
+	if ("") != (s.LocationString()) {
+		t.Fatalf("want %v, got %v", "", s.LocationString())
+	}
+	if ("") != (s.NounString()) {
+		t.Fatalf("want %v, got %v", "", s.NounString())
+	}
+	if ("neutral") != (s.FormalityString()) {
+		t.Fatalf("want %v, got %v", "neutral", s.FormalityString())
+	}
+	if s.IsFormal() {
+		t.Fatal("expected false")
+	}
+	if s.IsInformal() {
+		t.Fatal("expected false")
+	}
 }
-
-// --- Chaining methods ---
 
 func TestSubject_Count_Good(t *testing.T) {
 	subj := S("file", "test.txt").Count(5)
-	assert.Equal(t, 5, subj.CountInt())
-	assert.Equal(t, "5", subj.CountString())
-	assert.True(t, subj.IsPlural())
+	if (5) != (subj.CountInt()) {
+		t.Fatalf("want %v, got %v", 5, subj.CountInt())
+	}
+	if ("5") != (subj.CountString()) {
+		t.Fatalf("want %v, got %v", "5", subj.CountString())
+	}
+	if !(subj.IsPlural()) {
+		t.Fatal("expected true")
+	}
 }
 
 func TestSubject_CountString_UsesLocaleFormatting(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	prev := Default()
 	SetDefault(svc)
 	t.Cleanup(func() {
 		SetDefault(prev)
 	})
-
-	require.NoError(t, SetLanguage("fr"))
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	subj := S("file", "test.txt").Count(1234)
-	assert.Equal(t, "1 234", subj.CountString())
+	if ("1 234") != (subj.CountString()) {
+		t.Fatalf("want %v, got %v", "1 234", subj.CountString())
+	}
 }
 
 func TestSubject_Count_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
 	result := s.Count(5)
-	assert.Nil(t, result)
+	if (result) != (nil) {
+		t.Fatalf("expected nil, got %v", result)
+	}
 }
 
 func TestSubject_Gender_Good(t *testing.T) {
 	subj := S("user", "Alice").Gender("feminine")
-	assert.Equal(t, "feminine", subj.GenderString())
+	if ("feminine") != (subj.GenderString()) {
+		t.Fatalf("want %v, got %v", "feminine", subj.GenderString())
+	}
 }
 
 func TestSubject_Gender_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
-	assert.Nil(t, s.Gender("masculine"))
+	if (s.Gender("masculine")) != (nil) {
+		t.Fatalf("expected nil, got %v", s.Gender("masculine"))
+	}
 }
 
 func TestSubject_In_Good(t *testing.T) {
 	subj := S("file", "config.yaml").In("workspace")
-	assert.Equal(t, "workspace", subj.LocationString())
+	if ("workspace") != (subj.LocationString()) {
+		t.Fatalf("want %v, got %v", "workspace", subj.LocationString())
+	}
 }
 
 func TestSubject_In_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
-	assert.Nil(t, s.In("workspace"))
+	if (s.In("workspace")) != (nil) {
+		t.Fatalf("expected nil, got %v", s.In("workspace"))
+	}
 }
 
 func TestSubject_Formal_Good(t *testing.T) {
 	subj := S("document", "report").Formal()
-	assert.True(t, subj.IsFormal())
-	assert.False(t, subj.IsInformal())
-	assert.Equal(t, "formal", subj.FormalityString())
+	if !(subj.IsFormal()) {
+		t.Fatal("expected true")
+	}
+	if subj.IsInformal() {
+		t.Fatal("expected false")
+	}
+	if ("formal") != (subj.FormalityString()) {
+		t.Fatalf("want %v, got %v", "formal", subj.FormalityString())
+	}
 }
 
 func TestSubject_Formal_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
-	assert.Nil(t, s.Formal())
+	if (s.Formal()) != (nil) {
+		t.Fatalf("expected nil, got %v", s.Formal())
+	}
 }
 
 func TestSubject_Informal_Good(t *testing.T) {
 	subj := S("message", "hello").Informal()
-	assert.True(t, subj.IsInformal())
-	assert.False(t, subj.IsFormal())
-	assert.Equal(t, "informal", subj.FormalityString())
+	if !(subj.IsInformal()) {
+		t.Fatal("expected true")
+	}
+	if subj.IsFormal() {
+		t.Fatal("expected false")
+	}
+	if ("informal") != (subj.FormalityString()) {
+		t.Fatalf("want %v, got %v", "informal", subj.FormalityString())
+	}
 }
 
 func TestSubject_Informal_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
-	assert.Nil(t, s.Informal())
+	if (s.Informal()) != (nil) {
+		t.Fatalf("expected nil, got %v", s.Informal())
+	}
 }
 
 func TestSubject_SetFormality_Good(t *testing.T) {
@@ -119,42 +181,50 @@ func TestSubject_SetFormality_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			subj := S("item", "x").SetFormality(tt.formality)
-			assert.Equal(t, tt.want, subj.FormalityString())
+			if (tt.want) != (subj.FormalityString()) {
+				t.Fatalf("want %v, got %v", tt.want, subj.FormalityString())
+			}
 		})
 	}
 }
 
 func TestSubject_SetFormality_Bad_NilReceiver(t *testing.T) {
 	var s *Subject
-	assert.Nil(t, s.SetFormality(FormalityFormal))
+	if (s.SetFormality(FormalityFormal)) != (nil) {
+		t.Fatalf("expected nil, got %v", s.SetFormality(FormalityFormal))
+	}
 }
 
 // --- String() ---
 
 func TestSubject_String_Good(t *testing.T) {
 	subj := S("file", "config.yaml")
-	assert.Equal(t, "config.yaml", subj.String())
+	if ("config.yaml") != (subj.String()) {
+		t.Fatalf("want %v, got %v", "config.yaml", subj.String())
+	}
 }
 
 func TestSubject_String_Good_Stringer(t *testing.T) {
 	// Use a type that implements fmt.Stringer
 	subj := S("error", core.NewError("something broke"))
-	assert.Equal(t, "something broke", subj.String())
+	if ("something broke") != (subj.String()) {
+		t.Fatalf("want %v, got %v", "something broke", subj.String())
+	}
 }
 
 func TestSubject_String_Good_IntValue(t *testing.T) {
 	subj := S("count", 42)
-	assert.Equal(t, "42", subj.String())
+	if ("42") != (subj.String()) {
+		t.Fatalf("want %v, got %v", "42", subj.String())
+	}
 }
-
-// --- NounString ---
 
 func TestSubject_NounString_Good(t *testing.T) {
 	subj := S("repository", "go-i18n")
-	assert.Equal(t, "repository", subj.NounString())
+	if ("repository") != (subj.NounString()) {
+		t.Fatalf("want %v, got %v", "repository", subj.NounString())
+	}
 }
-
-// --- IsPlural edge cases ---
 
 func TestSubject_IsPlural_Good(t *testing.T) {
 	tests := []struct {
@@ -170,7 +240,9 @@ func TestSubject_IsPlural_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			subj := S("item", "x").Count(tt.count)
-			assert.Equal(t, tt.want, subj.IsPlural())
+			if (tt.want) != (subj.IsPlural()) {
+				t.Fatalf("want %v, got %v", tt.want, subj.IsPlural())
+			}
 		})
 	}
 }
@@ -180,33 +252,58 @@ func TestSubject_IsPlural_Good(t *testing.T) {
 func TestNewTemplateData_Good(t *testing.T) {
 	subj := S("file", "test.txt").Count(3).Gender("neuter").In("workspace").Formal()
 	data := newTemplateData(subj)
-
-	assert.Equal(t, "test.txt", data.Subject)
-	assert.Equal(t, "file", data.Noun)
-	assert.Equal(t, 3, data.Count)
-	assert.Equal(t, "neuter", data.Gender)
-	assert.Equal(t, "workspace", data.Location)
-	assert.Equal(t, FormalityFormal, data.Formality)
-	assert.True(t, data.IsFormal)
-	assert.True(t, data.IsPlural)
-	assert.Equal(t, "test.txt", data.Value)
+	if ("test.txt") != (data.Subject) {
+		t.Fatalf("want %v, got %v", "test.txt", data.Subject)
+	}
+	if ("file") != (data.Noun) {
+		t.Fatalf("want %v, got %v", "file", data.Noun)
+	}
+	if (3) != (data.Count) {
+		t.Fatalf("want %v, got %v", 3, data.Count)
+	}
+	if ("neuter") != (data.Gender) {
+		t.Fatalf("want %v, got %v", "neuter", data.Gender)
+	}
+	if ("workspace") != (data.Location) {
+		t.Fatalf("want %v, got %v", "workspace", data.Location)
+	}
+	if (FormalityFormal) != (data.Formality) {
+		t.Fatalf("want %v, got %v", FormalityFormal, data.Formality)
+	}
+	if !(data.IsFormal) {
+		t.Fatal("expected true")
+	}
+	if !(data.IsPlural) {
+		t.Fatal("expected true")
+	}
+	if ("test.txt") != (data.Value) {
+		t.Fatalf("want %v, got %v", "test.txt", data.Value)
+	}
 }
 
 func TestNewTemplateData_Bad_NilSubject(t *testing.T) {
 	data := newTemplateData(nil)
-	assert.Equal(t, 1, data.Count, "nil subject should default count to 1")
-	assert.Equal(t, "", data.Subject)
-	assert.Equal(t, "", data.Noun)
+	if (1) != (data.Count) {
+		t.Fatalf("want %v, got %v", 1, data.Count)
+	}
+	if ("") != (data.Subject) {
+		t.Fatalf("want %v, got %v", "", data.Subject)
+	}
+	if ("") != (data.Noun) {
+		t.Fatalf("want %v, got %v", "", data.Noun)
+	}
 }
 
 func TestNewTemplateData_Good_Singular(t *testing.T) {
 	subj := S("item", "widget")
 	data := newTemplateData(subj)
-	assert.False(t, data.IsPlural)
-	assert.False(t, data.IsFormal)
+	if data.IsPlural {
+		t.Fatal("expected false")
+	}
+	if data.IsFormal {
+		t.Fatal("expected false")
+	}
 }
-
-// --- Full chaining ---
 
 func TestSubject_FullChain_Good(t *testing.T) {
 	subj := S("file", "readme.md").
@@ -214,13 +311,28 @@ func TestSubject_FullChain_Good(t *testing.T) {
 		Gender("neuter").
 		In("project").
 		Formal()
-
-	assert.Equal(t, "file", subj.NounString())
-	assert.Equal(t, "readme.md", subj.String())
-	assert.Equal(t, 2, subj.CountInt())
-	assert.Equal(t, "2", subj.CountString())
-	assert.Equal(t, "neuter", subj.GenderString())
-	assert.Equal(t, "project", subj.LocationString())
-	assert.True(t, subj.IsFormal())
-	assert.True(t, subj.IsPlural())
+	if ("file") != (subj.NounString()) {
+		t.Fatalf("want %v, got %v", "file", subj.NounString())
+	}
+	if ("readme.md") != (subj.String()) {
+		t.Fatalf("want %v, got %v", "readme.md", subj.String())
+	}
+	if (2) != (subj.CountInt()) {
+		t.Fatalf("want %v, got %v", 2, subj.CountInt())
+	}
+	if ("2") != (subj.CountString()) {
+		t.Fatalf("want %v, got %v", "2", subj.CountString())
+	}
+	if ("neuter") != (subj.GenderString()) {
+		t.Fatalf("want %v, got %v", "neuter", subj.GenderString())
+	}
+	if ("project") != (subj.LocationString()) {
+		t.Fatalf("want %v, got %v", "project", subj.LocationString())
+	}
+	if !(subj.IsFormal()) {
+		t.Fatal("expected true")
+	}
+	if !(subj.IsPlural()) {
+		t.Fatal("expected true")
+	}
 }

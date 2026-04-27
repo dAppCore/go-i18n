@@ -7,7 +7,7 @@ import (
 	"sync/atomic"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 var missingKeyHandler atomic.Value
@@ -24,16 +24,22 @@ type localeRegistration struct {
 }
 
 type localeProviderRegistration struct {
-	provider LocaleProvider
+	provider any
 	id       int
 }
 
-// LocaleProvider supplies one or more locale filesystems to the default service.
+// LocaleProvider supplies locale data to the default service.
 //
-//	i18n.RegisterLocaleProvider(myProvider)
-type LocaleProvider interface {
-	LocaleSources() []FSSource
-}
+// The package accepts multiple provider shapes for compatibility:
+//
+//   - LocaleSources() []FSSource
+//
+//   - Load(lang string) ([]byte, error) with Available() []string
+//
+//   - Loader
+//
+//     i18n.RegisterLocaleProvider(myProvider)
+type LocaleProvider interface{}
 
 var (
 	registeredLocales         []localeRegistration
@@ -76,7 +82,7 @@ func RegisterLocales(fsys fs.FS, dir string) {
 // single unit.
 //
 //	i18n.RegisterLocaleProvider(myProvider)
-func RegisterLocaleProvider(provider LocaleProvider) {
+func RegisterLocaleProvider(provider any) {
 	if provider == nil {
 		return
 	}
@@ -125,13 +131,48 @@ func loadLocaleProvider(svc *Service, provider localeProviderRegistration) {
 	if svc == nil || provider.provider == nil {
 		return
 	}
-	for _, src := range provider.provider.LocaleSources() {
-		if err := svc.LoadFS(src.FS, src.Dir); err != nil {
-			log.Error("i18n: loadLocaleProvider failed to load", "dir", src.Dir, "err", err)
+	switch p := provider.provider.(type) {
+	case Loader:
+		if err := svc.AddLoader(p); err != nil {
+			log.Error("i18n: loadLocaleProvider failed to add loader", "err", err)
 		}
+	case interface{ LocaleSources() []FSSource }:
+		for _, src := range p.LocaleSources() {
+			if err := svc.LoadFS(src.FS, src.Dir); err != nil {
+				log.Error("i18n: loadLocaleProvider failed to load", "dir", src.Dir, "err", err)
+			}
+		}
+	case interface {
+		Available() []string
+		Load(lang string) ([]byte, error)
+	}:
+		loadLocaleProviderBytes(svc, p)
+	default:
+		log.Error("i18n: unsupported locale provider", "type", core.Sprintf("%T", provider.provider))
 	}
 	svc.markLocaleProviderLoaded(provider.id)
 	markLocalesLoaded()
+}
+
+func loadLocaleProviderBytes(svc *Service, provider interface {
+	Available() []string
+	Load(lang string) ([]byte, error)
+}) {
+	for _, rawLang := range provider.Available() {
+		lang := normalizeLanguageTag(rawLang)
+		if lang == "" {
+			continue
+		}
+		data, err := provider.Load(rawLang)
+		if err != nil {
+			log.Error("i18n: loadLocaleProviderBytes failed to load", "lang", rawLang, "err", err)
+			continue
+		}
+		if err := svc.loadJSON(lang, data); err != nil {
+			log.Error("i18n: loadLocaleProviderBytes failed to parse", "lang", lang, "err", err)
+		}
+	}
+	svc.autoDetectLanguage()
 }
 
 func markLocalesLoaded() {
@@ -237,7 +278,7 @@ func cloneMissingKey(mk MissingKey) MissingKey {
 }
 
 func missingKeyCaller() (string, int) {
-	const packagePrefix = "dappco.re/go/core/i18n."
+	const packagePrefix = "dappco.re/go/i18n."
 
 	pcs := make([]uintptr, 16)
 	n := runtime.Callers(2, pcs)

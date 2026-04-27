@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"forge.lthn.ai/core/go-inference"
+	"dappco.re/go/inference"
 )
 
 func TestCalibrateDomains_FullAgreement(t *testing.T) {

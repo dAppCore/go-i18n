@@ -3,8 +3,6 @@ package i18n
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 	"golang.org/x/text/language"
 )
 
@@ -23,7 +21,9 @@ func TestFormality_String_Good(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.f.String())
+			if (tt.want) != (tt.f.String()) {
+				t.Fatalf("want %v, got %v", tt.want, tt.f.String())
+			}
 		})
 	}
 }
@@ -31,11 +31,13 @@ func TestFormality_String_Good(t *testing.T) {
 // --- TextDirection.String() ---
 
 func TestTextDirection_String_Good(t *testing.T) {
-	assert.Equal(t, "ltr", DirLTR.String())
-	assert.Equal(t, "rtl", DirRTL.String())
+	if ("ltr") != (DirLTR.String()) {
+		t.Fatalf("want %v, got %v", "ltr", DirLTR.String())
+	}
+	if ("rtl") != (DirRTL.String()) {
+		t.Fatalf("want %v, got %v", "rtl", DirRTL.String())
+	}
 }
-
-// --- PluralCategory.String() ---
 
 func TestPluralCategory_String_Good(t *testing.T) {
 	tests := []struct {
@@ -53,7 +55,9 @@ func TestPluralCategory_String_Good(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.cat.String())
+			if (tt.want) != (tt.cat.String()) {
+				t.Fatalf("want %v, got %v", tt.want, tt.cat.String())
+			}
 		})
 	}
 }
@@ -74,7 +78,9 @@ func TestGrammaticalGender_String_Good(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.g.String())
+			if (tt.want) != (tt.g.String()) {
+				t.Fatalf("want %v, got %v", tt.want, tt.g.String())
+			}
 		})
 	}
 }
@@ -102,7 +108,9 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, IsRTLLanguage(tt.lang))
+			if (tt.want) != (IsRTLLanguage(tt.lang)) {
+				t.Fatalf("want %v, got %v", tt.want, IsRTLLanguage(tt.lang))
+			}
 		})
 	}
 }
@@ -111,168 +119,218 @@ func TestIsRTLLanguage_Good(t *testing.T) {
 
 func TestSetFormality_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	SetFormality(FormalityFormal)
-	assert.Equal(t, FormalityFormal, svc.Formality())
+	if (FormalityFormal) != (svc.Formality()) {
+		t.Fatalf("want %v, got %v", FormalityFormal, svc.Formality())
+	}
 
 	SetFormality(FormalityNeutral)
-	assert.Equal(t, FormalityNeutral, svc.Formality())
+	if (FormalityNeutral) != (svc.Formality()) {
+		t.Fatalf("want %v, got %v", FormalityNeutral, svc.Formality())
+	}
 }
-
-// --- Package-level SetFallback ---
 
 func TestSetFallback_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	SetFallback("fr")
-	assert.Equal(t, "fr", svc.Fallback())
+	if ("fr") != (svc.Fallback()) {
+		t.Fatalf("want %v, got %v", "fr", svc.Fallback())
+	}
 
 	SetFallback("en")
-	assert.Equal(t, "en", svc.Fallback())
+	if ("en") != (svc.Fallback()) {
+		t.Fatalf("want %v, got %v", "en", svc.Fallback())
+	}
 }
-
-// --- Package-level CurrentFormality ---
 
 func TestCurrentFormality_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.Equal(t, FormalityNeutral, CurrentFormality())
+	SetDefault(svc)
+	if (FormalityNeutral) != (CurrentFormality()) {
+		t.Fatalf("want %v, got %v", FormalityNeutral, CurrentFormality())
+	}
 
 	SetFormality(FormalityFormal)
-	assert.Equal(t, FormalityFormal, CurrentFormality())
+	if (FormalityFormal) != (CurrentFormality()) {
+		t.Fatalf("want %v, got %v", FormalityFormal, CurrentFormality())
+	}
 }
-
-// --- Package-level CurrentFallback ---
 
 func TestCurrentFallback_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.Equal(t, "en", CurrentFallback())
+	SetDefault(svc)
+	if ("en") != (CurrentFallback()) {
+		t.Fatalf("want %v, got %v", "en", CurrentFallback())
+	}
 
 	SetFallback("fr")
-	assert.Equal(t, "fr", CurrentFallback())
+	if ("fr") != (CurrentFallback()) {
+		t.Fatalf("want %v, got %v", "fr", CurrentFallback())
+	}
 }
-
-// --- Package-level SetLocation ---
 
 func TestSetLocation_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	SetLocation("workspace")
-	assert.Equal(t, "workspace", svc.Location())
+	if ("workspace") != (svc.Location()) {
+		t.Fatalf("want %v, got %v", "workspace", svc.Location())
+	}
 
 	SetLocation("")
-	assert.Equal(t, "", svc.Location())
+	if ("") != (svc.Location()) {
+		t.Fatalf("want %v, got %v", "", svc.Location())
+	}
 }
-
-// --- Package-level CurrentLocation ---
 
 func TestCurrentLocation_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.Equal(t, "", CurrentLocation())
+	SetDefault(svc)
+	if ("") != (CurrentLocation()) {
+		t.Fatalf("want %v, got %v", "", CurrentLocation())
+	}
 
 	SetLocation("workspace")
-	assert.Equal(t, "workspace", CurrentLocation())
+	if ("workspace") != (CurrentLocation()) {
+		t.Fatalf("want %v, got %v", "workspace", CurrentLocation())
+	}
 }
-
-// --- Package-level Location ---
 
 func TestLocation_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.Equal(t, CurrentLocation(), Location())
+	SetDefault(svc)
+	if (CurrentLocation()) != (Location()) {
+		t.Fatalf("want %v, got %v", CurrentLocation(), Location())
+	}
 
 	SetLocation("workspace")
-	assert.Equal(t, CurrentLocation(), Location())
+	if (CurrentLocation()) != (Location()) {
+		t.Fatalf("want %v, got %v", CurrentLocation(), Location())
+	}
 }
-
-// --- Package-level Direction ---
 
 func TestDirection_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	dir := Direction()
-	assert.Equal(t, DirLTR, dir)
+	if (DirLTR) != (dir) {
+		t.Fatalf("want %v, got %v", DirLTR, dir)
+	}
 }
-
-// --- Package-level CurrentDirection ---
 
 func TestCurrentDirection_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
-
-	assert.Equal(t, DirLTR, CurrentDirection())
+	if (DirLTR) != (CurrentDirection()) {
+		t.Fatalf("want %v, got %v", DirLTR, CurrentDirection())
+	}
 }
-
-// --- Package-level CurrentTextDirection ---
 
 func TestCurrentTextDirection_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
-
-	assert.Equal(t, CurrentDirection(), CurrentTextDirection())
+	if (CurrentDirection()) != (CurrentTextDirection()) {
+		t.Fatalf("want %v, got %v", CurrentDirection(), CurrentTextDirection())
+	}
 }
-
-// --- Package-level IsRTL ---
 
 func TestIsRTL_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.False(t, IsRTL(), "English should not be RTL")
+	SetDefault(svc)
+	if IsRTL() {
+		t.Fatal("expected false")
+	}
 }
 
 // --- Package-level RTL ---
 
 func TestRTL_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
-
-	assert.Equal(t, IsRTL(), RTL())
+	if (IsRTL()) != (RTL()) {
+		t.Fatalf("want %v, got %v", IsRTL(), RTL())
+	}
 }
-
-// --- Package-level CurrentIsRTL ---
 
 func TestCurrentIsRTL_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
-	SetDefault(svc)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	assert.False(t, CurrentIsRTL(), "English should not be RTL")
+	SetDefault(svc)
+	if CurrentIsRTL() {
+		t.Fatal("expected false")
+	}
 }
 
 // --- Package-level CurrentRTL ---
 
 func TestCurrentRTL_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
-
-	assert.Equal(t, CurrentIsRTL(), CurrentRTL())
+	if (CurrentIsRTL()) != (CurrentRTL()) {
+		t.Fatalf("want %v, got %v", CurrentIsRTL(), CurrentRTL())
+	}
 }
-
-// --- Package-level CurrentPluralCategory ---
 
 func TestCurrentPluralCategory_Good(t *testing.T) {
 	prev := Default()
@@ -281,20 +339,33 @@ func TestCurrentPluralCategory_Good(t *testing.T) {
 	})
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
-
-	assert.Equal(t, PluralOther, CurrentPluralCategory(0))
-	assert.Equal(t, PluralOne, CurrentPluralCategory(1))
-	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
-
-	require.NoError(t, SetLanguage("fr"))
-	assert.Equal(t, PluralOne, CurrentPluralCategory(0))
-	assert.Equal(t, PluralOne, CurrentPluralCategory(1))
-	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+	if (PluralOther) != (CurrentPluralCategory(0)) {
+		t.Fatalf("want %v, got %v", PluralOther, CurrentPluralCategory(0))
+	}
+	if (PluralOne) != (CurrentPluralCategory(1)) {
+		t.Fatalf("want %v, got %v", PluralOne, CurrentPluralCategory(1))
+	}
+	if (PluralOther) != (CurrentPluralCategory(2)) {
+		t.Fatalf("want %v, got %v", PluralOther, CurrentPluralCategory(2))
+	}
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if (PluralOne) != (CurrentPluralCategory(0)) {
+		t.Fatalf("want %v, got %v", PluralOne, CurrentPluralCategory(0))
+	}
+	if (PluralOne) != (CurrentPluralCategory(1)) {
+		t.Fatalf("want %v, got %v", PluralOne, CurrentPluralCategory(1))
+	}
+	if (PluralOther) != (CurrentPluralCategory(2)) {
+		t.Fatalf("want %v, got %v", PluralOther, CurrentPluralCategory(2))
+	}
 }
-
-// --- Package-level PluralCategoryOf ---
 
 func TestPluralCategoryOf_Good(t *testing.T) {
 	prev := Default()
@@ -303,17 +374,32 @@ func TestPluralCategoryOf_Good(t *testing.T) {
 	})
 
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
-
-	assert.Equal(t, PluralOther, PluralCategoryOf(0))
-	assert.Equal(t, PluralOne, PluralCategoryOf(1))
-	assert.Equal(t, PluralOther, PluralCategoryOf(2))
-
-	require.NoError(t, SetLanguage("fr"))
-	assert.Equal(t, PluralOne, PluralCategoryOf(0))
-	assert.Equal(t, PluralOne, PluralCategoryOf(1))
-	assert.Equal(t, PluralOther, PluralCategoryOf(2))
+	if (PluralOther) != (PluralCategoryOf(0)) {
+		t.Fatalf("want %v, got %v", PluralOther, PluralCategoryOf(0))
+	}
+	if (PluralOne) != (PluralCategoryOf(1)) {
+		t.Fatalf("want %v, got %v", PluralOne, PluralCategoryOf(1))
+	}
+	if (PluralOther) != (PluralCategoryOf(2)) {
+		t.Fatalf("want %v, got %v", PluralOther, PluralCategoryOf(2))
+	}
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if (PluralOne) != (PluralCategoryOf(0)) {
+		t.Fatalf("want %v, got %v", PluralOne, PluralCategoryOf(0))
+	}
+	if (PluralOne) != (PluralCategoryOf(1)) {
+		t.Fatalf("want %v, got %v", PluralOne, PluralCategoryOf(1))
+	}
+	if (PluralOther) != (PluralCategoryOf(2)) {
+		t.Fatalf("want %v, got %v", PluralOther, PluralCategoryOf(2))
+	}
 }
 
 func TestCurrentPluralCategory_NoDefaultService(t *testing.T) {
@@ -323,17 +409,18 @@ func TestCurrentPluralCategory_NoDefaultService(t *testing.T) {
 	})
 
 	SetDefault(nil)
-
-	assert.Equal(t, PluralOther, CurrentPluralCategory(2))
+	if (PluralOther) != (CurrentPluralCategory(2)) {
+		t.Fatalf("want %v, got %v", PluralOther, CurrentPluralCategory(2))
+	}
 }
-
-// --- detectLanguage ---
 
 func TestDetectLanguage_Good(t *testing.T) {
 	// detectLanguage relies on env vars, which we can't easily set in tests
 	// but we can test with no supported languages
 	result := detectLanguage(nil)
-	assert.Equal(t, "", result, "should return empty with no supported languages")
+	if ("") != (result) {
+		t.Fatalf("want %v, got %v", "", result)
+	}
 }
 
 func TestDetectLanguage_PrefersLocaleOverrides(t *testing.T) {
@@ -348,7 +435,9 @@ func TestDetectLanguage_PrefersLocaleOverrides(t *testing.T) {
 	}
 
 	result := detectLanguage(supported)
-	assert.Equal(t, "de", result, "LC_ALL should win over LANG and LC_MESSAGES")
+	if ("de") != (result) {
+		t.Fatalf("want %v, got %v", "de", result)
+	}
 }
 
 func TestDetectLanguage_SkipsInvalidHigherPriorityLocale(t *testing.T) {
@@ -362,7 +451,9 @@ func TestDetectLanguage_SkipsInvalidHigherPriorityLocale(t *testing.T) {
 	}
 
 	result := detectLanguage(supported)
-	assert.Equal(t, "fr", result, "invalid LC_ALL should not block a valid lower-priority locale")
+	if ("fr") != (result) {
+		t.Fatalf("want %v, got %v", "fr", result)
+	}
 }
 
 func TestDetectLanguage_PrefersLanguageList(t *testing.T) {
@@ -376,7 +467,9 @@ func TestDetectLanguage_PrefersLanguageList(t *testing.T) {
 	}
 
 	result := detectLanguage(supported)
-	assert.Equal(t, "fr", result, "LANGUAGE should be considered before LANG")
+	if ("fr") != (result) {
+		t.Fatalf("want %v, got %v", "fr", result)
+	}
 }
 
 // --- Mode.String() ---
@@ -394,7 +487,9 @@ func TestMode_String_Good(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.m.String())
+			if (tt.want) != (tt.m.String()) {
+				t.Fatalf("want %v, got %v", tt.want, tt.m.String())
+			}
 		})
 	}
 }

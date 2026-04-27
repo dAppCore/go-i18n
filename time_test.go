@@ -1,19 +1,20 @@
 package i18n
 
 import (
+	"strings"
 	"testing"
 	"testing/fstest"
 	"time"
-
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // --- TimeAgo ---
 
 func TestTimeAgo_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	tests := []struct {
@@ -33,65 +34,86 @@ func TestTimeAgo_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := TimeAgo(time.Now().Add(-tt.duration))
-			assert.Contains(t, got, tt.contains)
+			if !strings.Contains(got, tt.contains) {
+				t.Fatalf("expected %q to contain %q", got, tt.contains)
+			}
 		})
 	}
 }
 
 func TestTimeAgo_Good_EdgeCases(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	// Just under 1 minute
 	got := TimeAgo(time.Now().Add(-59 * time.Second))
-	assert.Contains(t, got, "seconds ago")
+	if !strings.Contains(got, "seconds ago") {
+		t.Fatalf("expected %q to contain %q", got, "seconds ago")
+	}
 
-	// Exactly 1 minute
 	got = TimeAgo(time.Now().Add(-60 * time.Second))
-	assert.Contains(t, got, "minute")
+	if !strings.Contains(got, "minute") {
+		t.Fatalf("expected %q to contain %q", got, "minute")
+	}
 
-	// Just under 1 hour
 	got = TimeAgo(time.Now().Add(-59 * time.Minute))
-	assert.Contains(t, got, "minutes ago")
+	if !strings.Contains(got, "minutes ago") {
+		t.Fatalf("expected %q to contain %q", got, "minutes ago")
+	}
 
-	// Just under 1 day
 	got = TimeAgo(time.Now().Add(-23 * time.Hour))
-	assert.Contains(t, got, "hours ago")
+	if !strings.Contains(got, "hours ago") {
+		t.Fatalf("expected %q to contain %q", got, "hours ago")
+	}
 
-	// Just under 1 week
 	got = TimeAgo(time.Now().Add(-6 * 24 * time.Hour))
-	assert.Contains(t, got, "days ago")
+	if !strings.Contains(got, "days ago") {
+		t.Fatalf("expected %q to contain %q", got, "days ago")
+	}
 
-	// Just over 4 weeks
 	got = TimeAgo(time.Now().Add(-31 * 24 * time.Hour))
-	assert.Contains(t, got, "month ago")
+	if !strings.Contains(got, "month ago") {
+		t.Fatalf("expected %q to contain %q", got, "month ago")
+	}
 
-	// Well over a year
 	got = TimeAgo(time.Now().Add(-800 * 24 * time.Hour))
-	assert.Contains(t, got, "years ago")
+	if !strings.Contains(got, "years ago") {
+		t.Fatalf("expected %q to contain %q", got, "years ago")
+	}
 }
 
 func TestTimeAgo_Good_SingleUnits(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	// 1 minute ago
 	got := TimeAgo(time.Now().Add(-1 * time.Minute))
-	assert.Contains(t, got, "1 minute ago")
+	if !strings.Contains(got, "1 minute ago") {
+		t.Fatalf("expected %q to contain %q", got, "1 minute ago")
+	}
 
-	// 1 hour ago
 	got = TimeAgo(time.Now().Add(-1 * time.Hour))
-	assert.Contains(t, got, "1 hour ago")
+	if !strings.Contains(got, "1 hour ago") {
+		t.Fatalf("expected %q to contain %q", got, "1 hour ago")
+	}
 
-	// 1 day ago
 	got = TimeAgo(time.Now().Add(-24 * time.Hour))
-	assert.Contains(t, got, "1 day ago")
+	if !strings.Contains(got, "1 day ago") {
+		t.Fatalf("expected %q to contain %q", got, "1 day ago")
+	}
 
-	// 1 week ago
 	got = TimeAgo(time.Now().Add(-7 * 24 * time.Hour))
-	assert.Contains(t, got, "1 week ago")
+	if !strings.Contains(got, "1 week ago") {
+		t.Fatalf("expected %q to contain %q", got, "1 week ago")
+	}
 }
 
 func TestTimeAgo_Good_MissingJustNowKeyFallback(t *testing.T) {
@@ -100,7 +122,9 @@ func TestTimeAgo_Good_MissingJustNowKeyFallback(t *testing.T) {
 			Data: []byte(`{}`),
 		},
 	}, ".")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	prev := Default()
 	SetDefault(svc)
@@ -109,14 +133,17 @@ func TestTimeAgo_Good_MissingJustNowKeyFallback(t *testing.T) {
 	})
 
 	got := TimeAgo(time.Now().Add(-4 * time.Second))
-	assert.Equal(t, "just now", got)
+	if "just now" != got {
+		t.Fatalf("want %v, got %v", "just now", got)
+	}
 }
-
-// --- FormatAgo ---
 
 func TestFormatAgo_Good(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	tests := []struct {
@@ -137,23 +164,33 @@ func TestFormatAgo_Good(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := FormatAgo(tt.count, tt.unit)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
 
 func TestFormatAgo_Good_PluralUnitAlias(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	got := FormatAgo(5, "minutes")
-	assert.Equal(t, "5 minutes ago", got)
+	if "5 minutes ago" != got {
+		t.Fatalf("want %v, got %v", "5 minutes ago", got)
+	}
 }
 
 func TestFormatAgo_Good_MorePluralUnitAliases(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	tests := []struct {
@@ -168,37 +205,54 @@ func TestFormatAgo_Good_MorePluralUnitAliases(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := FormatAgo(tt.count, tt.unit)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
 
 func TestFormatAgo_Good_NormalisesUnitInput(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	got := FormatAgo(2, " Hours ")
-	assert.Equal(t, "2 hours ago", got)
+	if "2 hours ago" != got {
+		t.Fatalf("want %v, got %v", "2 hours ago", got)
+	}
 }
 
 func TestFormatAgo_Bad_UnknownUnit(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	// Unknown unit should fallback to programmatic format
 	got := FormatAgo(5, "fortnight")
-	assert.Equal(t, "5 fortnights ago", got)
+	if "5 fortnights ago" != got {
+		t.Fatalf("want %v, got %v", "5 fortnights ago", got)
+	}
 }
 
 func TestFormatAgo_Good_SingularUnit(t *testing.T) {
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 
 	got := FormatAgo(1, "fortnight")
-	assert.Equal(t, "1 fortnight ago", got)
+	if "1 fortnight ago" != got {
+		t.Fatalf("want %v, got %v", "1 fortnight ago", got)
+	}
 }
 
 func TestFormatAgo_Good_NoDefaultService(t *testing.T) {
@@ -209,22 +263,30 @@ func TestFormatAgo_Good_NoDefaultService(t *testing.T) {
 	})
 
 	got := FormatAgo(1, "second")
-	assert.Equal(t, "1 second ago", got)
+	if "1 second ago" != got {
+		t.Fatalf("want %v, got %v", "1 second ago", got)
+	}
 
 	got = FormatAgo(5, "second")
-	assert.Equal(t, "5 seconds ago", got)
+	if "5 seconds ago" != got {
+		t.Fatalf("want %v, got %v", "5 seconds ago", got)
+	}
 }
 
 func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
 	prev := Default()
 	svc, err := New()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 	t.Cleanup(func() {
 		SetDefault(prev)
 	})
-
-	require.NoError(t, SetLanguage("fr"))
+	if err := SetLanguage("fr"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	tests := []struct {
 		name  string
@@ -241,7 +303,9 @@ func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := FormatAgo(tt.count, tt.unit)
-			assert.Equal(t, tt.want, got)
+			if tt.want != got {
+				t.Fatalf("want %v, got %v", tt.want, got)
+			}
 		})
 	}
 }
@@ -259,14 +323,20 @@ func TestFormatAgo_FallsBackToLocaleWordMap(t *testing.T) {
 			}`),
 		},
 	}, ".")
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
 	SetDefault(svc)
 	t.Cleanup(func() {
 		SetDefault(prev)
 	})
-
-	require.NoError(t, SetLanguage("en"))
+	if err := SetLanguage("en"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
 	got := FormatAgo(2, "month")
-	assert.Equal(t, "2 mois ago", got)
+	if "2 mois ago" != got {
+		t.Fatalf("want %v, got %v", "2 mois ago", got)
+	}
 }

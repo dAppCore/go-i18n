@@ -1,15 +1,17 @@
 package i18n
 
 import (
-	"errors"
+	// Note: AX-6 — fs.FS is the loader's public filesystem contract and fs.ReadFile/fs.ReadDir/fs.ErrNotExist have no verified core equivalents.
 	"io/fs"
+	// Note: AX-6 — math.IsNaN and math.IsInf validate signal prior scores; core only provides Min/Max helpers.
 	"math"
+	// Note: AX-6 — path.Join preserves fs.FS-relative locale paths; core.PathJoin is unavailable and core.Path anchors relative paths.
 	"path"
+	// Note: AX-6 — slices.Sort provides deterministic language ordering; no verified core sort helper exists.
 	"slices"
-	"sync"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 // FSLoader loads translations from a filesystem (embedded or disk).
@@ -18,7 +20,7 @@ type FSLoader struct {
 	dir  string
 
 	languages []string
-	langOnce  sync.Once
+	langOnce  core.Once
 	langErr   error
 }
 
@@ -39,7 +41,7 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 		if err == nil {
 			break
 		}
-		if firstNonMissingErr == nil && !errors.Is(err, fs.ErrNotExist) {
+		if firstNonMissingErr == nil && !core.Is(err, fs.ErrNotExist) {
 			firstNonMissingErr = err
 		}
 	}
@@ -57,9 +59,10 @@ func (l *FSLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
 
 	messages := make(map[string]Message)
 	grammar := &GrammarData{
-		Verbs: make(map[string]VerbForms),
-		Nouns: make(map[string]NounForms),
-		Words: make(map[string]string),
+		Verbs:   make(map[string]VerbForms),
+		Nouns:   make(map[string]NounForms),
+		Words:   make(map[string]string),
+		Intents: make(map[string]Intent),
 	}
 
 	flattenWithGrammar("", raw, messages, grammar)
@@ -138,10 +141,14 @@ var _ Loader = (*FSLoader)(nil)
 // --- Flatten helpers ---
 
 func flatten(prefix string, data map[string]any, out map[string]Message) {
-	flattenWithGrammar(prefix, data, out, nil)
+	flattenWithGrammarAndIntents(prefix, data, out, nil)
 }
 
 func flattenWithGrammar(prefix string, data map[string]any, out map[string]Message, grammar *GrammarData) {
+	flattenWithGrammarAndIntents(prefix, data, out, grammar)
+}
+
+func flattenWithGrammarAndIntents(prefix string, data map[string]any, out map[string]Message, grammar *GrammarData) {
 	for key, value := range data {
 		fullKey := key
 		if prefix != "" {
@@ -180,33 +187,220 @@ func flattenWithGrammar(prefix string, data map[string]any, out map[string]Messa
 				continue
 			}
 
+			if loadIntentBlock(fullKey, v, out, grammar) {
+				continue
+			}
+
 			// CLDR plural object
 			if isPluralObject(v) {
-				msg := Message{}
-				if zero, ok := v["zero"].(string); ok {
-					msg.Zero = zero
+				if msg, ok := messageFromValue(v); ok {
+					out[fullKey] = msg
 				}
-				if one, ok := v["one"].(string); ok {
-					msg.One = one
-				}
-				if two, ok := v["two"].(string); ok {
-					msg.Two = two
-				}
-				if few, ok := v["few"].(string); ok {
-					msg.Few = few
-				}
-				if many, ok := v["many"].(string); ok {
-					msg.Many = many
-				}
-				if other, ok := v["other"].(string); ok {
-					msg.Other = other
-				}
-				out[fullKey] = msg
-			} else {
-				flattenWithGrammar(fullKey, v, out, grammar)
+				continue
+			}
+
+			flattenWithGrammarAndIntents(fullKey, v, out, grammar)
+		}
+	}
+}
+
+func loadIntentBlock(fullKey string, v map[string]any, out map[string]Message, grammar *GrammarData) bool {
+	if !isIntentBlock(fullKey, v) {
+		return false
+	}
+
+	intent := Intent{}
+	hasContent := false
+	if metaValue, ok := v["_meta"]; ok {
+		if metaMap, ok := metaValue.(map[string]any); ok {
+			intent.Meta = parseIntentMeta(metaMap)
+		}
+		hasContent = true
+	}
+
+	loadForm := func(field string, target *string) {
+		value, ok := v[field]
+		if !ok {
+			return
+		}
+		hasContent = true
+		msg, ok := messageFromValue(value)
+		if !ok {
+			return
+		}
+		if target != nil && msg.Text != "" {
+			*target = msg.Text
+		}
+		if out != nil {
+			out[fullKey+"."+field] = msg
+		}
+	}
+
+	loadForm("question", &intent.Question)
+	loadForm("confirm", &intent.Confirm)
+	loadForm("success", &intent.Success)
+	loadForm("failure", &intent.Failure)
+
+	if !hasContent {
+		return false
+	}
+	if grammar != nil {
+		if grammar.Intents == nil {
+			grammar.Intents = make(map[string]Intent)
+		}
+		grammar.Intents[fullKey] = cloneIntent(intent)
+	}
+	return true
+}
+
+func isIntentBlock(fullKey string, v map[string]any) bool {
+	if !core.HasPrefix(fullKey, "core.") && !core.HasPrefix(fullKey, "intent.") {
+		return false
+	}
+	for _, field := range []string{"_meta", "question", "confirm", "success", "failure"} {
+		if _, ok := v[field]; ok {
+			return true
+		}
+	}
+	return false
+}
+
+func messageFromValue(value any) (Message, bool) {
+	switch v := value.(type) {
+	case string:
+		if trimmed := core.Trim(v); trimmed != "" {
+			return Message{Text: v}, true
+		}
+		return Message{}, false
+	case map[string]any:
+		if !isPluralObject(v) {
+			return Message{}, false
+		}
+		msg := Message{}
+		if zero, ok := v["zero"].(string); ok {
+			msg.Zero = zero
+		}
+		if one, ok := v["one"].(string); ok {
+			msg.One = one
+		}
+		if two, ok := v["two"].(string); ok {
+			msg.Two = two
+		}
+		if few, ok := v["few"].(string); ok {
+			msg.Few = few
+		}
+		if many, ok := v["many"].(string); ok {
+			msg.Many = many
+		}
+		if other, ok := v["other"].(string); ok {
+			msg.Other = other
+		}
+		return msg, true
+	default:
+		return Message{}, false
+	}
+}
+
+func parseIntentMeta(v map[string]any) IntentMeta {
+	if len(v) == 0 {
+		return IntentMeta{}
+	}
+	meta := IntentMeta{}
+	if value, ok := stringFromMap(v, "type", "Type"); ok {
+		meta.Type = value
+	}
+	if value, ok := stringFromMap(v, "verb", "Verb"); ok {
+		meta.Verb = value
+	}
+	if value, ok := boolFromMap(v, "dangerous", "Dangerous"); ok {
+		meta.Dangerous = value
+	}
+	if value, ok := stringFromMap(v, "default", "Default"); ok {
+		meta.Default = value
+	}
+	if values := stringSliceFromMap(v, "supports", "Supports"); len(values) > 0 {
+		meta.Supports = values
+	}
+	return meta
+}
+
+func stringFromMap(values map[string]any, keys ...string) (string, bool) {
+	for _, key := range keys {
+		raw, ok := values[key]
+		if !ok {
+			continue
+		}
+		if s, ok := raw.(string); ok {
+			s = core.Trim(s)
+			if s != "" {
+				return core.Lower(s), true
 			}
 		}
 	}
+	return "", false
+}
+
+func boolFromMap(values map[string]any, keys ...string) (bool, bool) {
+	for _, key := range keys {
+		raw, ok := values[key]
+		if !ok {
+			continue
+		}
+		switch v := raw.(type) {
+		case bool:
+			return v, true
+		case string:
+			switch core.Lower(core.Trim(v)) {
+			case "true", "yes", "1":
+				return true, true
+			case "false", "no", "0":
+				return false, true
+			}
+		}
+	}
+	return false, false
+}
+
+func stringSliceFromMap(values map[string]any, keys ...string) []string {
+	for _, key := range keys {
+		raw, ok := values[key]
+		if !ok {
+			continue
+		}
+		switch v := raw.(type) {
+		case []string:
+			result := make([]string, 0, len(v))
+			for _, item := range v {
+				if trimmed := core.Trim(item); trimmed != "" {
+					trimmed = core.Lower(trimmed)
+					result = append(result, trimmed)
+				}
+			}
+			if len(result) > 0 {
+				return result
+			}
+		case []any:
+			result := make([]string, 0, len(v))
+			for _, item := range v {
+				s, ok := item.(string)
+				if !ok {
+					continue
+				}
+				if trimmed := core.Trim(s); trimmed != "" {
+					trimmed = core.Lower(trimmed)
+					result = append(result, trimmed)
+				}
+			}
+			if len(result) > 0 {
+				return result
+			}
+		case string:
+			if trimmed := core.Trim(v); trimmed != "" {
+				return []string{core.Lower(trimmed)}
+			}
+		}
+	}
+	return nil
 }
 
 func loadGrammarWord(fullKey, value string, grammar *GrammarData) bool {
@@ -229,8 +423,14 @@ func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData
 	if base, ok := v["base"].(string); ok && base != "" {
 		verbName = base
 	}
-	if core.HasPrefix(fullKey, "gram.verb.") {
+	switch {
+	case core.HasPrefix(fullKey, "gram.verb."):
 		after := core.TrimPrefix(fullKey, "gram.verb.")
+		if base, ok := v["base"].(string); !ok || base == "" {
+			verbName = after
+		}
+	case core.HasPrefix(fullKey, "common.verb."):
+		after := core.TrimPrefix(fullKey, "common.verb.")
 		if base, ok := v["base"].(string); !ok || base == "" {
 			verbName = after
 		}
@@ -247,12 +447,15 @@ func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData
 }
 
 func loadGrammarNoun(fullKey, key string, v map[string]any, grammar *GrammarData) bool {
-	if grammar == nil || !(core.HasPrefix(fullKey, "gram.noun.") || isNounFormObject(v)) {
+	if grammar == nil || !((core.HasPrefix(fullKey, "gram.noun.") || core.HasPrefix(fullKey, "common.noun.")) || isNounFormObject(v)) {
 		return false
 	}
 	nounName := key
-	if core.HasPrefix(fullKey, "gram.noun.") {
+	switch {
+	case core.HasPrefix(fullKey, "gram.noun."):
 		nounName = core.TrimPrefix(fullKey, "gram.noun.")
+	case core.HasPrefix(fullKey, "common.noun."):
+		nounName = core.TrimPrefix(fullKey, "common.noun.")
 	}
 	if shouldSkipDeprecatedEnglishGrammarEntry(fullKey) {
 		return true
@@ -305,8 +508,37 @@ func loadGrammarSignals(fullKey string, v map[string]any, grammar *GrammarData) 
 }
 
 func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) bool {
-	if grammar == nil || fullKey != "gram.article" {
+	if grammar == nil || (fullKey != "gram.article" && fullKey != "common.article") {
 		return false
+	}
+	// Support both the canonical loader schema (`indefinite` / `definite`)
+	// and the RFC sample shape (`the` / `a`) so locale files can be shared
+	// across implementations without data loss.
+	if def, ok := v["the"].(string); ok && def != "" {
+		grammar.Articles.Definite = def
+	}
+	if aValue, ok := v["a"]; ok {
+		switch a := aValue.(type) {
+		case string:
+			if a != "" {
+				grammar.Articles.IndefiniteDefault = a
+				grammar.Articles.IndefiniteVowel = a
+			}
+		case map[string]any:
+			if def, ok := stringFromMap(a, "default", "one"); ok {
+				grammar.Articles.IndefiniteDefault = def
+			}
+			if vowel, ok := stringFromMap(a, "vowel"); ok {
+				grammar.Articles.IndefiniteVowel = vowel
+			}
+		case map[string]string:
+			if def := firstNonEmptyString(a["default"], a["one"]); def != "" {
+				grammar.Articles.IndefiniteDefault = def
+			}
+			if vowel := core.Trim(a["vowel"]); vowel != "" {
+				grammar.Articles.IndefiniteVowel = vowel
+			}
+		}
 	}
 	if indef, ok := v["indefinite"].(map[string]any); ok {
 		if def, ok := indef["default"].(string); ok {
@@ -336,6 +568,15 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 		}
 	}
 	return true
+}
+
+func firstNonEmptyString(values ...string) string {
+	for _, value := range values {
+		if trimmed := core.Trim(value); trimmed != "" {
+			return trimmed
+		}
+	}
+	return ""
 }
 
 func loadGrammarPunctuation(fullKey string, v map[string]any, grammar *GrammarData) bool {
@@ -465,7 +706,9 @@ func float64Value(v any) (float64, bool) {
 func shouldSkipDeprecatedEnglishGrammarEntry(fullKey string) bool {
 	switch fullKey {
 	case "gram.noun.passed", "gram.noun.failed", "gram.noun.skipped",
-		"gram.word.passed", "gram.word.failed", "gram.word.skipped":
+		"common.noun.passed", "common.noun.failed", "common.noun.skipped",
+		"gram.word.passed", "gram.word.failed", "gram.word.skipped",
+		"common.word.passed", "common.word.failed", "common.word.skipped":
 		return true
 	default:
 		return false

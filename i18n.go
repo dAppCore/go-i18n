@@ -1,12 +1,13 @@
 package i18n
 
 import (
-	"bytes"
+	// Note: AX-6 — fs.FS is the structural public API for embedded locale packs; pinned core has no equivalent.
 	"io/fs"
+	// Note: AX-6 — message interpolation requires Go template parsing/execution; pinned core has no template primitive.
 	"text/template"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 // T translates a message using the default service.
@@ -40,6 +41,18 @@ func Raw(messageID string, args ...any) string {
 	return defaultServiceValue(messageID, func(svc *Service) string {
 		return svc.Raw(messageID, args...)
 	})
+}
+
+// Compose resolves a semantic intent key using the default service.
+func Compose(key string, subject *Subject) Composed {
+	return defaultServiceValue(Composed{}, func(svc *Service) Composed {
+		return svc.Compose(key, subject)
+	})
+}
+
+// CurrentCompose is a short alias for Compose.
+func CurrentCompose(key string, subject *Subject) Composed {
+	return Compose(key, subject)
 }
 
 // ErrServiceNotInitialised is returned when the service is not initialised.
@@ -392,22 +405,14 @@ func executeIntentTemplate(tmplStr string, data templateData) string {
 		return ""
 	}
 	if cached, ok := templateCache.Load(tmplStr); ok {
-		var buf bytes.Buffer
-		if err := cached.(*template.Template).Execute(&buf, data); err != nil {
-			return tmplStr
-		}
-		return buf.String()
+		return executeParsedTemplate(cached.(*template.Template), data, tmplStr)
 	}
 	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(tmplStr)
 	if err != nil {
 		return tmplStr
 	}
 	templateCache.Store(tmplStr, tmpl)
-	var buf bytes.Buffer
-	if err := tmpl.Execute(&buf, data); err != nil {
-		return tmplStr
-	}
-	return buf.String()
+	return executeParsedTemplate(tmpl, data, tmplStr)
 }
 
 func applyTemplate(text string, data any) string {
@@ -416,22 +421,48 @@ func applyTemplate(text string, data any) string {
 	}
 	data = templateDataForRendering(data)
 	if cached, ok := templateCache.Load(text); ok {
-		var buf bytes.Buffer
-		if err := cached.(*template.Template).Execute(&buf, data); err != nil {
-			return text
-		}
-		return buf.String()
+		return executeParsedTemplate(cached.(*template.Template), data, text)
 	}
 	tmpl, err := template.New("").Funcs(TemplateFuncs()).Parse(text)
 	if err != nil {
 		return text
 	}
 	templateCache.Store(text, tmpl)
-	var buf bytes.Buffer
+	return executeParsedTemplate(tmpl, data, text)
+}
+
+func executeParsedTemplate(tmpl *template.Template, data any, fallback string) string {
+	var buf templateBuffer
 	if err := tmpl.Execute(&buf, data); err != nil {
-		return text
+		return fallback
 	}
 	return buf.String()
+}
+
+// Note: AX-6 - core.NewBuffer is unavailable in the pinned core module; this is
+// the minimal intrinsic writer needed by text/template execution.
+type templateBuffer struct {
+	data []byte
+}
+
+// Write appends the given bytes to the buffer and returns the byte count
+// written along with a nil error. Implements io.Writer for text/template
+// execution.
+//
+//	var buf templateBuffer
+//	_, _ = buf.Write([]byte("hello"))
+func (buf *templateBuffer) Write(data []byte) (int, error) {
+	buf.data = append(buf.data, data...)
+	return len(data), nil
+}
+
+// String returns the buffer's accumulated bytes as a string.
+//
+//	var buf templateBuffer
+//	_, _ = buf.Write([]byte("hello"))
+//	out := buf.String() // → "hello"
+func (buf *templateBuffer) String() string {
+	return string(buf.data)
 }
 
 func templateDataForRendering(data any) any {

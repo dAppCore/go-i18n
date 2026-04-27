@@ -6,8 +6,8 @@ import (
 	"context"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
-	"forge.lthn.ai/core/go-inference"
+	log "dappco.re/go/log"
+	"dappco.re/go/inference"
 )
 
 // ArticlePair holds a noun and its proposed article for validation.

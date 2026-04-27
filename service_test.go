@@ -82,6 +82,31 @@ func (duplicateLangLoader) Load(lang string) (map[string]Message, *GrammarData, 
 	}
 }
 
+type intentReceiverLanguageLoader struct{}
+
+func (intentReceiverLanguageLoader) Languages() []string {
+	return []string{"qaa-x-intent"}
+}
+
+func (intentReceiverLanguageLoader) Load(lang string) (map[string]Message, *GrammarData, error) {
+	return map[string]Message{}, &GrammarData{
+		Verbs: map[string]VerbForms{
+			"supprimer": {Past: "supprimé"},
+		},
+		Words: map[string]string{
+			"failed_to": "Impossible de",
+		},
+		Intents: map[string]Intent{
+			"core.delete": {
+				Meta: IntentMeta{
+					Type: "action",
+					Verb: "common.verb.supprimer",
+				},
+			},
+		},
+	}, nil
+}
+
 func TestNewService(t *testing.T) {
 	svc, err := New()
 	if err != nil {
@@ -1225,6 +1250,39 @@ func TestServiceTemplatesSupportGrammarFuncs(t *testing.T) {
 	got := svc.T("build.status", map[string]any{"Verb": "build"})
 	if got != "built complete" {
 		t.Errorf("T(build.status) = %q, want %q", got, "built complete")
+	}
+}
+
+func TestServiceComposeGeneratedIntentTextUsesReceiverLanguage(t *testing.T) {
+	const lang = "qaa-x-intent"
+
+	prevDefault := Default()
+	prevGrammar := GetGrammarData(lang)
+	t.Cleanup(func() {
+		SetDefault(prevDefault)
+		SetGrammarData(lang, prevGrammar)
+	})
+
+	defaultSvc, err := New(WithLanguage("en"))
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(defaultSvc)
+
+	svc, err := NewWithLoader(intentReceiverLanguageLoader{}, WithFallback("en"))
+	if err != nil {
+		t.Fatalf("NewWithLoader() failed: %v", err)
+	}
+	if err := svc.SetLanguage(lang); err != nil {
+		t.Fatalf("SetLanguage(%s) failed: %v", lang, err)
+	}
+
+	composed := svc.Compose("core.delete", S("file", "rapport.pdf"))
+	if got, want := composed.Success, "Rapport.pdf supprimé"; got != want {
+		t.Fatalf("Compose().Success = %q, want %q", got, want)
+	}
+	if got, want := composed.Failure, "Impossible de supprimer rapport.pdf"; got != want {
+		t.Fatalf("Compose().Failure = %q, want %q", got, want)
 	}
 }
 

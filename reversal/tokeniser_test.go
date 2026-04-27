@@ -3,7 +3,7 @@ package reversal
 import (
 	"testing"
 
-	i18n "dappco.re/go/core/i18n"
+	i18n "dappco.re/go/i18n"
 )
 
 func setup(t *testing.T) {
@@ -469,6 +469,17 @@ func TestTokeniser_MatchArticle_ConfiguredElisionPrefix(t *testing.T) {
 	}
 	if tokens[1].Type != TokenNoun || tokens[1].Lower != "ami" {
 		t.Fatalf("Tokenise(%q)[1] = %#v, want noun ami", "l'ami", tokens[1])
+	}
+
+	tokens = tok.Tokenise("l’ami")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise(%q) returned %d tokens, want 2", "l’ami", len(tokens))
+	}
+	if tokens[0].Type != TokenArticle || tokens[0].Raw != "l’" || tokens[0].Lower != "l'" {
+		t.Fatalf("Tokenise(%q)[0] = %#v, want curly apostrophe article", "l’ami", tokens[0])
+	}
+	if tokens[1].Type != TokenNoun || tokens[1].Lower != "ami" {
+		t.Fatalf("Tokenise(%q)[1] = %#v, want noun ami", "l’ami", tokens[1])
 	}
 }
 

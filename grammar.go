@@ -1,9 +1,13 @@
 package i18n
 
 import (
+	// Note: AX-6 — grammar data merge/copy needs map cloning; pinned core has no map-copy primitive.
 	"maps"
+	// Note: AX-6 — grammar quote helper needs Go string escaping; pinned core has no quote primitive.
 	"strconv"
+	// Note: AX-6 — grammar interpolation exposes template.FuncMap; pinned core has no template primitive.
 	"text/template"
+	// Note: AX-6 — grammar casing and initialism rules need Unicode rune classes; pinned core has no rune helpers.
 	"unicode"
 
 	"dappco.re/go/core"
@@ -66,12 +70,16 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	if existing.Words == nil {
 		existing.Words = make(map[string]string, len(data.Words))
 	}
+	if existing.Intents == nil {
+		existing.Intents = make(map[string]Intent, len(data.Intents))
+	}
 	maps.Copy(existing.Verbs, data.Verbs)
 	maps.Copy(existing.Nouns, data.Nouns)
 	maps.Copy(existing.Words, data.Words)
 	mergeArticleForms(&existing.Articles, data.Articles)
 	mergePunctuationRules(&existing.Punct, data.Punct)
 	mergeSignalData(&existing.Signals, data.Signals)
+	existing.Intents = mergeIntentData(existing.Intents, data.Intents)
 	if data.Number.ThousandsSep != "" {
 		existing.Number.ThousandsSep = data.Number.ThousandsSep
 	}
@@ -183,6 +191,9 @@ func grammarDataHasContent(data *GrammarData) bool {
 		len(data.Signals.Priors) > 0 {
 		return true
 	}
+	if len(data.Intents) > 0 {
+		return true
+	}
 	return data.Number != (NumberFormat{})
 }
 
@@ -231,7 +242,41 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 			maps.Copy(clone.Signals.Priors[word], priors)
 		}
 	}
+	if len(data.Intents) > 0 {
+		clone.Intents = cloneIntentMap(data.Intents)
+	}
 	return clone
+}
+
+func mergeIntentData(dst map[string]Intent, src map[string]Intent) map[string]Intent {
+	if len(src) == 0 {
+		return dst
+	}
+	if dst == nil {
+		dst = make(map[string]Intent, len(src))
+	}
+	for key, intent := range src {
+		dst[key] = cloneIntent(intent)
+	}
+	return dst
+}
+
+func cloneIntentMap(src map[string]Intent) map[string]Intent {
+	if len(src) == 0 {
+		return nil
+	}
+	dst := make(map[string]Intent, len(src))
+	for key, intent := range src {
+		dst[key] = cloneIntent(intent)
+	}
+	return dst
+}
+
+func cloneIntent(intent Intent) Intent {
+	if len(intent.Meta.Supports) > 0 {
+		intent.Meta.Supports = append([]string(nil), intent.Meta.Supports...)
+	}
+	return intent
 }
 
 // IrregularVerbs returns a copy of the irregular verb forms map.
@@ -350,12 +395,18 @@ func currentLangForGrammar() string {
 //	PastTense("run")    // "ran"
 //	PastTense("copy")   // "copied"
 func PastTense(verb string) string {
+	return pastTenseForLanguages([]string{currentLangForGrammar()}, verb)
+}
+
+func pastTenseForLanguages(langs []string, verb string) string {
 	verb = core.Lower(core.Trim(verb))
 	if verb == "" {
 		return ""
 	}
-	if form := getVerbForm(currentLangForGrammar(), verb, "past"); form != "" {
-		return form
+	for _, lang := range languageFallbackOrder(langs) {
+		if form := getVerbForm(lang, verb, "past"); form != "" {
+			return form
+		}
 	}
 	if forms, ok := irregularVerbs[verb]; ok {
 		return forms.Past
@@ -917,6 +968,33 @@ func grammarDataForLang(lang string) *GrammarData {
 	return nil
 }
 
+func languageFallbackOrder(langs []string) []string {
+	ordered := make([]string, 0, len(langs)*2)
+	seen := make(map[string]struct{}, len(langs)*2)
+	var add func(string)
+	add = func(lang string) {
+		lang = normalizeLanguageTag(lang)
+		if lang == "" {
+			return
+		}
+		if _, ok := seen[lang]; ok {
+			return
+		}
+		seen[lang] = struct{}{}
+		ordered = append(ordered, lang)
+		if base := baseLanguageTag(lang); base != "" && base != lang {
+			add(base)
+		}
+	}
+	for _, lang := range langs {
+		add(lang)
+	}
+	if len(ordered) == 0 {
+		ordered = append(ordered, "en")
+	}
+	return ordered
+}
+
 func baseLanguageTag(lang string) string {
 	if idx := indexAny(lang, "-_"); idx > 0 {
 		return lang[:idx]
@@ -1049,7 +1127,11 @@ func ProgressSubject(verb, subject string) string {
 
 // ActionResult returns a completion message: "File deleted"
 func ActionResult(verb, subject string) string {
-	p := PastTense(verb)
+	return actionResultForLanguages([]string{currentLangForGrammar()}, verb, subject)
+}
+
+func actionResultForLanguages(langs []string, verb, subject string) string {
+	p := pastTenseForLanguages(langs, verb)
 	if p == "" {
 		return ""
 	}
@@ -1057,32 +1139,59 @@ func ActionResult(verb, subject string) string {
 	if subject == "" {
 		return Title(p)
 	}
-	return renderWordOrTitle(currentLangForGrammar(), subject) + " " + p
+	return renderWordOrTitleForLanguages(langs, subject) + " " + p
 }
 
 // ActionFailed returns a failure message: "Failed to delete file"
 func ActionFailed(verb, subject string) string {
+	return actionFailedForLanguages([]string{currentLangForGrammar()}, verb, subject)
+}
+
+func actionFailedForLanguages(langs []string, verb, subject string) string {
 	verb = core.Trim(verb)
 	if verb == "" {
 		return ""
 	}
-	lang := currentLangForGrammar()
 	// Keep the failure verb in sentence case when no locale override exists.
-	verb = renderWord(lang, core.Lower(verb))
-	prefix := failedPrefix(lang)
+	verb = renderWordForLanguages(langs, core.Lower(verb))
+	prefix := failedPrefixForLanguages(langs)
 	subject = core.Trim(subject)
 	if subject == "" {
 		return prefix + " " + verb
 	}
-	return prefix + " " + verb + " " + renderWord(lang, subject)
+	return prefix + " " + verb + " " + renderWordForLanguages(langs, subject)
 }
 
 func failedPrefix(lang string) string {
-	prefix := renderWord(lang, "failed_to")
-	if prefix == "" || prefix == "failed_to" {
-		return "Failed to"
+	return failedPrefixForLanguages([]string{lang})
+}
+
+func failedPrefixForLanguages(langs []string) string {
+	for _, lang := range languageFallbackOrder(langs) {
+		prefix := renderWord(lang, "failed_to")
+		if prefix != "" && prefix != "failed_to" {
+			return prefix
+		}
 	}
-	return prefix
+	return "Failed to"
+}
+
+func renderWordForLanguages(langs []string, word string) string {
+	for _, lang := range languageFallbackOrder(langs) {
+		if translated := getWord(lang, word); translated != "" {
+			return translated
+		}
+	}
+	return word
+}
+
+func renderWordOrTitleForLanguages(langs []string, word string) string {
+	for _, lang := range languageFallbackOrder(langs) {
+		if translated := getWord(lang, word); translated != "" {
+			return translated
+		}
+	}
+	return Title(word)
 }
 
 // Label returns a label with suffix: "Status:" (EN) or "Statut :" (FR)

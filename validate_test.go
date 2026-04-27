@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	"dappco.re/go/core"
-	"forge.lthn.ai/core/go-inference"
+	"dappco.re/go/inference"
 )
 
 // mockGenerateModel satisfies inference.TextModel for validator testing.
@@ -34,11 +34,11 @@ func (m *mockGenerateModel) BatchGenerate(_ context.Context, _ []string, _ ...in
 	return nil, nil
 }
 
-func (m *mockGenerateModel) ModelType() string                { return "mock" }
-func (m *mockGenerateModel) Info() inference.ModelInfo         { return inference.ModelInfo{} }
+func (m *mockGenerateModel) ModelType() string                  { return "mock" }
+func (m *mockGenerateModel) Info() inference.ModelInfo          { return inference.ModelInfo{} }
 func (m *mockGenerateModel) Metrics() inference.GenerateMetrics { return inference.GenerateMetrics{} }
-func (m *mockGenerateModel) Err() error                       { return m.genErr }
-func (m *mockGenerateModel) Close() error                     { return nil }
+func (m *mockGenerateModel) Err() error                         { return m.genErr }
+func (m *mockGenerateModel) Close() error                       { return nil }
 
 // newMockArticleModel creates a mock that returns a fixed article token for any prompt.
 func newMockArticleModel(article string) *mockGenerateModel {

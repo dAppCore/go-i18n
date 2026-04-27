@@ -1,20 +1,11 @@
-module dappco.re/go/core/i18n
+module dappco.re/go/i18n
 
 go 1.26.0
 
-require golang.org/x/text v0.35.0
+require golang.org/x/text v0.36.0
 
 require (
 	dappco.re/go/core v0.8.0-alpha.1
-	dappco.re/go/core/log v0.1.0
-	dappco.re/go/core/inference v0.1.4
-)
-
-require github.com/kr/text v0.2.0 // indirect
-
-require (
-	github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc // indirect
-	github.com/pmezard/go-difflib v1.0.1-0.20181226105442-5d4384ee4fb2 // indirect
-	github.com/stretchr/testify v1.11.1
-	gopkg.in/yaml.v3 v3.0.1 // indirect
+	dappco.re/go/inference v0.8.0-alpha.1
+	dappco.re/go/log v0.8.0-alpha.1
 )

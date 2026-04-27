@@ -4,7 +4,7 @@ import (
 	"math"
 	"testing"
 
-	i18n "dappco.re/go/core/i18n"
+	i18n "dappco.re/go/i18n"
 )
 
 func initI18n(t *testing.T) *Tokeniser {

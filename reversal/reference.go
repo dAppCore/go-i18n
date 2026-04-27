@@ -5,7 +5,7 @@ import (
 	"math"
 	"slices"
 
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 )
 
 // ClassifiedText is a text sample with a domain label (from 1B model or ground truth).

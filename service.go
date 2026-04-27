@@ -1,18 +1,17 @@
 package i18n
 
 import (
+	// Note: AX-6 — cmp.Compare provides standard three-way comparison; core has no equivalent.
+	"cmp"
+	// Note: AX-6 — go:embed requires embed.FS for bundled locale assets; core.Embed cannot be the target type.
 	"embed"
+	// Note: AX-6 — fs.FS is the structural public API for caller-provided locale filesystems.
 	"io/fs"
-	"maps"
-	"reflect"
+	// Note: AX-6 — language lists and lookup variants need generic slice sort/clone helpers; core has no equivalent.
 	"slices"
-	"strings"
-	"sync"
-	"sync/atomic"
-	"unicode"
 
 	"dappco.re/go/core"
-	log "dappco.re/go/core/log"
+	log "dappco.re/go/log"
 	"golang.org/x/text/language"
 )
 
@@ -35,7 +34,7 @@ type Service struct {
 	handlers         []KeyHandler
 	loadedLocales    map[int]struct{}
 	loadedProviders  map[int]struct{}
-	mu               sync.RWMutex
+	mu               core.RWMutex
 }
 
 // Option configures a Service during construction.
@@ -97,8 +96,8 @@ func WithDebug(enabled bool) Option {
 }
 
 var (
-	defaultService atomic.Pointer[Service]
-	defaultInitMu  sync.Mutex
+	defaultService core.AtomicPointer[Service]
+	defaultInitMu  core.Mutex
 )
 
 //go:embed locales/*.json
@@ -312,9 +311,10 @@ func (s *Service) loadJSON(lang string, data []byte) error {
 	}
 	messages := make(map[string]Message)
 	grammarData := &GrammarData{
-		Verbs: make(map[string]VerbForms),
-		Nouns: make(map[string]NounForms),
-		Words: make(map[string]string),
+		Verbs:   make(map[string]VerbForms),
+		Nouns:   make(map[string]NounForms),
+		Words:   make(map[string]string),
+		Intents: make(map[string]Intent),
 	}
 	flattenWithGrammar("", raw, messages, grammarData)
 	s.ingestLocaleData(lang, messages, grammarData)
@@ -350,6 +350,10 @@ func (s *Service) SetLanguage(lang string) error {
 	return nil
 }
 
+// Language returns the service's currently-active language tag, defaulting
+// to "en" when the receiver is nil.
+//
+//	lang := svc.Language() // → "en", "fr", ...
 func (s *Service) Language() string {
 	if s == nil {
 		return "en"
@@ -376,22 +380,46 @@ func (s *Service) Prompt(key string) string {
 		if key == "" {
 			return ""
 		}
-		return namespaceLookupKey("prompt", key)
+		return promptLookupKeys(key)[0]
 	}
 	key = normalizeLookupKey(key)
 	if key == "" {
 		return ""
 	}
-	lookupKey := namespaceLookupKey("prompt", key)
-	if text, ok := s.translateWithStatus(lookupKey); ok {
-		return text
+	lookupKeys := promptLookupKeys(key)
+	for _, lookupKey := range lookupKeys {
+		s.mu.RLock()
+		text := s.resolveDirectLocked(lookupKey, nil)
+		s.mu.RUnlock()
+		if text != "" {
+			return text
+		}
 	}
-	return lookupKey
+	return lookupKeys[0]
 }
 
 // CurrentPrompt is a short alias for Prompt.
 func (s *Service) CurrentPrompt(key string) string {
 	return s.Prompt(key)
+}
+
+func promptLookupKeys(key string) []string {
+	switch {
+	case core.HasPrefix(key, "prompt."):
+		suffix := core.TrimPrefix(key, "prompt.")
+		if suffix == "" {
+			return []string{key, "common.prompt"}
+		}
+		return []string{key, namespaceLookupKey("common.prompt", suffix)}
+	case core.HasPrefix(key, "common.prompt."):
+		suffix := core.TrimPrefix(key, "common.prompt.")
+		if suffix == "" {
+			return []string{key, "prompt"}
+		}
+		return []string{key, namespaceLookupKey("prompt", suffix)}
+	default:
+		return []string{namespaceLookupKey("prompt", key), namespaceLookupKey("common.prompt", key)}
+	}
 }
 
 // Lang translates a language label from the lang namespace using this service.
@@ -428,6 +456,10 @@ func (s *Service) Lang(key string) string {
 	return s.handleMissingKey(lookupKey, nil)
 }
 
+// AvailableLanguages returns the language tags currently loaded into the
+// service, in insertion order. Returns an empty slice on nil receiver.
+//
+//	tags := svc.AvailableLanguages() // → ["en", "fr", "de"]
 func (s *Service) AvailableLanguages() []string {
 	if s == nil {
 		return []string{}
@@ -446,6 +478,10 @@ func (s *Service) CurrentAvailableLanguages() []string {
 	return s.AvailableLanguages()
 }
 
+// SetMode updates the service's resolution mode (e.g. ModeNormal,
+// ModeStrict). No-op on nil receiver.
+//
+//	svc.SetMode(ModeStrict)
 func (s *Service) SetMode(m Mode) {
 	if s == nil {
 		return
@@ -455,6 +491,9 @@ func (s *Service) SetMode(m Mode) {
 	s.mu.Unlock()
 }
 
+// Mode returns the current resolution mode.
+//
+//	mode := svc.Mode()
 func (s *Service) Mode() Mode {
 	if s == nil {
 		return ModeNormal
@@ -464,7 +503,15 @@ func (s *Service) Mode() Mode {
 	return s.mode
 }
 
+// CurrentMode is a short alias for Mode.
+//
+//	mode := svc.CurrentMode()
 func (s *Service) CurrentMode() Mode { return s.Mode() }
+
+// SetFormality updates the service's default formality (formal, informal,
+// neutral). No-op on nil receiver.
+//
+//	svc.SetFormality(FormalityFormal)
 func (s *Service) SetFormality(f Formality) {
 	if s == nil {
 		return
@@ -474,6 +521,9 @@ func (s *Service) SetFormality(f Formality) {
 	s.mu.Unlock()
 }
 
+// Formality returns the service's current default formality.
+//
+//	f := svc.Formality()
 func (s *Service) Formality() Formality {
 	if s == nil {
 		return FormalityNeutral
@@ -483,9 +533,17 @@ func (s *Service) Formality() Formality {
 	return s.formality
 }
 
+// CurrentFormality is a short alias for Formality.
+//
+//	f := svc.CurrentFormality()
 func (s *Service) CurrentFormality() Formality {
 	return s.Formality()
 }
+
+// SetFallback assigns the language tag to use when a key is missing from the
+// active language. No-op on nil receiver.
+//
+//	svc.SetFallback("en")
 func (s *Service) SetFallback(lang string) {
 	if s == nil {
 		return
@@ -494,6 +552,10 @@ func (s *Service) SetFallback(lang string) {
 	s.fallbackLang = normalizeLanguageTag(lang)
 	s.mu.Unlock()
 }
+
+// Fallback returns the currently-configured fallback language tag.
+//
+//	tag := svc.Fallback() // → "en"
 func (s *Service) Fallback() string {
 	if s == nil {
 		return "en"
@@ -502,8 +564,16 @@ func (s *Service) Fallback() string {
 	defer s.mu.RUnlock()
 	return s.fallbackLang
 }
+
+// CurrentFallback is a short alias for Fallback.
+//
+//	tag := svc.CurrentFallback()
 func (s *Service) CurrentFallback() string { return s.Fallback() }
 
+// SetLocation sets the default location/scope used by translations that
+// branch on it. No-op on nil receiver.
+//
+//	svc.SetLocation("dashboard")
 func (s *Service) SetLocation(location string) {
 	if s == nil {
 		return
@@ -513,6 +583,9 @@ func (s *Service) SetLocation(location string) {
 	s.location = location
 }
 
+// Location returns the service's default location/scope.
+//
+//	loc := svc.Location()
 func (s *Service) Location() string {
 	if s == nil {
 		return ""
@@ -527,6 +600,10 @@ func (s *Service) CurrentLocation() string {
 	return s.Location()
 }
 
+// Direction returns the text direction for the service's active language
+// (DirLTR or DirRTL). Defaults to DirLTR for nil receiver or non-RTL langs.
+//
+//	dir := svc.Direction() // → DirLTR for "en", DirRTL for "ar"
 func (s *Service) Direction() TextDirection {
 	if s == nil {
 		return DirLTR
@@ -549,7 +626,14 @@ func (s *Service) CurrentTextDirection() TextDirection {
 	return s.CurrentDirection()
 }
 
-func (s *Service) IsRTL() bool        { return s.Direction() == DirRTL }
+// IsRTL reports whether the active language renders right-to-left.
+//
+//	if svc.IsRTL() { /* mirror UI chrome */ }
+func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
+
+// CurrentIsRTL is a short alias for IsRTL.
+//
+//	if svc.CurrentIsRTL() { /* mirror UI chrome */ }
 func (s *Service) CurrentIsRTL() bool { return s.IsRTL() }
 
 // RTL is a short alias for IsRTL.
@@ -558,10 +642,18 @@ func (s *Service) RTL() bool { return s.IsRTL() }
 // CurrentRTL is a short alias for CurrentIsRTL.
 func (s *Service) CurrentRTL() bool { return s.CurrentIsRTL() }
 
+// CurrentDebug is a short alias for Debug.
+//
+//	on := svc.CurrentDebug()
 func (s *Service) CurrentDebug() bool {
 	return s.Debug()
 }
 
+// PluralCategory returns the CLDR plural category (one/few/many/other/zero/
+// two) for n in the service's active language. Defaults to PluralOther on
+// nil receiver.
+//
+//	cat := svc.PluralCategory(2) // English → PluralOther
 func (s *Service) PluralCategory(n int) PluralCategory {
 	if s == nil {
 		return PluralOther
@@ -593,6 +685,10 @@ func joinAvailableLanguagesLocked(tags []language.Tag) string {
 	return core.Join(", ", langs...)
 }
 
+// AddHandler appends one or more KeyHandlers to the end of the chain. Nil
+// entries are silently dropped. No-op on nil receiver.
+//
+//	svc.AddHandler(MyCustomHandler{})
 func (s *Service) AddHandler(handlers ...KeyHandler) {
 	if s == nil {
 		return
@@ -612,6 +708,11 @@ func (s *Service) SetHandlers(handlers ...KeyHandler) {
 	s.handlers = filterNilHandlers(handlers)
 }
 
+// PrependHandler inserts one or more KeyHandlers at the front of the chain
+// so they run before any existing handlers. Nil entries are silently
+// dropped. No-op on nil receiver.
+//
+//	svc.PrependHandler(MyOverrideHandler{})
 func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	if s == nil {
 		return
@@ -625,6 +726,10 @@ func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	s.handlers = append(append([]KeyHandler(nil), handlers...), s.handlers...)
 }
 
+// ClearHandlers removes every handler from the chain, leaving keys to be
+// resolved purely from the loaded message catalogue. No-op on nil receiver.
+//
+//	svc.ClearHandlers()
 func (s *Service) ClearHandlers() {
 	if s == nil {
 		return
@@ -644,6 +749,10 @@ func (s *Service) ResetHandlers() {
 	s.handlers = DefaultHandlers()
 }
 
+// Handlers returns a snapshot copy of the current handler chain so callers
+// can introspect or pass it elsewhere without holding the service lock.
+//
+//	chain := svc.Handlers()
 func (s *Service) Handlers() []KeyHandler {
 	if s == nil {
 		return []KeyHandler{}
@@ -681,6 +790,39 @@ func (s *Service) T(messageID string, args ...any) string {
 	return result
 }
 
+// Compose resolves a semantic intent key into the composed output forms
+// documented by the RFC-style intent blocks.
+func (s *Service) Compose(key string, subject *Subject) Composed {
+	if s == nil {
+		return Composed{}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	intent, hasIntent := s.lookupIntentDefinitionLocked(key)
+	if !core.HasPrefix(key, "core.") && !hasIntent {
+		return Composed{}
+	}
+	question := s.resolveIntentFieldLocked(key, "question", subject, intent)
+	confirm := s.resolveIntentFieldLocked(key, "confirm", subject, intent)
+	if confirm == "" && intent.Meta.Dangerous && question != "" {
+		confirm = question
+	}
+	success := s.resolveIntentFieldLocked(key, "success", subject, intent)
+	failure := s.resolveIntentFieldLocked(key, "failure", subject, intent)
+	return Composed{
+		Question: question,
+		Confirm:  confirm,
+		Success:  success,
+		Failure:  failure,
+		Meta:     intent.Meta,
+	}
+}
+
+// CurrentCompose is a short alias for Compose.
+func (s *Service) CurrentCompose(key string, subject *Subject) Composed {
+	return s.Compose(key, subject)
+}
+
 // Translate translates a message by its ID and returns a Core result.
 func (s *Service) Translate(messageID string, args ...any) core.Result {
 	if s == nil {
@@ -712,6 +854,9 @@ func (s *Service) translateWithStatus(messageID string, args ...any) (string, bo
 
 		s.mu.RLock()
 		text := s.resolveWithFallbackLocked(messageID, data)
+		if text == "" {
+			text = s.resolveIntentQuestionLocked(messageID, data)
+		}
 		s.mu.RUnlock()
 		return text
 	})
@@ -756,6 +901,178 @@ func (s *Service) resolveWithFallbackLocked(messageID string, data any) string {
 		if text := s.resolveDirectLocked(commonKey, data); text != "" {
 			return text
 		}
+	}
+	return ""
+}
+
+func (s *Service) lookupIntentDefinitionLocked(key string) (Intent, bool) {
+	if s == nil || key == "" {
+		return Intent{}, false
+	}
+	for _, lang := range []string{s.currentLang, s.fallbackLang} {
+		if intent, ok := lookupIntentInLanguage(lang, key); ok {
+			return intent, true
+		}
+	}
+	return Intent{}, false
+}
+
+func lookupIntentInLanguage(lang, key string) (Intent, bool) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" || key == "" {
+		return Intent{}, false
+	}
+	data := GetGrammarData(lang)
+	if data == nil || len(data.Intents) == 0 {
+		return Intent{}, false
+	}
+	intent, ok := data.Intents[key]
+	if !ok {
+		return Intent{}, false
+	}
+	return cloneIntent(intent), true
+}
+
+func (s *Service) resolveIntentQuestionLocked(key string, data any) string {
+	if s == nil || key == "" {
+		return ""
+	}
+	if !core.HasPrefix(key, "core.") {
+		if _, ok := s.lookupIntentDefinitionLocked(key); !ok {
+			return ""
+		}
+	}
+	intent, _ := s.lookupIntentDefinitionLocked(key)
+	return s.resolveIntentFieldLocked(key, "question", data, intent)
+}
+
+func (s *Service) resolveIntentFieldLocked(key, field string, data any, intent Intent) string {
+	if key == "" || field == "" {
+		return ""
+	}
+	fullKey := key + "." + field
+	if text := s.resolveDirectLocked(fullKey, data); text != "" {
+		if !core.Contains(text, "{{") {
+			return text
+		}
+		if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+			if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
+				return rendered
+			}
+		}
+		return text
+	}
+	if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+		return renderIntentTemplate(tmpl, data)
+	}
+	switch field {
+	case "question":
+		if text := s.resolveWithFallbackLocked(key, data); text != "" {
+			if core.Contains(text, "{{") {
+				if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+					if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
+						return rendered
+					}
+				}
+			}
+			return text
+		}
+		verb := intentVerbForKey(key, intent)
+		if verb == "" {
+			return ""
+		}
+		subject := intentSubjectText(data)
+		title := Title(renderWord(s.currentLang, verb))
+		if subject == "" {
+			return title + "?"
+		}
+		return title + " " + subject + "?"
+	case "success":
+		if verb := intentVerbForKey(key, intent); verb != "" {
+			return actionResultForLanguages(s.grammarLanguagesLocked(), verb, intentSubjectText(data))
+		}
+	case "failure":
+		if verb := intentVerbForKey(key, intent); verb != "" {
+			return actionFailedForLanguages(s.grammarLanguagesLocked(), verb, intentSubjectText(data))
+		}
+	}
+	return ""
+}
+
+func (s *Service) grammarLanguagesLocked() []string {
+	if s == nil {
+		return []string{"en"}
+	}
+	return []string{s.currentLang, s.fallbackLang}
+}
+
+func intentTemplateForField(intent Intent, field string) string {
+	switch field {
+	case "question":
+		return intent.Question
+	case "confirm":
+		return intent.Confirm
+	case "success":
+		return intent.Success
+	case "failure":
+		return intent.Failure
+	default:
+		return ""
+	}
+}
+
+func renderIntentTemplate(text string, data any) string {
+	if text == "" {
+		return ""
+	}
+	switch v := data.(type) {
+	case nil:
+		return executeIntentTemplate(text, newTemplateData(nil))
+	case *Subject:
+		return executeIntentTemplate(text, newTemplateData(v))
+	default:
+		return applyTemplate(text, data)
+	}
+}
+
+func intentVerbForKey(key string, intent Intent) string {
+	if verb := intentVerbBase(intent.Meta.Verb); verb != "" {
+		return verb
+	}
+	return intentBaseFromKey(key)
+}
+
+func intentVerbBase(verb string) string {
+	verb = core.Trim(verb)
+	if verb == "" {
+		return ""
+	}
+	if parts := core.Split(verb, "."); len(parts) > 0 {
+		verb = parts[len(parts)-1]
+	}
+	return core.Trim(verb)
+}
+
+func intentBaseFromKey(key string) string {
+	key = core.Trim(key)
+	if key == "" {
+		return ""
+	}
+	parts := core.Split(key, ".")
+	if len(parts) == 0 {
+		return key
+	}
+	return core.Trim(parts[len(parts)-1])
+}
+
+func intentSubjectText(data any) string {
+	switch v := data.(type) {
+	case *Subject:
+		if v != nil {
+			return v.String()
+		}
+	case string:
+		return v
 	}
 	return ""
 }
@@ -998,8 +1315,12 @@ func lookupExtraSuffix(extra map[string]any) string {
 	if len(extra) == 0 {
 		return ""
 	}
-	keys := slices.Sorted(maps.Keys(extra))
-	var b strings.Builder
+	keys := make([]string, 0, len(extra))
+	for key := range extra {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	b := core.NewBuilder()
 	for _, key := range keys {
 		name := lookupSegment(key)
 		if name == "" {
@@ -1022,21 +1343,68 @@ func lookupSegment(s string) string {
 	if s == "" {
 		return ""
 	}
-	var b strings.Builder
+	b := core.NewBuilder()
 	lastUnderscore := false
 	for _, r := range core.Lower(s) {
 		switch {
-		case unicode.IsLetter(r), unicode.IsDigit(r):
+		case core.IsLetter(r), core.IsDigit(r):
 			b.WriteRune(r)
 			lastUnderscore = false
-		case r == '_' || r == '-' || r == '.' || unicode.IsSpace(r):
+		case r == '_' || r == '-' || r == '.' || core.IsSpace(r):
 			if !lastUnderscore {
 				b.WriteByte('_')
 				lastUnderscore = true
 			}
 		}
 	}
-	return strings.Trim(b.String(), "_")
+	return trimRuneRun(b.String(), '_')
+}
+
+// trimRuneRun strips repeated occurrences of r from both ends of s.
+//
+//	trimRuneRun("__foo__", '_') // "foo"
+func trimRuneRun(s string, r rune) string {
+	start := 0
+	for start < len(s) {
+		rn, size := firstRuneOf(s[start:])
+		if rn != r {
+			break
+		}
+		start += size
+	}
+	end := len(s)
+	for end > start {
+		rn, size := lastRuneOf(s[start:end])
+		if rn != r {
+			break
+		}
+		end -= size
+	}
+	return s[start:end]
+}
+
+// compareStrings compares two strings lexicographically (a < b: -1, a == b: 0, a > b: 1).
+//
+//	compareStrings("en", "fr") // -1
+func compareStrings(a, b string) int {
+	return cmp.Compare(a, b)
+}
+
+func firstRuneOf(s string) (rune, int) {
+	for _, r := range s {
+		return r, len(string(r))
+	}
+	return 0, 0
+}
+
+func lastRuneOf(s string) (rune, int) {
+	var last rune
+	var size int
+	for _, r := range s {
+		last = r
+		size = len(string(r))
+	}
+	return last, size
 }
 
 func (s *Service) handleMissingKey(key string, args []any) string {
@@ -1204,7 +1572,9 @@ func (s *Service) ingestLocaleData(lang string, messages map[string]Message, gra
 	if existing == nil {
 		s.messages[lang] = make(map[string]Message, len(messages))
 	}
-	maps.Copy(s.messages[lang], messages)
+	for key, message := range messages {
+		s.messages[lang][key] = message
+	}
 	s.addAvailableLanguageLocked(language.Make(lang))
 	s.mu.Unlock()
 
@@ -1270,7 +1640,7 @@ func (s *Service) addAvailableLanguageLocked(tag language.Tag) {
 	if !slices.Contains(s.availableLangs, tag) {
 		s.availableLangs = append(s.availableLangs, tag)
 		slices.SortFunc(s.availableLangs, func(a, b language.Tag) int {
-			return strings.Compare(a.String(), b.String())
+			return compareStrings(a.String(), b.String())
 		})
 	}
 }
@@ -1312,9 +1682,71 @@ func (s *Service) autoDetectLanguage() {
 }
 
 func hasHandlerType(handlers []KeyHandler, candidate KeyHandler) bool {
-	want := reflect.TypeOf(candidate)
+	switch candidate.(type) {
+	case LabelHandler:
+		return hasLabelHandler(handlers)
+	case ProgressHandler:
+		return hasProgressHandler(handlers)
+	case CountHandler:
+		return hasCountHandler(handlers)
+	case DoneHandler:
+		return hasDoneHandler(handlers)
+	case FailHandler:
+		return hasFailHandler(handlers)
+	case NumericHandler:
+		return hasNumericHandler(handlers)
+	}
+	return false
+}
+
+func hasLabelHandler(handlers []KeyHandler) bool {
 	for _, handler := range handlers {
-		if reflect.TypeOf(handler) == want {
+		if _, ok := handler.(LabelHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasProgressHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(ProgressHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasCountHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(CountHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasDoneHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(DoneHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFailHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(FailHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasNumericHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(NumericHandler); ok {
 			return true
 		}
 	}
