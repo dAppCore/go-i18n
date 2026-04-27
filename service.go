@@ -1,6 +1,8 @@
 package i18n
 
 import (
+	// Note: AX-6 — cmp.Compare provides standard three-way comparison; core has no equivalent.
+	"cmp"
 	// Note: AX-6 — go:embed requires embed.FS for bundled locale assets; core.Embed cannot be the target type.
 	"embed"
 	// Note: AX-6 — fs.FS is the structural public API for caller-provided locale filesystems.
@@ -902,14 +904,21 @@ func (s *Service) resolveIntentFieldLocked(key, field string, data any, intent I
 		return title + " " + subject + "?"
 	case "success":
 		if verb := intentVerbForKey(key, intent); verb != "" {
-			return ActionResult(verb, intentSubjectText(data))
+			return actionResultForLanguages(s.grammarLanguagesLocked(), verb, intentSubjectText(data))
 		}
 	case "failure":
 		if verb := intentVerbForKey(key, intent); verb != "" {
-			return ActionFailed(verb, intentSubjectText(data))
+			return actionFailedForLanguages(s.grammarLanguagesLocked(), verb, intentSubjectText(data))
 		}
 	}
 	return ""
+}
+
+func (s *Service) grammarLanguagesLocked() []string {
+	if s == nil {
+		return []string{"en"}
+	}
+	return []string{s.currentLang, s.fallbackLang}
 }
 
 func intentTemplateForField(intent Intent, field string) string {
@@ -1293,14 +1302,7 @@ func trimRuneRun(s string, r rune) string {
 //
 //	compareStrings("en", "fr") // -1
 func compareStrings(a, b string) int {
-	switch {
-	case a < b:
-		return -1
-	case a > b:
-		return 1
-	default:
-		return 0
-	}
+	return cmp.Compare(a, b)
 }
 
 func firstRuneOf(s string) (rune, int) {

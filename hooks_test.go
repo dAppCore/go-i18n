@@ -141,10 +141,13 @@ func TestRegisterLocaleProvider_Good_ByteProvider(t *testing.T) {
 
 	RegisterLocaleProvider(testByteLocaleProvider{
 		langs: map[string][]byte{
-			"en": []byte(`{"provider.bytes.loaded": "loaded from bytes"}`),
+			"en_US": []byte(`{"provider.bytes.loaded": "loaded from bytes"}`),
 		},
 	})
 
+	if err := svc.SetLanguage("en_US"); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 	got := svc.T("provider.bytes.loaded")
 	if ("loaded from bytes") != (got) {
 		t.Fatalf("want %v, got %v", "loaded from bytes", got)

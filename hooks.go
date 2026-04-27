@@ -158,14 +158,14 @@ func loadLocaleProviderBytes(svc *Service, provider interface {
 	Available() []string
 	Load(lang string) ([]byte, error)
 }) {
-	for _, lang := range provider.Available() {
-		lang = normalizeLanguageTag(lang)
+	for _, rawLang := range provider.Available() {
+		lang := normalizeLanguageTag(rawLang)
 		if lang == "" {
 			continue
 		}
-		data, err := provider.Load(lang)
+		data, err := provider.Load(rawLang)
 		if err != nil {
-			log.Error("i18n: loadLocaleProviderBytes failed to load", "lang", lang, "err", err)
+			log.Error("i18n: loadLocaleProviderBytes failed to load", "lang", rawLang, "err", err)
 			continue
 		}
 		if err := svc.loadJSON(lang, data); err != nil {

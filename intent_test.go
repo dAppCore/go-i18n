@@ -7,8 +7,10 @@ import (
 )
 
 func TestRFCIntentAndCommonAliases(t *testing.T) {
+	const testLang = "en-x-intent"
+
 	loaderFS := fstest.MapFS{
-		"en.json": &fstest.MapFile{
+		"en-x-intent.json": &fstest.MapFile{
 			Data: []byte(`{
 				"common": {
 					"verb": {
@@ -55,7 +57,7 @@ func TestRFCIntentAndCommonAliases(t *testing.T) {
 	t.Cleanup(func() {
 		SetDefault(prevDefault)
 	})
-	if err := svc.SetLanguage("en"); err != nil {
+	if err := svc.SetLanguage(testLang); err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
 
@@ -114,7 +116,7 @@ func TestRFCIntentAndCommonAliases(t *testing.T) {
 		t.Fatalf("want %v, got %v", "Delete config.yaml?", svc.T("core.delete", subj))
 	}
 
-	data := GetGrammarData("en")
+	data := GetGrammarData(testLang)
 	if (data) == (nil) {
 		t.Fatalf("expected non-nil")
 	}

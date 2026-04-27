@@ -697,7 +697,7 @@ func (t *Tokeniser) MatchArticle(word string) (string, bool) {
 	if base, _ := splitTrailingPunct(word); base != "" {
 		word = base
 	}
-	lower := normalizeFrenchApostrophes(core.Lower(word))
+	lower := normaliseFrenchApostrophes(core.Lower(word))
 
 	if artType, ok := matchConfiguredArticleText(lower, data); ok {
 		return artType, true
@@ -731,7 +731,7 @@ func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, b
 	if data == nil {
 		return "", false
 	}
-	lower = normalizeFrenchApostrophes(lower)
+	lower = normaliseFrenchApostrophes(lower)
 
 	if artType, ok := matchConfiguredArticleCandidate(lower, data.Articles.IndefiniteDefault, "indefinite"); ok {
 		return artType, true
@@ -773,7 +773,7 @@ func matchConfiguredArticleText(lower string, data *i18n.GrammarData) (string, b
 }
 
 func matchConfiguredArticleCandidate(lower, article, kind string) (string, bool) {
-	article = normalizeFrenchApostrophes(core.Lower(article))
+	article = normaliseFrenchApostrophes(core.Lower(article))
 	if article == "" {
 		return "", false
 	}
@@ -801,7 +801,7 @@ func matchConfiguredArticleCandidate(lower, article, kind string) (string, bool)
 }
 
 func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
-	lower = normalizeFrenchApostrophes(lower)
+	lower = normaliseFrenchApostrophes(lower)
 	switch {
 	case lower == "le", lower == "la", lower == "les",
 		lower == "l'", lower == "l’", lower == "au", lower == "aux":
@@ -837,7 +837,7 @@ func matchFrenchLeadingArticlePhrase(lower string) (string, bool) {
 }
 
 func matchFrenchArticleText(lower string) (string, bool) {
-	lower = normalizeFrenchApostrophes(lower)
+	lower = normaliseFrenchApostrophes(lower)
 	switch {
 	case core.HasPrefix(lower, "de l'"):
 		return "indefinite", true
@@ -882,7 +882,7 @@ func matchFrenchArticleText(lower string) (string, bool) {
 }
 
 func matchFrenchAttachedArticle(lower string) (string, bool) {
-	lower = normalizeFrenchApostrophes(lower)
+	lower = normaliseFrenchApostrophes(lower)
 	for _, prefix := range frenchElisionPrefixes {
 		if !core.HasPrefix(lower, prefix) {
 			continue
@@ -971,7 +971,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
 					Raw:        prefix,
-					Lower:      normalizeFrenchApostrophes(core.Lower(prefix)),
+					Lower:      normaliseFrenchApostrophes(core.Lower(prefix)),
 					Type:       TokenArticle,
 					ArtType:    artType,
 					Confidence: 1.0,
@@ -986,7 +986,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
 					Raw:        prefix,
-					Lower:      normalizeFrenchApostrophes(core.Lower(prefix)),
+					Lower:      normaliseFrenchApostrophes(core.Lower(prefix)),
 					Type:       TokenArticle,
 					ArtType:    artType,
 					Confidence: 1.0,
@@ -1171,7 +1171,7 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 		case "la", "le", "les", "du", "des":
 			tok := Token{
 				Raw:        first + " " + second,
-				Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + second)),
+				Lower:      normaliseFrenchApostrophes(core.Lower(first + " " + second)),
 				Type:       TokenArticle,
 				ArtType:    "indefinite",
 				Confidence: 1.0,
@@ -1190,10 +1190,10 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 			}
 			return 2, tok, nil, nil
 		default:
-			if prefix, rest, ok := t.splitFrenchElision(second); ok && normalizeFrenchApostrophes(prefix) == "l'" && rest != "" {
+			if prefix, rest, ok := t.splitFrenchElision(second); ok && normaliseFrenchApostrophes(prefix) == "l'" && rest != "" {
 				tok := Token{
 					Raw:        first + " " + prefix,
-					Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + prefix)),
+					Lower:      normaliseFrenchApostrophes(core.Lower(first + " " + prefix)),
 					Type:       TokenArticle,
 					ArtType:    "indefinite",
 					Confidence: 1.0,
@@ -1214,12 +1214,12 @@ func (t *Tokeniser) matchFrenchArticlePhrase(parts []string, start int) (int, To
 				return 2, tok, &extra, punctTok
 			}
 			// Handle spaced elision forms such as "de l' enfant" or "de l’ enfant".
-			if normalizeFrenchApostrophes(second) == "l'" && start+2 < len(parts) {
+			if normaliseFrenchApostrophes(second) == "l'" && start+2 < len(parts) {
 				third, thirdPunct := splitTrailingPunct(parts[start+2])
 				if third != "" {
 					tok := Token{
 						Raw:        first + " " + second,
-						Lower:      normalizeFrenchApostrophes(core.Lower(first + " " + second)),
+						Lower:      normaliseFrenchApostrophes(core.Lower(first + " " + second)),
 						Type:       TokenArticle,
 						ArtType:    "indefinite",
 						Confidence: 1.0,
@@ -1616,7 +1616,7 @@ func (t *Tokeniser) splitFrenchElision(raw string) (string, string, bool) {
 		return "", raw, false
 	}
 
-	lower := normalizeFrenchApostrophes(core.Lower(raw))
+	lower := normaliseFrenchApostrophes(core.Lower(raw))
 	if len(lower) < 2 {
 		return "", raw, false
 	}
@@ -1658,23 +1658,30 @@ func (t *Tokeniser) splitConfiguredElision(raw string) (string, string, bool) {
 		candidates = append(candidates, article)
 	}
 
-	lower := normalizeFrenchApostrophes(core.Lower(raw))
+	lower := normaliseFrenchApostrophes(core.Lower(raw))
+	rawRunes := []rune(raw)
 	for _, article := range candidates {
-		article = normalizeFrenchApostrophes(core.Lower(article))
+		article = normaliseFrenchApostrophes(core.Lower(article))
 		if article == "" || !core.Contains(article, "'") {
 			continue
 		}
 		if !core.HasPrefix(lower, article) {
 			continue
 		}
-		if len(raw) <= len(article) {
+		articleRunes := []rune(article)
+		prefixLen := len(articleRunes)
+		if len(rawRunes) <= prefixLen {
 			continue
 		}
-		rest := raw[len(article):]
+		prefix := string(rawRunes[:prefixLen])
+		if normaliseFrenchApostrophes(core.Lower(prefix)) != article {
+			continue
+		}
+		rest := string(rawRunes[prefixLen:])
 		if rest == "" {
 			continue
 		}
-		return raw[:len(article)], rest, true
+		return prefix, rest, true
 	}
 
 	return "", raw, false
@@ -1703,7 +1710,7 @@ func tokeniserLanguageBase(lang string) string {
 	return lang
 }
 
-func normalizeFrenchApostrophes(s string) string {
+func normaliseFrenchApostrophes(s string) string {
 	if s == "" || (!core.Contains(s, "’") && !core.Contains(s, "ʼ")) {
 		return s
 	}
