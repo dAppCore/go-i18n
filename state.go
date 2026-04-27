@@ -131,6 +131,14 @@ func shortHandlerTypeName(handler KeyHandler) string {
 	return core.TrimPrefix(name, "*")
 }
 
+// State returns a snapshot of the service's current configuration —
+// language, available languages, mode, formality, fallback, location,
+// direction, debug flag, and handler chain — captured atomically while
+// holding the read lock. Safe to call on nil receiver (returns the
+// uninitialised-service default snapshot).
+//
+//	state := svc.State()
+//	fmt.Println(state.Language, state.Mode)
 func (s *Service) State() ServiceState {
 	if s == nil {
 		return defaultServiceStateSnapshot()

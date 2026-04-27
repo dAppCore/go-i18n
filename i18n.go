@@ -445,11 +445,22 @@ type templateBuffer struct {
 	data []byte
 }
 
+// Write appends the given bytes to the buffer and returns the byte count
+// written along with a nil error. Implements io.Writer for text/template
+// execution.
+//
+//	var buf templateBuffer
+//	_, _ = buf.Write([]byte("hello"))
 func (buf *templateBuffer) Write(data []byte) (int, error) {
 	buf.data = append(buf.data, data...)
 	return len(data), nil
 }
 
+// String returns the buffer's accumulated bytes as a string.
+//
+//	var buf templateBuffer
+//	_, _ = buf.Write([]byte("hello"))
+//	out := buf.String() // → "hello"
 func (buf *templateBuffer) String() string {
 	return string(buf.data)
 }

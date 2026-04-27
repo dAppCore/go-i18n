@@ -350,6 +350,10 @@ func (s *Service) SetLanguage(lang string) error {
 	return nil
 }
 
+// Language returns the service's currently-active language tag, defaulting
+// to "en" when the receiver is nil.
+//
+//	lang := svc.Language() // → "en", "fr", ...
 func (s *Service) Language() string {
 	if s == nil {
 		return "en"
@@ -452,6 +456,10 @@ func (s *Service) Lang(key string) string {
 	return s.handleMissingKey(lookupKey, nil)
 }
 
+// AvailableLanguages returns the language tags currently loaded into the
+// service, in insertion order. Returns an empty slice on nil receiver.
+//
+//	tags := svc.AvailableLanguages() // → ["en", "fr", "de"]
 func (s *Service) AvailableLanguages() []string {
 	if s == nil {
 		return []string{}
@@ -470,6 +478,10 @@ func (s *Service) CurrentAvailableLanguages() []string {
 	return s.AvailableLanguages()
 }
 
+// SetMode updates the service's resolution mode (e.g. ModeNormal,
+// ModeStrict). No-op on nil receiver.
+//
+//	svc.SetMode(ModeStrict)
 func (s *Service) SetMode(m Mode) {
 	if s == nil {
 		return
@@ -479,6 +491,9 @@ func (s *Service) SetMode(m Mode) {
 	s.mu.Unlock()
 }
 
+// Mode returns the current resolution mode.
+//
+//	mode := svc.Mode()
 func (s *Service) Mode() Mode {
 	if s == nil {
 		return ModeNormal
@@ -488,7 +503,15 @@ func (s *Service) Mode() Mode {
 	return s.mode
 }
 
+// CurrentMode is a short alias for Mode.
+//
+//	mode := svc.CurrentMode()
 func (s *Service) CurrentMode() Mode { return s.Mode() }
+
+// SetFormality updates the service's default formality (formal, informal,
+// neutral). No-op on nil receiver.
+//
+//	svc.SetFormality(FormalityFormal)
 func (s *Service) SetFormality(f Formality) {
 	if s == nil {
 		return
@@ -498,6 +521,9 @@ func (s *Service) SetFormality(f Formality) {
 	s.mu.Unlock()
 }
 
+// Formality returns the service's current default formality.
+//
+//	f := svc.Formality()
 func (s *Service) Formality() Formality {
 	if s == nil {
 		return FormalityNeutral
@@ -507,9 +533,17 @@ func (s *Service) Formality() Formality {
 	return s.formality
 }
 
+// CurrentFormality is a short alias for Formality.
+//
+//	f := svc.CurrentFormality()
 func (s *Service) CurrentFormality() Formality {
 	return s.Formality()
 }
+
+// SetFallback assigns the language tag to use when a key is missing from the
+// active language. No-op on nil receiver.
+//
+//	svc.SetFallback("en")
 func (s *Service) SetFallback(lang string) {
 	if s == nil {
 		return
@@ -518,6 +552,10 @@ func (s *Service) SetFallback(lang string) {
 	s.fallbackLang = normalizeLanguageTag(lang)
 	s.mu.Unlock()
 }
+
+// Fallback returns the currently-configured fallback language tag.
+//
+//	tag := svc.Fallback() // → "en"
 func (s *Service) Fallback() string {
 	if s == nil {
 		return "en"
@@ -526,8 +564,16 @@ func (s *Service) Fallback() string {
 	defer s.mu.RUnlock()
 	return s.fallbackLang
 }
+
+// CurrentFallback is a short alias for Fallback.
+//
+//	tag := svc.CurrentFallback()
 func (s *Service) CurrentFallback() string { return s.Fallback() }
 
+// SetLocation sets the default location/scope used by translations that
+// branch on it. No-op on nil receiver.
+//
+//	svc.SetLocation("dashboard")
 func (s *Service) SetLocation(location string) {
 	if s == nil {
 		return
@@ -537,6 +583,9 @@ func (s *Service) SetLocation(location string) {
 	s.location = location
 }
 
+// Location returns the service's default location/scope.
+//
+//	loc := svc.Location()
 func (s *Service) Location() string {
 	if s == nil {
 		return ""
@@ -551,6 +600,10 @@ func (s *Service) CurrentLocation() string {
 	return s.Location()
 }
 
+// Direction returns the text direction for the service's active language
+// (DirLTR or DirRTL). Defaults to DirLTR for nil receiver or non-RTL langs.
+//
+//	dir := svc.Direction() // → DirLTR for "en", DirRTL for "ar"
 func (s *Service) Direction() TextDirection {
 	if s == nil {
 		return DirLTR
@@ -573,7 +626,14 @@ func (s *Service) CurrentTextDirection() TextDirection {
 	return s.CurrentDirection()
 }
 
-func (s *Service) IsRTL() bool        { return s.Direction() == DirRTL }
+// IsRTL reports whether the active language renders right-to-left.
+//
+//	if svc.IsRTL() { /* mirror UI chrome */ }
+func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
+
+// CurrentIsRTL is a short alias for IsRTL.
+//
+//	if svc.CurrentIsRTL() { /* mirror UI chrome */ }
 func (s *Service) CurrentIsRTL() bool { return s.IsRTL() }
 
 // RTL is a short alias for IsRTL.
@@ -582,10 +642,18 @@ func (s *Service) RTL() bool { return s.IsRTL() }
 // CurrentRTL is a short alias for CurrentIsRTL.
 func (s *Service) CurrentRTL() bool { return s.CurrentIsRTL() }
 
+// CurrentDebug is a short alias for Debug.
+//
+//	on := svc.CurrentDebug()
 func (s *Service) CurrentDebug() bool {
 	return s.Debug()
 }
 
+// PluralCategory returns the CLDR plural category (one/few/many/other/zero/
+// two) for n in the service's active language. Defaults to PluralOther on
+// nil receiver.
+//
+//	cat := svc.PluralCategory(2) // English → PluralOther
 func (s *Service) PluralCategory(n int) PluralCategory {
 	if s == nil {
 		return PluralOther
@@ -617,6 +685,10 @@ func joinAvailableLanguagesLocked(tags []language.Tag) string {
 	return core.Join(", ", langs...)
 }
 
+// AddHandler appends one or more KeyHandlers to the end of the chain. Nil
+// entries are silently dropped. No-op on nil receiver.
+//
+//	svc.AddHandler(MyCustomHandler{})
 func (s *Service) AddHandler(handlers ...KeyHandler) {
 	if s == nil {
 		return
@@ -636,6 +708,11 @@ func (s *Service) SetHandlers(handlers ...KeyHandler) {
 	s.handlers = filterNilHandlers(handlers)
 }
 
+// PrependHandler inserts one or more KeyHandlers at the front of the chain
+// so they run before any existing handlers. Nil entries are silently
+// dropped. No-op on nil receiver.
+//
+//	svc.PrependHandler(MyOverrideHandler{})
 func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	if s == nil {
 		return
@@ -649,6 +726,10 @@ func (s *Service) PrependHandler(handlers ...KeyHandler) {
 	s.handlers = append(append([]KeyHandler(nil), handlers...), s.handlers...)
 }
 
+// ClearHandlers removes every handler from the chain, leaving keys to be
+// resolved purely from the loaded message catalogue. No-op on nil receiver.
+//
+//	svc.ClearHandlers()
 func (s *Service) ClearHandlers() {
 	if s == nil {
 		return
@@ -668,6 +749,10 @@ func (s *Service) ResetHandlers() {
 	s.handlers = DefaultHandlers()
 }
 
+// Handlers returns a snapshot copy of the current handler chain so callers
+// can introspect or pass it elsewhere without holding the service lock.
+//
+//	chain := svc.Handlers()
 func (s *Service) Handlers() []KeyHandler {
 	if s == nil {
 		return []KeyHandler{}

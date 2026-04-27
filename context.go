@@ -19,6 +19,10 @@ func C(context string) *TranslationContext {
 	return &TranslationContext{Context: context, count: 1}
 }
 
+// WithGender annotates the context with a grammatical gender for languages
+// that inflect on it. Returns the receiver for chaining.
+//
+//	C("greeting").WithGender("f")
 func (c *TranslationContext) WithGender(gender string) *TranslationContext {
 	if c == nil {
 		return nil
@@ -27,6 +31,9 @@ func (c *TranslationContext) WithGender(gender string) *TranslationContext {
 	return c
 }
 
+// In annotates a location/scope on the context; chains.
+//
+//	C("status").In("dashboard")
 func (c *TranslationContext) In(location string) *TranslationContext {
 	if c == nil {
 		return nil
@@ -35,6 +42,9 @@ func (c *TranslationContext) In(location string) *TranslationContext {
 	return c
 }
 
+// Formal sets the context's formality to formal and returns the receiver.
+//
+//	C("greeting").Formal()
 func (c *TranslationContext) Formal() *TranslationContext {
 	if c == nil {
 		return nil
@@ -43,6 +53,9 @@ func (c *TranslationContext) Formal() *TranslationContext {
 	return c
 }
 
+// Informal sets the context's formality to informal and returns the receiver.
+//
+//	C("greeting").Informal()
 func (c *TranslationContext) Informal() *TranslationContext {
 	if c == nil {
 		return nil
@@ -51,6 +64,10 @@ func (c *TranslationContext) Informal() *TranslationContext {
 	return c
 }
 
+// WithFormality assigns the context's formality (formal/informal/neutral)
+// and returns the receiver.
+//
+//	C("greeting").WithFormality(FormalityFormal)
 func (c *TranslationContext) WithFormality(f Formality) *TranslationContext {
 	if c == nil {
 		return nil
@@ -69,6 +86,10 @@ func (c *TranslationContext) Count(n int) *TranslationContext {
 	return c
 }
 
+// Set stores a key-value pair in the context's Extra map for use by
+// templates that read named fields. Chains.
+//
+//	C("notify").Set("user_name", "Alice")
 func (c *TranslationContext) Set(key string, value any) *TranslationContext {
 	if c == nil {
 		return nil
@@ -80,6 +101,10 @@ func (c *TranslationContext) Set(key string, value any) *TranslationContext {
 	return c
 }
 
+// Get retrieves a previously-Set value by key. Returns nil when unset or
+// when called on a nil context.
+//
+//	C("notify").Set("k", "v").Get("k") // → "v"
 func (c *TranslationContext) Get(key string) any {
 	if c == nil || c.Extra == nil {
 		return nil
@@ -87,6 +112,9 @@ func (c *TranslationContext) Get(key string) any {
 	return c.Extra[key]
 }
 
+// ContextString returns the disambiguation context label.
+//
+//	C("navigation").ContextString() // → "navigation"
 func (c *TranslationContext) ContextString() string {
 	if c == nil {
 		return ""
@@ -94,6 +122,10 @@ func (c *TranslationContext) ContextString() string {
 	return c.Context
 }
 
+// String returns the context label (alias for ContextString) so the type
+// satisfies fmt.Stringer.
+//
+//	core.Sprintf("%s", C("navigation"))
 func (c *TranslationContext) String() string {
 	if c == nil {
 		return ""
@@ -101,6 +133,9 @@ func (c *TranslationContext) String() string {
 	return c.Context
 }
 
+// GenderString returns the context's gender annotation, empty when unset.
+//
+//	C("greeting").WithGender("f").GenderString() // → "f"
 func (c *TranslationContext) GenderString() string {
 	if c == nil {
 		return ""
@@ -108,6 +143,10 @@ func (c *TranslationContext) GenderString() string {
 	return c.Gender
 }
 
+// LocationString returns the context's location annotation, empty when
+// unset.
+//
+//	C("status").In("dashboard").LocationString() // → "dashboard"
 func (c *TranslationContext) LocationString() string {
 	if c == nil {
 		return ""
@@ -115,6 +154,10 @@ func (c *TranslationContext) LocationString() string {
 	return c.Location
 }
 
+// FormalityValue returns the context's formality (defaulting to
+// FormalityNeutral on a nil context).
+//
+//	C("greeting").Formal().FormalityValue() // → FormalityFormal
 func (c *TranslationContext) FormalityValue() Formality {
 	if c == nil {
 		return FormalityNeutral

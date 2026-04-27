@@ -9,10 +9,17 @@ import (
 // LabelHandler handles i18n.label.{word} -> "Status:" patterns.
 type LabelHandler struct{}
 
+// Match reports whether the key falls under the i18n.label.* namespace.
+//
+//	LabelHandler{}.Match("i18n.label.status") // → true
 func (h LabelHandler) Match(key string) bool {
 	return core.HasPrefix(key, "i18n.label.")
 }
 
+// Handle resolves an i18n.label.{word} key to a localised label string,
+// delegating to next() when no entry is registered for the word.
+//
+//	out := LabelHandler{}.Handle("i18n.label.status", nil, nil)
 func (h LabelHandler) Handle(key string, args []any, next func() string) string {
 	word := core.TrimPrefix(key, "i18n.label.")
 	if got := Label(word); got != "" {
@@ -27,10 +34,18 @@ func (h LabelHandler) Handle(key string, args []any, next func() string) string 
 // ProgressHandler handles i18n.progress.{verb} -> "Building..." patterns.
 type ProgressHandler struct{}
 
+// Match reports whether the key falls under the i18n.progress.* namespace.
+//
+//	ProgressHandler{}.Match("i18n.progress.build") // → true
 func (h ProgressHandler) Match(key string) bool {
 	return core.HasPrefix(key, "i18n.progress.")
 }
 
+// Handle resolves an i18n.progress.{verb} key to its localised progress
+// phrase. When args[0] supplies a subject the verb is conjugated against it
+// (e.g. "Building docs"); otherwise the bare verb form is returned.
+//
+//	out := ProgressHandler{}.Handle("i18n.progress.build", []any{"docs"}, nil)
 func (h ProgressHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.progress.")
 	if len(args) > 0 {
@@ -52,10 +67,18 @@ func (h ProgressHandler) Handle(key string, args []any, next func() string) stri
 // CountHandler handles i18n.count.{noun} -> "5 files" patterns.
 type CountHandler struct{}
 
+// Match reports whether the key falls under the i18n.count.* namespace.
+//
+//	CountHandler{}.Match("i18n.count.file") // → true
 func (h CountHandler) Match(key string) bool {
 	return core.HasPrefix(key, "i18n.count.")
 }
 
+// Handle pluralises the {noun} portion of an i18n.count.{noun} key against
+// args[0] (a count). Returns "{count} {noun-form}" using the active
+// language's plural rules.
+//
+//	out := CountHandler{}.Handle("i18n.count.file", []any{5}, nil) // → "5 files"
 func (h CountHandler) Handle(key string, args []any, next func() string) string {
 	noun := core.TrimPrefix(key, "i18n.count.")
 	lang := currentLangForGrammar()
@@ -75,10 +98,18 @@ func (h CountHandler) Handle(key string, args []any, next func() string) string 
 // DoneHandler handles i18n.done.{verb} -> "File deleted" patterns.
 type DoneHandler struct{}
 
+// Match reports whether the key falls under the i18n.done.* namespace.
+//
+//	DoneHandler{}.Match("i18n.done.delete") // → true
 func (h DoneHandler) Match(key string) bool {
 	return core.HasPrefix(key, "i18n.done.")
 }
 
+// Handle resolves an i18n.done.{verb} key to a localised "{verb-past-tense}
+// {subject}" phrase using args[0] as subject. Falls back to the bare past-
+// tense verb form when no subject is supplied.
+//
+//	out := DoneHandler{}.Handle("i18n.done.delete", []any{"file"}, nil) // → "File deleted"
 func (h DoneHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.done.")
 	if len(args) > 0 {
@@ -100,10 +131,18 @@ func (h DoneHandler) Handle(key string, args []any, next func() string) string {
 // FailHandler handles i18n.fail.{verb} -> "Failed to delete file" patterns.
 type FailHandler struct{}
 
+// Match reports whether the key falls under the i18n.fail.* namespace.
+//
+//	FailHandler{}.Match("i18n.fail.delete") // → true
 func (h FailHandler) Match(key string) bool {
 	return core.HasPrefix(key, "i18n.fail.")
 }
 
+// Handle resolves an i18n.fail.{verb} key to a localised "Failed to {verb}
+// {subject}" phrase. args[0] supplies the subject; absent subject yields the
+// bare ActionFailed phrasing.
+//
+//	out := FailHandler{}.Handle("i18n.fail.delete", []any{"file"}, nil) // → "Failed to delete file"
 func (h FailHandler) Handle(key string, args []any, next func() string) string {
 	verb := core.TrimPrefix(key, "i18n.fail.")
 	if len(args) > 0 {
@@ -125,10 +164,17 @@ func (h FailHandler) Handle(key string, args []any, next func() string) string {
 // NumericHandler handles i18n.numeric.{format} -> formatted numbers.
 type NumericHandler struct{}
 
+// Match reports whether the key falls under the i18n.numeric.* namespace.
+//
+//	NumericHandler{}.Match("i18n.numeric.percent") // → true
 func (h NumericHandler) Match(key string) bool {
 	return core.HasPrefix(key, "i18n.numeric.")
 }
 
+// Handle formats args[0] using the format suffix from key. Supported suffixes:
+// number/int, decimal/float, percent/pct, bytes/size, ordinal/ord, ago.
+//
+//	out := NumericHandler{}.Handle("i18n.numeric.percent", []any{0.42}, nil) // → "42%"
 func (h NumericHandler) Handle(key string, args []any, next func() string) string {
 	if len(args) == 0 {
 		if next != nil {

@@ -5,6 +5,10 @@ import (
 	"golang.org/x/text/language"
 )
 
+// String returns the human-readable name of the Formality value
+// ("formal", "informal", "neutral").
+//
+//	FormalityFormal.String() // → "formal"
 func (f Formality) String() string {
 	switch f {
 	case FormalityInformal:
@@ -16,6 +20,9 @@ func (f Formality) String() string {
 	}
 }
 
+// String returns "ltr" or "rtl" for the TextDirection value.
+//
+//	DirRTL.String() // → "rtl"
 func (d TextDirection) String() string {
 	if d == DirRTL {
 		return "rtl"
@@ -23,6 +30,9 @@ func (d TextDirection) String() string {
 	return "ltr"
 }
 
+// String returns the CLDR plural-category name (zero/one/two/few/many/other).
+//
+//	PluralFew.String() // → "few"
 func (p PluralCategory) String() string {
 	switch p {
 	case PluralZero:
@@ -40,6 +50,10 @@ func (p PluralCategory) String() string {
 	}
 }
 
+// String returns the human-readable name of the grammatical gender value
+// (masculine/feminine/common/neuter).
+//
+//	GenderFeminine.String() // → "feminine"
 func (g GrammaticalGender) String() string {
 	switch g {
 	case GenderMasculine:

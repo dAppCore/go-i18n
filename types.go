@@ -27,6 +27,10 @@ const (
 	ModeCollect             // Dispatches MissingKey events, returns [key] (QA)
 )
 
+// String returns the human-readable name of the Mode value
+// ("normal", "strict", "collect"), or "unknown" for unrecognised values.
+//
+//	ModeStrict.String() // → "strict"
 func (m Mode) String() string {
 	switch m {
 	case ModeNormal:
