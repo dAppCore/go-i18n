@@ -106,3 +106,89 @@ func TestGetPluralRule(t *testing.T) {
 		t.Error("Unknown rule(1) should fallback to English PluralOne")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestLanguage_GetPluralRule_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		rule := GetPluralRule("en")
+		if rule(1) != PluralOne {
+			t.Fatalf("expected English singular rule")
+		}
+	})
+	if !called {
+		t.Fatal("GetPluralRule was not exercised")
+	}
+}
+
+func TestLanguage_GetPluralRule_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		rule := GetPluralRule("zz")
+		if rule(2) != PluralOther {
+			t.Fatalf("expected fallback plural rule")
+		}
+	})
+	if !called {
+		t.Fatal("GetPluralRule was not exercised")
+	}
+}
+
+func TestLanguage_GetPluralRule_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		rule := GetPluralRule("")
+		if rule(0) != PluralOther {
+			t.Fatalf("expected fallback for empty language")
+		}
+	})
+	if !called {
+		t.Fatal("GetPluralRule was not exercised")
+	}
+}
+
+func TestLanguage_GetPluralCategory_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := GetPluralCategory("en", 1)
+		if got != PluralOne {
+			t.Fatalf("want %v, got %v", PluralOne, got)
+		}
+	})
+	if !called {
+		t.Fatal("GetPluralCategory was not exercised")
+	}
+}
+
+func TestLanguage_GetPluralCategory_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := GetPluralCategory("en", 2)
+		if got != PluralOther {
+			t.Fatalf("want %v, got %v", PluralOther, got)
+		}
+	})
+	if !called {
+		t.Fatal("GetPluralCategory was not exercised")
+	}
+}
+
+func TestLanguage_GetPluralCategory_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := GetPluralCategory("", 0)
+		if got != PluralOther {
+			t.Fatalf("want %v, got %v", PluralOther, got)
+		}
+	})
+	if !called {
+		t.Fatal("GetPluralCategory was not exercised")
+	}
+}

@@ -6,7 +6,7 @@ import (
 	// Note: AX-6 — message interpolation requires Go template parsing/execution; pinned core has no template primitive.
 	"text/template"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 	log "dappco.re/go/log"
 )
 
@@ -27,7 +27,7 @@ func T(messageID string, args ...any) string {
 //
 //	result := i18n.Translate("greeting")
 func Translate(messageID string, args ...any) core.Result {
-	return defaultServiceValue(core.Result{Value: messageID, OK: false}, func(svc *Service) core.Result {
+	return defaultServiceValue(core.Fail(core.NewError(messageID)), func(svc *Service) core.Result {
 		return svc.Translate(messageID, args...)
 	})
 }

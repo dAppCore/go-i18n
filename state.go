@@ -1,7 +1,7 @@
 package i18n
 
 import (
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 func newServiceStateSnapshot(

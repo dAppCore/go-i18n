@@ -1,6 +1,6 @@
 package i18n
 
-import "dappco.re/go/core"
+import "dappco.re/go"
 
 // SetDebug enables or disables debug mode on the default service.
 func SetDebug(enabled bool) {

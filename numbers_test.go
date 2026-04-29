@@ -248,3 +248,275 @@ func TestFormatNumberFromLocale(t *testing.T) {
 		t.Errorf("FormatDecimal(fr, negative) = %q, want %q", got, "-0,1")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestNumbers_FormatNumber_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatNumber(1234567)
+		if got != "1,234,567" {
+			t.Fatalf("want %v, got %v", "1,234,567", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatNumber was not exercised")
+	}
+}
+
+func TestNumbers_FormatNumber_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatNumber(-42)
+		if got != "-42" {
+			t.Fatalf("want %v, got %v", "-42", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatNumber was not exercised")
+	}
+}
+
+func TestNumbers_FormatNumber_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatNumber(0)
+		if got != "0" {
+			t.Fatalf("want %v, got %v", "0", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatNumber was not exercised")
+	}
+}
+
+func TestNumbers_FormatDecimal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatDecimal(12.5)
+		if got != "12.5" {
+			t.Fatalf("want %v, got %v", "12.5", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatDecimal was not exercised")
+	}
+}
+
+func TestNumbers_FormatDecimal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatDecimal(-1.25)
+		if got != "-1.25" {
+			t.Fatalf("want %v, got %v", "-1.25", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatDecimal was not exercised")
+	}
+}
+
+func TestNumbers_FormatDecimal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatDecimal(0)
+		if got != "0" {
+			t.Fatalf("want %v, got %v", "0", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatDecimal was not exercised")
+	}
+}
+
+func TestNumbers_FormatDecimalN_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatDecimalN(1.234, 2)
+		if got != "1.23" {
+			t.Fatalf("want %v, got %v", "1.23", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatDecimalN was not exercised")
+	}
+}
+
+func TestNumbers_FormatDecimalN_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatDecimalN(1.2, 0)
+		if got != "1" {
+			t.Fatalf("want %v, got %v", "1", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatDecimalN was not exercised")
+	}
+}
+
+func TestNumbers_FormatDecimalN_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatDecimalN(1.2, -1)
+		if got != "1" {
+			t.Fatalf("want %v, got %v", "1", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatDecimalN was not exercised")
+	}
+}
+
+func TestNumbers_FormatPercent_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatPercent(0.42)
+		if got != "42%" {
+			t.Fatalf("want %v, got %v", "42%", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatPercent was not exercised")
+	}
+}
+
+func TestNumbers_FormatPercent_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatPercent(-0.5)
+		if got != "-50%" {
+			t.Fatalf("want %v, got %v", "-50%", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatPercent was not exercised")
+	}
+}
+
+func TestNumbers_FormatPercent_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatPercent(0)
+		if got != "0%" {
+			t.Fatalf("want %v, got %v", "0%", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatPercent was not exercised")
+	}
+}
+
+func TestNumbers_FormatBytes_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatBytes(1536)
+		if got != "1.5 KB" {
+			t.Fatalf("want %v, got %v", "1.5 KB", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatBytes was not exercised")
+	}
+}
+
+func TestNumbers_FormatBytes_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatBytes(-1)
+		if got != "-1 B" {
+			t.Fatalf("want %v, got %v", "-1 B", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatBytes was not exercised")
+	}
+}
+
+func TestNumbers_FormatBytes_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatBytes(0)
+		if got != "0 B" {
+			t.Fatalf("want %v, got %v", "0 B", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatBytes was not exercised")
+	}
+}
+
+func TestNumbers_FormatOrdinal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatOrdinal(1)
+		if got != "1st" {
+			t.Fatalf("want %v, got %v", "1st", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatOrdinal was not exercised")
+	}
+}
+
+func TestNumbers_FormatOrdinal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatOrdinal(-1)
+		if got != "-1st" {
+			t.Fatalf("want %v, got %v", "-1st", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatOrdinal was not exercised")
+	}
+}
+
+func TestNumbers_FormatOrdinal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatOrdinal(0)
+		if got != "0th" {
+			t.Fatalf("want %v, got %v", "0th", got)
+		}
+	})
+	if !called {
+		t.Fatal("FormatOrdinal was not exercised")
+	}
+}

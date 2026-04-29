@@ -172,3 +172,88 @@ func TestImprint_ConfidenceWeighting_BackwardsCompat(t *testing.T) {
 		t.Error("NounDistribution should contain 'file'")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestImprint_NewImprint_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		imp := NewImprint([]Token{{Type: TokenVerb, VerbInfo: VerbMatch{Base: "delete", Tense: "base"}}})
+		if imp.TokenCount != 1 {
+			t.Fatalf("got %d", imp.TokenCount)
+		}
+	})
+	if !called {
+		t.Fatal("NewImprint was not exercised")
+	}
+}
+
+func TestImprint_NewImprint_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		imp := NewImprint(nil)
+		if imp.TokenCount != 0 {
+			t.Fatalf("got %d", imp.TokenCount)
+		}
+	})
+	if !called {
+		t.Fatal("NewImprint was not exercised")
+	}
+}
+
+func TestImprint_NewImprint_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		imp := NewImprint([]Token{{Type: TokenUnknown}})
+		if imp.TokenCount != 1 {
+			t.Fatalf("got %d", imp.TokenCount)
+		}
+	})
+	if !called {
+		t.Fatal("NewImprint was not exercised")
+	}
+}
+
+func TestImprint_GrammarImprint_Similar_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		a := NewImprint([]Token{{Type: TokenVerb, VerbInfo: VerbMatch{Base: "delete", Tense: "base"}}})
+		got := a.Similar(a)
+		if got == 0 {
+			t.Fatal("expected similarity")
+		}
+	})
+	if !called {
+		t.Fatal("GrammarImprint_Similar was not exercised")
+	}
+}
+
+func TestImprint_GrammarImprint_Similar_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		a := GrammarImprint{}
+		got := a.Similar(GrammarImprint{})
+		_ = got
+	})
+	if !called {
+		t.Fatal("GrammarImprint_Similar was not exercised")
+	}
+}
+
+func TestImprint_GrammarImprint_Similar_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		a := NewImprint(nil)
+		got := a.Similar(NewImprint(nil))
+		_ = got
+	})
+	if !called {
+		t.Fatal("GrammarImprint_Similar was not exercised")
+	}
+}

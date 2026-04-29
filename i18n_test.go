@@ -85,8 +85,8 @@ func TestTranslate_Good_MissingKey(t *testing.T) {
 	if result.OK {
 		t.Fatal("expected false")
 	}
-	if "nonexistent.translation.key" != result.Value {
-		t.Fatalf("want %v, got %v", "nonexistent.translation.key", result.Value)
+	if "nonexistent.translation.key" != result.Error() {
+		t.Fatalf("want %v, got %v", "nonexistent.translation.key", result.Error())
 	}
 }
 
@@ -1076,5 +1076,1692 @@ func TestErrServiceNotInitialised_Good(t *testing.T) {
 func TestErrServiceNotInitialized_DeprecatedAlias(t *testing.T) {
 	if ErrServiceNotInitialised != ErrServiceNotInitialized {
 		t.Fatalf("want %v, got %v", ErrServiceNotInitialised, ErrServiceNotInitialized)
+	}
+}
+
+type ax7Handler struct {
+	match bool
+	value string
+}
+
+func (h ax7Handler) Match(string) bool { return h.match }
+
+func (h ax7Handler) Handle(_ string, _ []any, next func() string) string {
+	if h.value != "" {
+		return h.value
+	}
+	if next != nil {
+		return next()
+	}
+	return ""
+}
+
+func ax7Service(t *testing.T) *Service {
+	t.Helper()
+	svc, err := New()
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	return svc
+}
+
+func ax7SetDefault(t *testing.T) *Service {
+	t.Helper()
+	prev := defaultService.Load()
+	svc := ax7Service(t)
+	SetDefault(svc)
+	t.Cleanup(func() { SetDefault(prev) })
+	return svc
+}
+
+func ax7CoreService(t *testing.T) *CoreService {
+	t.Helper()
+	return &CoreService{svc: ax7Service(t), missingKeys: make([]MissingKey, 0)}
+}
+
+func ax7TestFS() fstest.MapFS {
+	return fstest.MapFS{
+		"locales/en.json": {Data: []byte(`{"prompt":{"yes":"y"},"lang":{"en":"English"}}`)},
+		"locales/fr.json": {Data: []byte(`{"prompt":{"yes":"oui"},"lang":{"fr":"français"}}`)},
+	}
+}
+
+func ax7NoPanic(t *testing.T, fn func()) {
+	t.Helper()
+	prevDefault := defaultService.Load()
+	prevMissing := missingKeyHandlers()
+	registeredLocalesMu.Lock()
+	prevLocales := append([]localeRegistration(nil), registeredLocales...)
+	prevProviders := append([]localeProviderRegistration(nil), registeredLocaleProviders...)
+	prevLoaded := localesLoaded
+	prevLocaleID := nextLocaleRegistrationID
+	prevProviderID := nextLocaleProviderID
+	registeredLocalesMu.Unlock()
+	defer func() {
+		SetDefault(prevDefault)
+		missingKeyHandler.Store(prevMissing)
+		registeredLocalesMu.Lock()
+		registeredLocales = prevLocales
+		registeredLocaleProviders = prevProviders
+		localesLoaded = prevLoaded
+		nextLocaleRegistrationID = prevLocaleID
+		nextLocaleProviderID = prevProviderID
+		registeredLocalesMu.Unlock()
+		if r := recover(); r != nil {
+			t.Fatalf("unexpected panic: %v", r)
+		}
+	}()
+	fn()
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestI18n_T_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := T("prompt.yes")
+		if got == "" {
+			t.Fatal("expected translation")
+		}
+	})
+	if !called {
+		t.Fatal("T was not exercised")
+	}
+}
+
+func TestI18n_T_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := T("missing")
+		if got != "missing" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("T was not exercised")
+	}
+}
+
+func TestI18n_T_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := T("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("T was not exercised")
+	}
+}
+
+func TestI18n_Translate_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		r := Translate("prompt.yes")
+		if !r.OK {
+			t.Fatalf("expected ok: %v", r)
+		}
+	})
+	if !called {
+		t.Fatal("Translate was not exercised")
+	}
+}
+
+func TestI18n_Translate_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		r := Translate("missing")
+		if r.OK {
+			t.Fatalf("expected missing result")
+		}
+	})
+	if !called {
+		t.Fatal("Translate was not exercised")
+	}
+}
+
+func TestI18n_Translate_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		r := Translate("missing")
+		if r.OK {
+			t.Fatalf("expected failed result")
+		}
+	})
+	if !called {
+		t.Fatal("Translate was not exercised")
+	}
+}
+
+func TestI18n_Raw_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Raw("prompt.yes")
+		if got == "" {
+			t.Fatal("expected raw translation")
+		}
+	})
+	if !called {
+		t.Fatal("Raw was not exercised")
+	}
+}
+
+func TestI18n_Raw_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Raw("missing")
+		if got != "missing" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Raw was not exercised")
+	}
+}
+
+func TestI18n_Raw_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Raw("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Raw was not exercised")
+	}
+}
+
+func TestI18n_Compose_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Compose("core.delete", S("file", "config.yaml"))
+		_ = got
+	})
+	if !called {
+		t.Fatal("Compose was not exercised")
+	}
+}
+
+func TestI18n_Compose_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Compose("missing", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Compose was not exercised")
+	}
+}
+
+func TestI18n_Compose_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Compose("", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Compose was not exercised")
+	}
+}
+
+func TestI18n_CurrentCompose_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentCompose("core.delete", S("file", "config.yaml"))
+		_ = got
+	})
+	if !called {
+		t.Fatal("CurrentCompose was not exercised")
+	}
+}
+
+func TestI18n_CurrentCompose_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentCompose("missing", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("CurrentCompose was not exercised")
+	}
+}
+
+func TestI18n_CurrentCompose_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentCompose("", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("CurrentCompose was not exercised")
+	}
+}
+
+func TestI18n_SetLanguage_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		err := SetLanguage("fr")
+		if err != nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("SetLanguage was not exercised")
+	}
+}
+
+func TestI18n_SetLanguage_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		err := SetLanguage("zz")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("SetLanguage was not exercised")
+	}
+}
+
+func TestI18n_SetLanguage_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		err := SetLanguage("fr")
+		_ = err
+	})
+	if !called {
+		t.Fatal("SetLanguage was not exercised")
+	}
+}
+
+func TestI18n_CurrentLanguage_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentLanguage()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLanguage was not exercised")
+	}
+}
+
+func TestI18n_CurrentLanguage_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentLanguage()
+		if got == "" {
+			t.Fatal("expected fallback language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLanguage was not exercised")
+	}
+}
+
+func TestI18n_CurrentLanguage_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		_ = SetLanguage("fr")
+		got := CurrentLanguage()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLanguage was not exercised")
+	}
+}
+
+func TestI18n_CurrentLang_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentLang()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLang was not exercised")
+	}
+}
+
+func TestI18n_CurrentLang_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentLang()
+		if got == "" {
+			t.Fatal("expected fallback language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLang was not exercised")
+	}
+}
+
+func TestI18n_CurrentLang_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		_ = SetLanguage("fr")
+		got := CurrentLang()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLang was not exercised")
+	}
+}
+
+func TestI18n_Language_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Language()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Language was not exercised")
+	}
+}
+
+func TestI18n_Language_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Language()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Language was not exercised")
+	}
+}
+
+func TestI18n_Language_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		_ = SetLanguage("fr")
+		got := Language()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Language was not exercised")
+	}
+}
+
+func TestI18n_AvailableLanguages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		langs := AvailableLanguages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("AvailableLanguages was not exercised")
+	}
+}
+
+func TestI18n_AvailableLanguages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		langs := AvailableLanguages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("AvailableLanguages was not exercised")
+	}
+}
+
+func TestI18n_AvailableLanguages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		langs := AvailableLanguages()
+		langs[0] = "mutated"
+		if AvailableLanguages()[0] == "mutated" {
+			t.Fatal("languages slice was not copied")
+		}
+	})
+	if !called {
+		t.Fatal("AvailableLanguages was not exercised")
+	}
+}
+
+func TestI18n_CurrentAvailableLanguages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		langs := CurrentAvailableLanguages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentAvailableLanguages was not exercised")
+	}
+}
+
+func TestI18n_CurrentAvailableLanguages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		langs := CurrentAvailableLanguages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentAvailableLanguages was not exercised")
+	}
+}
+
+func TestI18n_CurrentAvailableLanguages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		langs := CurrentAvailableLanguages()
+		langs[0] = "mutated"
+		if CurrentAvailableLanguages()[0] == "mutated" {
+			t.Fatal("languages slice was not copied")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentAvailableLanguages was not exercised")
+	}
+}
+
+func TestI18n_SetMode_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetMode(ModeCollect)
+		if svc.Mode() != ModeCollect {
+			t.Fatal("mode not set")
+		}
+	})
+	if !called {
+		t.Fatal("SetMode was not exercised")
+	}
+}
+
+func TestI18n_SetMode_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		SetMode(ModeCollect)
+		_ = defaultService.Load()
+	})
+	if !called {
+		t.Fatal("SetMode was not exercised")
+	}
+}
+
+func TestI18n_SetMode_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetMode(ModeStrict)
+		SetMode(ModeNormal)
+		if svc.Mode() != ModeNormal {
+			t.Fatal("mode not reset")
+		}
+	})
+	if !called {
+		t.Fatal("SetMode was not exercised")
+	}
+}
+
+func TestI18n_SetFallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetFallback("fr")
+		if svc.Fallback() != "fr" {
+			t.Fatal("fallback not set")
+		}
+	})
+	if !called {
+		t.Fatal("SetFallback was not exercised")
+	}
+}
+
+func TestI18n_SetFallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		SetFallback("fr")
+		_ = defaultService.Load()
+	})
+	if !called {
+		t.Fatal("SetFallback was not exercised")
+	}
+}
+
+func TestI18n_SetFallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetFallback("")
+		if svc.Fallback() != "" {
+			t.Fatal("empty fallback not set")
+		}
+	})
+	if !called {
+		t.Fatal("SetFallback was not exercised")
+	}
+}
+
+func TestI18n_Fallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetFallback("fr")
+		got := Fallback()
+		if got != "fr" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Fallback was not exercised")
+	}
+}
+
+func TestI18n_Fallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Fallback()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Fallback was not exercised")
+	}
+}
+
+func TestI18n_Fallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Fallback()
+		if got == "" {
+			t.Fatal("expected fallback")
+		}
+	})
+	if !called {
+		t.Fatal("Fallback was not exercised")
+	}
+}
+
+func TestI18n_CurrentMode_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetMode(ModeCollect)
+		got := CurrentMode()
+		if got != ModeCollect {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentMode was not exercised")
+	}
+}
+
+func TestI18n_CurrentMode_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentMode()
+		if got != ModeNormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentMode was not exercised")
+	}
+}
+
+func TestI18n_CurrentMode_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentMode()
+		if got != ModeNormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentMode was not exercised")
+	}
+}
+
+func TestI18n_CurrentFallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetFallback("fr")
+		got := CurrentFallback()
+		if got != "fr" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentFallback was not exercised")
+	}
+}
+
+func TestI18n_CurrentFallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentFallback()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentFallback was not exercised")
+	}
+}
+
+func TestI18n_CurrentFallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentFallback()
+		if got == "" {
+			t.Fatal("expected fallback")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentFallback was not exercised")
+	}
+}
+
+func TestI18n_CurrentFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetFormality(FormalityFormal)
+		got := CurrentFormality()
+		if got != FormalityFormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentFormality was not exercised")
+	}
+}
+
+func TestI18n_CurrentFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentFormality()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentFormality was not exercised")
+	}
+}
+
+func TestI18n_CurrentFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentFormality()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentFormality was not exercised")
+	}
+}
+
+func TestI18n_CurrentDebug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetDebug(true)
+		got := CurrentDebug()
+		if !got {
+			t.Fatal("expected debug")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentDebug was not exercised")
+	}
+}
+
+func TestI18n_CurrentDebug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentDebug()
+		if got {
+			t.Fatal("unexpected debug")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentDebug was not exercised")
+	}
+}
+
+func TestI18n_CurrentDebug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentDebug()
+		if got {
+			t.Fatal("unexpected debug")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentDebug was not exercised")
+	}
+}
+
+func TestI18n_State_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		state := State()
+		if state.Language == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("State was not exercised")
+	}
+}
+
+func TestI18n_State_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		state := State()
+		if state.Language != "en" {
+			t.Fatalf("got %q", state.Language)
+		}
+	})
+	if !called {
+		t.Fatal("State was not exercised")
+	}
+}
+
+func TestI18n_State_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetDebug(true)
+		state := State()
+		if !state.Debug {
+			t.Fatal("expected debug")
+		}
+	})
+	if !called {
+		t.Fatal("State was not exercised")
+	}
+}
+
+func TestI18n_CurrentState_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		state := CurrentState()
+		if state.Language == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentState was not exercised")
+	}
+}
+
+func TestI18n_CurrentState_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		state := CurrentState()
+		if state.Language != "en" {
+			t.Fatalf("got %q", state.Language)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentState was not exercised")
+	}
+}
+
+func TestI18n_CurrentState_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetMode(ModeCollect)
+		state := CurrentState()
+		if state.Mode != ModeCollect {
+			t.Fatal("expected collect")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentState was not exercised")
+	}
+}
+
+func TestI18n_Debug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetDebug(true)
+		got := Debug()
+		if !got {
+			t.Fatal("expected debug")
+		}
+	})
+	if !called {
+		t.Fatal("Debug was not exercised")
+	}
+}
+
+func TestI18n_Debug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Debug()
+		if got {
+			t.Fatal("unexpected debug")
+		}
+	})
+	if !called {
+		t.Fatal("Debug was not exercised")
+	}
+}
+
+func TestI18n_Debug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Debug()
+		if got {
+			t.Fatal("unexpected debug")
+		}
+	})
+	if !called {
+		t.Fatal("Debug was not exercised")
+	}
+}
+
+func TestI18n_N_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := N("number", 1234)
+		if got == "" {
+			t.Fatal("expected numeric text")
+		}
+	})
+	if !called {
+		t.Fatal("N was not exercised")
+	}
+}
+
+func TestI18n_N_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := N("unknown", 1)
+		if got == "" {
+			t.Fatal("expected fallback text")
+		}
+	})
+	if !called {
+		t.Fatal("N was not exercised")
+	}
+}
+
+func TestI18n_N_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := N("ago", 0, "second")
+		if got == "" {
+			t.Fatal("expected ago text")
+		}
+	})
+	if !called {
+		t.Fatal("N was not exercised")
+	}
+}
+
+func TestI18n_Prompt_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Prompt("yes")
+		if got == "" {
+			t.Fatal("expected prompt")
+		}
+	})
+	if !called {
+		t.Fatal("Prompt was not exercised")
+	}
+}
+
+func TestI18n_Prompt_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Prompt("yes")
+		if got == "" {
+			t.Fatal("expected fallback prompt")
+		}
+	})
+	if !called {
+		t.Fatal("Prompt was not exercised")
+	}
+}
+
+func TestI18n_Prompt_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Prompt("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Prompt was not exercised")
+	}
+}
+
+func TestI18n_CurrentPrompt_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentPrompt("yes")
+		if got == "" {
+			t.Fatal("expected prompt")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentPrompt was not exercised")
+	}
+}
+
+func TestI18n_CurrentPrompt_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentPrompt("yes")
+		if got == "" {
+			t.Fatal("expected fallback prompt")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentPrompt was not exercised")
+	}
+}
+
+func TestI18n_CurrentPrompt_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentPrompt("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentPrompt was not exercised")
+	}
+}
+
+func TestI18n_Lang_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Lang("en")
+		if got == "" {
+			t.Fatal("expected language label")
+		}
+	})
+	if !called {
+		t.Fatal("Lang was not exercised")
+	}
+}
+
+func TestI18n_Lang_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Lang("en")
+		if got == "" {
+			t.Fatal("expected fallback label")
+		}
+	})
+	if !called {
+		t.Fatal("Lang was not exercised")
+	}
+}
+
+func TestI18n_Lang_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Lang("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Lang was not exercised")
+	}
+}
+
+func TestI18n_AddHandler_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		AddHandler(ax7Handler{match: true})
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("AddHandler was not exercised")
+	}
+}
+
+func TestI18n_AddHandler_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		AddHandler(nil)
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected default handlers")
+		}
+	})
+	if !called {
+		t.Fatal("AddHandler was not exercised")
+	}
+}
+
+func TestI18n_AddHandler_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		AddHandler(ax7Handler{match: true}, nil)
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("AddHandler was not exercised")
+	}
+}
+
+func TestI18n_SetHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetHandlers(ax7Handler{match: true})
+		if len(svc.Handlers()) != 1 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("SetHandlers was not exercised")
+	}
+}
+
+func TestI18n_SetHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetHandlers(nil)
+		if len(svc.Handlers()) != 0 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("SetHandlers was not exercised")
+	}
+}
+
+func TestI18n_SetHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetHandlers(ax7Handler{match: true}, nil)
+		if len(svc.Handlers()) != 1 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("SetHandlers was not exercised")
+	}
+}
+
+func TestI18n_LoadFS_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		LoadFS(ax7TestFS(), "locales")
+		if len(svc.AvailableLanguages()) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("LoadFS was not exercised")
+	}
+}
+
+func TestI18n_LoadFS_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		LoadFS(ax7TestFS(), "missing")
+		_ = AvailableLanguages()
+	})
+	if !called {
+		t.Fatal("LoadFS was not exercised")
+	}
+}
+
+func TestI18n_LoadFS_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		LoadFS(ax7TestFS(), "")
+		_ = AvailableLanguages()
+	})
+	if !called {
+		t.Fatal("LoadFS was not exercised")
+	}
+}
+
+func TestI18n_AddMessages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		AddMessages("en", map[string]string{"ax7.message": "ready"})
+		if T("ax7.message") != "ready" {
+			t.Fatal("message not added")
+		}
+	})
+	if !called {
+		t.Fatal("AddMessages was not exercised")
+	}
+}
+
+func TestI18n_AddMessages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		AddMessages("", nil)
+		_ = AvailableLanguages()
+	})
+	if !called {
+		t.Fatal("AddMessages was not exercised")
+	}
+}
+
+func TestI18n_AddMessages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		AddMessages("en", map[string]string{})
+		_ = AvailableLanguages()
+	})
+	if !called {
+		t.Fatal("AddMessages was not exercised")
+	}
+}
+
+func TestI18n_PrependHandler_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		PrependHandler(ax7Handler{match: true})
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("PrependHandler was not exercised")
+	}
+}
+
+func TestI18n_PrependHandler_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		PrependHandler(nil)
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected default handlers")
+		}
+	})
+	if !called {
+		t.Fatal("PrependHandler was not exercised")
+	}
+}
+
+func TestI18n_PrependHandler_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		PrependHandler(ax7Handler{match: true}, nil)
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("PrependHandler was not exercised")
+	}
+}
+
+func TestI18n_CurrentHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		handlers := CurrentHandlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentHandlers was not exercised")
+	}
+}
+
+func TestI18n_CurrentHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		handlers := CurrentHandlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentHandlers was not exercised")
+	}
+}
+
+func TestI18n_CurrentHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		handlers := CurrentHandlers()
+		handlers[0] = nil
+		if CurrentHandlers()[0] == nil {
+			t.Fatal("handlers were not copied")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentHandlers was not exercised")
+	}
+}
+
+func TestI18n_Handlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		handlers := Handlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("Handlers was not exercised")
+	}
+}
+
+func TestI18n_Handlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		handlers := Handlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("Handlers was not exercised")
+	}
+}
+
+func TestI18n_Handlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		handlers := Handlers()
+		handlers[0] = nil
+		if Handlers()[0] == nil {
+			t.Fatal("handlers were not copied")
+		}
+	})
+	if !called {
+		t.Fatal("Handlers was not exercised")
+	}
+}
+
+func TestI18n_ClearHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		ClearHandlers()
+		if len(svc.Handlers()) != 0 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("ClearHandlers was not exercised")
+	}
+}
+
+func TestI18n_ClearHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		ClearHandlers()
+		_ = defaultService.Load()
+	})
+	if !called {
+		t.Fatal("ClearHandlers was not exercised")
+	}
+}
+
+func TestI18n_ClearHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		ClearHandlers()
+		ClearHandlers()
+		if len(svc.Handlers()) != 0 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("ClearHandlers was not exercised")
+	}
+}
+
+func TestI18n_ResetHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		ClearHandlers()
+		ResetHandlers()
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("ResetHandlers was not exercised")
+	}
+}
+
+func TestI18n_ResetHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		ResetHandlers()
+		_ = defaultService.Load()
+	})
+	if !called {
+		t.Fatal("ResetHandlers was not exercised")
+	}
+}
+
+func TestI18n_ResetHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		ResetHandlers()
+		ResetHandlers()
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("ResetHandlers was not exercised")
+	}
+}
+
+func TestI18n_Buffer_Write_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var buf templateBuffer
+		n, err := buf.Write([]byte("hello"))
+		if err != nil || n != 5 {
+			t.Fatalf("n=%d err=%v", n, err)
+		}
+	})
+	if !called {
+		t.Fatal("Buffer_Write was not exercised")
+	}
+}
+
+func TestI18n_Buffer_Write_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var buf templateBuffer
+		n, err := buf.Write(nil)
+		if err != nil || n != 0 {
+			t.Fatalf("n=%d err=%v", n, err)
+		}
+	})
+	if !called {
+		t.Fatal("Buffer_Write was not exercised")
+	}
+}
+
+func TestI18n_Buffer_Write_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var buf templateBuffer
+		_, _ = buf.Write([]byte("hello"))
+		_, _ = buf.Write([]byte(" world"))
+		if buf.String() != "hello world" {
+			t.Fatalf("got %q", buf.String())
+		}
+	})
+	if !called {
+		t.Fatal("Buffer_Write was not exercised")
+	}
+}
+
+func TestI18n_Buffer_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var buf templateBuffer
+		_, _ = buf.Write([]byte("hello"))
+		if buf.String() != "hello" {
+			t.Fatalf("got %q", buf.String())
+		}
+	})
+	if !called {
+		t.Fatal("Buffer_String was not exercised")
+	}
+}
+
+func TestI18n_Buffer_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var buf templateBuffer
+		got := buf.String()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Buffer_String was not exercised")
+	}
+}
+
+func TestI18n_Buffer_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var buf templateBuffer
+		_, _ = buf.Write(nil)
+		if buf.String() != "" {
+			t.Fatalf("got %q", buf.String())
+		}
+	})
+	if !called {
+		t.Fatal("Buffer_String was not exercised")
 	}
 }

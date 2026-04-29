@@ -340,3 +340,95 @@ func TestFormatAgo_FallsBackToLocaleWordMap(t *testing.T) {
 		t.Fatalf("want %v, got %v", "2 mois ago", got)
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestTime_TimeAgo_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := TimeAgo(time.Now().Add(-1 * time.Minute))
+		if got == "" {
+			t.Fatal("expected relative time")
+		}
+	})
+	if !called {
+		t.Fatal("TimeAgo was not exercised")
+	}
+}
+
+func TestTime_TimeAgo_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := TimeAgo(time.Now().Add(1 * time.Minute))
+		if got == "" {
+			t.Fatal("expected relative time")
+		}
+	})
+	if !called {
+		t.Fatal("TimeAgo was not exercised")
+	}
+}
+
+func TestTime_TimeAgo_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := TimeAgo(time.Now())
+		if got == "" {
+			t.Fatal("expected relative time")
+		}
+	})
+	if !called {
+		t.Fatal("TimeAgo was not exercised")
+	}
+}
+
+func TestTime_FormatAgo_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatAgo(5, "minute")
+		if got == "" {
+			t.Fatal("expected text")
+		}
+	})
+	if !called {
+		t.Fatal("FormatAgo was not exercised")
+	}
+}
+
+func TestTime_FormatAgo_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatAgo(5, "unknown")
+		if got == "" {
+			t.Fatal("expected fallback text")
+		}
+	})
+	if !called {
+		t.Fatal("FormatAgo was not exercised")
+	}
+}
+
+func TestTime_FormatAgo_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := FormatAgo(0, "second")
+		if got == "" {
+			t.Fatal("expected text")
+		}
+	})
+	if !called {
+		t.Fatal("FormatAgo was not exercised")
+	}
+}

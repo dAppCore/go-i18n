@@ -3,7 +3,7 @@ package i18n
 import (
 	"unicode"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 // LabelHandler handles i18n.label.{word} -> "Status:" patterns.

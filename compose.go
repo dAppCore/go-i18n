@@ -1,7 +1,7 @@
 package i18n
 
 import (
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 // stringer mirrors fmt.Stringer without pulling in the banned fmt package.

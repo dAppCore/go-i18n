@@ -1447,3 +1447,604 @@ func BenchmarkMultiplier_Expand(b *testing.B) {
 		m.Expand("Delete the configuration file")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestTokeniser_WithSignals_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser(WithSignals())
+		if !tok.withSignals {
+			t.Fatal("signals not enabled")
+		}
+	})
+	if !called {
+		t.Fatal("WithSignals was not exercised")
+	}
+}
+
+func TestTokeniser_WithSignals_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		opt := WithSignals()
+		tok := NewTokeniser()
+		opt(tok)
+		if !tok.withSignals {
+			t.Fatal("signals not enabled")
+		}
+	})
+	if !called {
+		t.Fatal("WithSignals was not exercised")
+	}
+}
+
+func TestTokeniser_WithSignals_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniserForLang("fr", WithSignals())
+		if !tok.withSignals {
+			t.Fatal("signals not enabled")
+		}
+	})
+	if !called {
+		t.Fatal("WithSignals was not exercised")
+	}
+}
+
+func TestTokeniser_WithWeights_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser(WithWeights(map[string]float64{"noun_determiner": 2}))
+		if tok.weights["noun_determiner"] != 2 {
+			t.Fatal("weight not set")
+		}
+	})
+	if !called {
+		t.Fatal("WithWeights was not exercised")
+	}
+}
+
+func TestTokeniser_WithWeights_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser(WithWeights(nil))
+		if len(tok.weights) == 0 {
+			t.Fatal("expected defaults")
+		}
+	})
+	if !called {
+		t.Fatal("WithWeights was not exercised")
+	}
+}
+
+func TestTokeniser_WithWeights_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		weights := map[string]float64{"noun_determiner": 2}
+		tok := NewTokeniser(WithWeights(weights))
+		weights["noun_determiner"] = 9
+		if tok.weights["noun_determiner"] != 2 {
+			t.Fatal("weights not copied")
+		}
+	})
+	if !called {
+		t.Fatal("WithWeights was not exercised")
+	}
+}
+
+func TestTokeniser_NewTokeniser_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		if tok == nil {
+			t.Fatal("expected tokeniser")
+		}
+	})
+	if !called {
+		t.Fatal("NewTokeniser was not exercised")
+	}
+}
+
+func TestTokeniser_NewTokeniser_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser(WithWeights(nil))
+		if tok == nil {
+			t.Fatal("expected tokeniser")
+		}
+	})
+	if !called {
+		t.Fatal("NewTokeniser was not exercised")
+	}
+}
+
+func TestTokeniser_NewTokeniser_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser(WithSignals())
+		if tok == nil || !tok.withSignals {
+			t.Fatal("expected signal tokeniser")
+		}
+	})
+	if !called {
+		t.Fatal("NewTokeniser was not exercised")
+	}
+}
+
+func TestTokeniser_NewTokeniserForLang_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniserForLang("en")
+		if tok == nil {
+			t.Fatal("expected tokeniser")
+		}
+	})
+	if !called {
+		t.Fatal("NewTokeniserForLang was not exercised")
+	}
+}
+
+func TestTokeniser_NewTokeniserForLang_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniserForLang("")
+		if tok == nil {
+			t.Fatal("expected tokeniser")
+		}
+	})
+	if !called {
+		t.Fatal("NewTokeniserForLang was not exercised")
+	}
+}
+
+func TestTokeniser_NewTokeniserForLang_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniserForLang("fr", WithSignals())
+		if tok == nil || !tok.withSignals {
+			t.Fatal("expected signal tokeniser")
+		}
+	})
+	if !called {
+		t.Fatal("NewTokeniserForLang was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchNoun_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		_, _ = tok.MatchNoun("files")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchNoun was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchNoun_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		_, _ = tok.MatchNoun("")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchNoun was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchNoun_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniserForLang("fr")
+		_, _ = tok.MatchNoun("files")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchNoun was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchVerb_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		_, _ = tok.MatchVerb("deleted")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchVerb was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchVerb_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		_, _ = tok.MatchVerb("")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchVerb was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchVerb_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniserForLang("fr")
+		_, _ = tok.MatchVerb("deleted")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchVerb was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchWord_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		_, _ = tok.MatchWord("file")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchWord was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchWord_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		_, _ = tok.MatchWord("")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchWord was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchWord_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniserForLang("fr")
+		_, _ = tok.MatchWord("file")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchWord was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchArticle_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		_, _ = tok.MatchArticle("the")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchArticle was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchArticle_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		_, _ = tok.MatchArticle("")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchArticle was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_MatchArticle_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniserForLang("fr")
+		_, _ = tok.MatchArticle("the")
+	})
+	if !called {
+		t.Fatal("Tokeniser_MatchArticle was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_IsDualClass_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		_ = tok.IsDualClass("build")
+	})
+	if !called {
+		t.Fatal("Tokeniser_IsDualClass was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_IsDualClass_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		if tok.IsDualClass("") {
+			t.Fatal("empty should not be dual class")
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_IsDualClass was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_IsDualClass_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		_ = tok.IsDualClass("Build")
+	})
+	if !called {
+		t.Fatal("Tokeniser_IsDualClass was not exercised")
+	}
+}
+
+func TestTokeniser_DefaultWeights_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		weights := DefaultWeights()
+		if len(weights) == 0 {
+			t.Fatal("expected weights")
+		}
+	})
+	if !called {
+		t.Fatal("DefaultWeights was not exercised")
+	}
+}
+
+func TestTokeniser_DefaultWeights_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		weights := DefaultWeights()
+		weights["noun_determiner"] = 99
+		if DefaultWeights()["noun_determiner"] == 99 {
+			t.Fatal("weights not copied")
+		}
+	})
+	if !called {
+		t.Fatal("DefaultWeights was not exercised")
+	}
+}
+
+func TestTokeniser_DefaultWeights_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		weights := DefaultWeights()
+		_ = weights["missing"]
+	})
+	if !called {
+		t.Fatal("DefaultWeights was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_SignalWeights_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		weights := tok.SignalWeights()
+		if len(weights) == 0 {
+			t.Fatal("expected weights")
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_SignalWeights was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_SignalWeights_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var tok *Tokeniser
+		weights := tok.SignalWeights()
+		if len(weights) != 0 {
+			t.Fatalf("got %v", weights)
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_SignalWeights was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_SignalWeights_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		weights := tok.SignalWeights()
+		weights["noun_determiner"] = 99
+		if tok.SignalWeights()["noun_determiner"] == 99 {
+			t.Fatal("weights not copied")
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_SignalWeights was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_Tokenise_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser()
+		tokens := tok.Tokenise("Delete files.")
+		if len(tokens) == 0 {
+			t.Fatal("expected tokens")
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_Tokenise was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_Tokenise_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		tokens := tok.Tokenise("")
+		if len(tokens) != 0 {
+			t.Fatalf("got %v", tokens)
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_Tokenise was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_Tokenise_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		tok := NewTokeniser(WithSignals())
+		tokens := tok.Tokenise("the build")
+		if len(tokens) == 0 {
+			t.Fatal("expected tokens")
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_Tokenise was not exercised")
+	}
+}
+
+func TestTokeniser_DisambiguationStatsFromTokens_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		stats := DisambiguationStatsFromTokens([]Token{{Type: TokenVerb, AltType: TokenNoun, AltConf: 0.4, Confidence: 0.6}})
+		if stats.AmbiguousTokens == 0 {
+			t.Fatal("expected ambiguity")
+		}
+	})
+	if !called {
+		t.Fatal("DisambiguationStatsFromTokens was not exercised")
+	}
+}
+
+func TestTokeniser_DisambiguationStatsFromTokens_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		stats := DisambiguationStatsFromTokens(nil)
+		if stats.AmbiguousTokens != 0 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("DisambiguationStatsFromTokens was not exercised")
+	}
+}
+
+func TestTokeniser_DisambiguationStatsFromTokens_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		stats := DisambiguationStatsFromTokens([]Token{{Type: TokenUnknown}})
+		if stats.AmbiguousTokens != 0 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("DisambiguationStatsFromTokens was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_DisambiguationStats_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		stats := tok.DisambiguationStats([]Token{{Type: TokenVerb, AltType: TokenNoun, AltConf: 0.4, Confidence: 0.6}})
+		if stats.AmbiguousTokens == 0 {
+			t.Fatal("expected ambiguity")
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_DisambiguationStats was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_DisambiguationStats_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var tok *Tokeniser
+		stats := tok.DisambiguationStats(nil)
+		if stats.AmbiguousTokens != 0 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_DisambiguationStats was not exercised")
+	}
+}
+
+func TestTokeniser_Tokeniser_DisambiguationStats_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := NewTokeniser()
+		stats := tok.DisambiguationStats([]Token{{Type: TokenUnknown}})
+		if stats.AmbiguousTokens != 0 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("Tokeniser_DisambiguationStats was not exercised")
+	}
+}
+
+func ax7NoPanic(t *testing.T, fn func()) {
+	t.Helper()
+	defer func() {
+		if r := recover(); r != nil {
+			t.Fatalf("unexpected panic: %v", r)
+		}
+	}()
+	fn()
+}

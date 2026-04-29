@@ -251,3 +251,134 @@ func TestIsRTLLanguage(t *testing.T) {
 		}
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestTypes_Mode_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ModeStrict.String()
+		if got != "strict" {
+			t.Fatalf("want %v, got %v", "strict", got)
+		}
+	})
+	if !called {
+		t.Fatal("Mode_String was not exercised")
+	}
+}
+
+func TestTypes_Mode_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Mode(99).String()
+		if got != "unknown" {
+			t.Fatalf("want %v, got %v", "unknown", got)
+		}
+	})
+	if !called {
+		t.Fatal("Mode_String was not exercised")
+	}
+}
+
+func TestTypes_Mode_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Mode(-1).String()
+		if got != "unknown" {
+			t.Fatalf("want %v, got %v", "unknown", got)
+		}
+	})
+	if !called {
+		t.Fatal("Mode_String was not exercised")
+	}
+}
+
+func TestTypes_Message_ForCategory_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		msg := Message{One: "one", Other: "other"}
+		got := msg.ForCategory(PluralOne)
+		if got != "one" {
+			t.Fatalf("want one, got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Message_ForCategory was not exercised")
+	}
+}
+
+func TestTypes_Message_ForCategory_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		msg := Message{Text: "plain"}
+		got := msg.ForCategory(PluralMany)
+		if got != "plain" {
+			t.Fatalf("want plain, got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Message_ForCategory was not exercised")
+	}
+}
+
+func TestTypes_Message_ForCategory_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		msg := Message{}
+		got := msg.ForCategory(PluralZero)
+		if got != "" {
+			t.Fatalf("want empty, got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Message_ForCategory was not exercised")
+	}
+}
+
+func TestTypes_Message_IsPlural_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Message{One: "one"}.IsPlural()
+		if got != true {
+			t.Fatalf("want %v, got %v", true, got)
+		}
+	})
+	if !called {
+		t.Fatal("Message_IsPlural was not exercised")
+	}
+}
+
+func TestTypes_Message_IsPlural_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Message{Text: "plain"}.IsPlural()
+		if got != false {
+			t.Fatalf("want %v, got %v", false, got)
+		}
+	})
+	if !called {
+		t.Fatal("Message_IsPlural was not exercised")
+	}
+}
+
+func TestTypes_Message_IsPlural_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Message{}.IsPlural()
+		if got != false {
+			t.Fatalf("want %v, got %v", false, got)
+		}
+	})
+	if !called {
+		t.Fatal("Message_IsPlural was not exercised")
+	}
+}

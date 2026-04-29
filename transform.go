@@ -3,7 +3,7 @@ package i18n
 import (
 	"strconv"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 func getCount(data any) int {

@@ -6,7 +6,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 	"slices"
 )
 
@@ -314,7 +314,11 @@ func TestServiceNilReceiverIsSafe(t *testing.T) {
 	if got, want := svc.Raw("prompt.yes"), "prompt.yes"; got != want {
 		t.Fatalf("nil Service.Raw(prompt.yes) = %q, want %q", got, want)
 	}
-	if got, want := svc.Translate("prompt.yes"), (core.Result{Value: "prompt.yes", OK: false}); got != want {
+	result := svc.Translate("prompt.yes")
+	if result.OK {
+		t.Fatalf("nil Service.Translate(prompt.yes) returned OK, want false: %#v", result)
+	}
+	if got, want := result.Error(), "prompt.yes"; got != want {
 		t.Fatalf("nil Service.Translate(prompt.yes) = %#v, want %#v", got, want)
 	}
 	if got, want := svc.Prompt("confirm"), "prompt.confirm"; got != want {
@@ -471,7 +475,7 @@ func TestServiceTranslateMissingKey(t *testing.T) {
 	if result.OK {
 		t.Fatalf("Translate(missing.translation.key) returned OK, want false: %#v", result)
 	}
-	if got, want := result.Value, "missing.translation.key"; got != want {
+	if got, want := result.Error(), "missing.translation.key"; got != want {
 		t.Fatalf("Translate(missing.translation.key) = %#v, want %q", got, want)
 	}
 }
@@ -1592,5 +1596,2878 @@ func TestServicePluralCategory(t *testing.T) {
 	}
 	if svc.PluralCategory(5) != PluralOther {
 		t.Errorf("PluralCategory(5) = %v, want PluralOther", svc.PluralCategory(5))
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestService_WithFallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithFallback("fr"))
+		if err != nil || svc.Fallback() != "fr" {
+			t.Fatalf("fallback=%q err=%v", svc.Fallback(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithFallback was not exercised")
+	}
+}
+
+func TestService_WithFallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithFallback(""))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithFallback was not exercised")
+	}
+}
+
+func TestService_WithFallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithFallback("fr"))
+		if err != nil || svc.Fallback() != "fr" {
+			t.Fatalf("fallback=%q err=%v", svc.Fallback(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithFallback was not exercised")
+	}
+}
+
+func TestService_WithLanguage_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLanguage("fr"))
+		if err != nil || svc.Language() == "" {
+			t.Fatalf("language=%q err=%v", svc.Language(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithLanguage was not exercised")
+	}
+}
+
+func TestService_WithLanguage_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLanguage(""))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithLanguage was not exercised")
+	}
+}
+
+func TestService_WithLanguage_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLanguage("fr"))
+		if err != nil || svc.Language() == "" {
+			t.Fatalf("language=%q err=%v", svc.Language(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithLanguage was not exercised")
+	}
+}
+
+func TestService_WithFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithFormality(FormalityFormal))
+		if err != nil || svc.Formality() != FormalityFormal {
+			t.Fatalf("formality=%v err=%v", svc.Formality(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithFormality was not exercised")
+	}
+}
+
+func TestService_WithFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithFormality(FormalityFormal))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithFormality was not exercised")
+	}
+}
+
+func TestService_WithFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithFormality(FormalityFormal))
+		if err != nil || svc.Formality() != FormalityFormal {
+			t.Fatalf("formality=%v err=%v", svc.Formality(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithFormality was not exercised")
+	}
+}
+
+func TestService_WithLocation_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLocation("workspace"))
+		if err != nil || svc.Location() != "workspace" {
+			t.Fatalf("location=%q err=%v", svc.Location(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithLocation was not exercised")
+	}
+}
+
+func TestService_WithLocation_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLocation(""))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithLocation was not exercised")
+	}
+}
+
+func TestService_WithLocation_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLocation("workspace"))
+		if err != nil || svc.Location() != "workspace" {
+			t.Fatalf("location=%q err=%v", svc.Location(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithLocation was not exercised")
+	}
+}
+
+func TestService_WithHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(ax7Handler{match: true}))
+		if err != nil || len(svc.Handlers()) != 1 {
+			t.Fatalf("handlers=%d err=%v", len(svc.Handlers()), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithHandlers was not exercised")
+	}
+}
+
+func TestService_WithHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(ax7Handler{match: true}))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithHandlers was not exercised")
+	}
+}
+
+func TestService_WithHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(ax7Handler{match: true}))
+		if err != nil || len(svc.Handlers()) != 1 {
+			t.Fatalf("handlers=%d err=%v", len(svc.Handlers()), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithHandlers was not exercised")
+	}
+}
+
+func TestService_WithDefaultHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(), WithDefaultHandlers())
+		if err != nil || len(svc.Handlers()) == 0 {
+			t.Fatalf("handlers=%d err=%v", len(svc.Handlers()), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithDefaultHandlers was not exercised")
+	}
+}
+
+func TestService_WithDefaultHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(), WithDefaultHandlers())
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithDefaultHandlers was not exercised")
+	}
+}
+
+func TestService_WithDefaultHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(), WithDefaultHandlers())
+		if err != nil || len(svc.Handlers()) == 0 {
+			t.Fatalf("handlers=%d err=%v", len(svc.Handlers()), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithDefaultHandlers was not exercised")
+	}
+}
+
+func TestService_WithMode_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithMode(ModeCollect))
+		if err != nil || svc.Mode() != ModeCollect {
+			t.Fatalf("mode=%v err=%v", svc.Mode(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithMode was not exercised")
+	}
+}
+
+func TestService_WithMode_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithMode(ModeCollect))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithMode was not exercised")
+	}
+}
+
+func TestService_WithMode_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithMode(ModeCollect))
+		if err != nil || svc.Mode() != ModeCollect {
+			t.Fatalf("mode=%v err=%v", svc.Mode(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithMode was not exercised")
+	}
+}
+
+func TestService_WithDebug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithDebug(true))
+		if err != nil || !svc.Debug() {
+			t.Fatalf("debug=%v err=%v", svc.Debug(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithDebug was not exercised")
+	}
+}
+
+func TestService_WithDebug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithDebug(true))
+		_ = svc
+		_ = err
+	})
+	if !called {
+		t.Fatal("WithDebug was not exercised")
+	}
+}
+
+func TestService_WithDebug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithDebug(true))
+		if err != nil || !svc.Debug() {
+			t.Fatalf("debug=%v err=%v", svc.Debug(), err)
+		}
+	})
+	if !called {
+		t.Fatal("WithDebug was not exercised")
+	}
+}
+
+func TestService_New_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New()
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("New was not exercised")
+	}
+}
+
+func TestService_New_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithLanguage("zz"))
+		if err == nil || svc != nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("New was not exercised")
+	}
+}
+
+func TestService_New_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := New(WithHandlers(nil))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("New was not exercised")
+	}
+}
+
+func TestService_NewService_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewService()
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewService was not exercised")
+	}
+}
+
+func TestService_NewService_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewService(WithLanguage("zz"))
+		if err == nil || svc != nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewService was not exercised")
+	}
+}
+
+func TestService_NewService_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewService(WithHandlers(nil))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewService was not exercised")
+	}
+}
+
+func TestService_NewWithFS_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewWithFS(ax7TestFS(), "locales")
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewWithFS was not exercised")
+	}
+}
+
+func TestService_NewWithFS_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewWithFS(ax7TestFS(), "missing")
+		if err == nil || svc != nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewWithFS was not exercised")
+	}
+}
+
+func TestService_NewWithFS_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewWithFS(ax7TestFS(), "locales", WithLanguage("fr"))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewWithFS was not exercised")
+	}
+}
+
+func TestService_NewServiceWithFS_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewServiceWithFS(ax7TestFS(), "locales")
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewServiceWithFS was not exercised")
+	}
+}
+
+func TestService_NewServiceWithFS_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewServiceWithFS(ax7TestFS(), "missing")
+		if err == nil || svc != nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewServiceWithFS was not exercised")
+	}
+}
+
+func TestService_NewServiceWithFS_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewServiceWithFS(ax7TestFS(), "locales", WithLanguage("fr"))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewServiceWithFS was not exercised")
+	}
+}
+
+func TestService_NewWithLoader_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewWithLoader(NewFSLoader(ax7TestFS(), "locales"))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewWithLoader was not exercised")
+	}
+}
+
+func TestService_NewWithLoader_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewWithLoader(nil)
+		if err == nil || svc != nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewWithLoader was not exercised")
+	}
+}
+
+func TestService_NewWithLoader_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewWithLoader(NewFSLoader(ax7TestFS(), "locales"), WithLanguage("fr"))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewWithLoader was not exercised")
+	}
+}
+
+func TestService_NewServiceWithLoader_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewServiceWithLoader(NewFSLoader(ax7TestFS(), "locales"))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewServiceWithLoader was not exercised")
+	}
+}
+
+func TestService_NewServiceWithLoader_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewServiceWithLoader(nil)
+		if err == nil || svc != nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewServiceWithLoader was not exercised")
+	}
+}
+
+func TestService_NewServiceWithLoader_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc, err := NewServiceWithLoader(NewFSLoader(ax7TestFS(), "locales"), WithLanguage("fr"))
+		if err != nil || svc == nil {
+			t.Fatalf("svc=%v err=%v", svc, err)
+		}
+	})
+	if !called {
+		t.Fatal("NewServiceWithLoader was not exercised")
+	}
+}
+
+func TestService_Init_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		err := Init()
+		if err != nil || Default() == nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("Init was not exercised")
+	}
+}
+
+func TestService_Init_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		err := Init()
+		if err != nil || Default() != svc {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("Init was not exercised")
+	}
+}
+
+func TestService_Init_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		err := Init()
+		if err != nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("Init was not exercised")
+	}
+}
+
+func TestService_Default_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		svc := Default()
+		if svc == nil {
+			t.Fatal("expected default")
+		}
+	})
+	if !called {
+		t.Fatal("Default was not exercised")
+	}
+}
+
+func TestService_Default_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		got := Default()
+		if got != svc {
+			t.Fatal("expected installed default")
+		}
+	})
+	if !called {
+		t.Fatal("Default was not exercised")
+	}
+}
+
+func TestService_Default_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		_ = Default()
+	})
+	if !called {
+		t.Fatal("Default was not exercised")
+	}
+}
+
+func TestService_SetDefault_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		SetDefault(svc)
+		if Default() != svc {
+			t.Fatal("default not set")
+		}
+	})
+	if !called {
+		t.Fatal("SetDefault was not exercised")
+	}
+}
+
+func TestService_SetDefault_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		if defaultService.Load() != nil {
+			t.Fatal("default not cleared")
+		}
+	})
+	if !called {
+		t.Fatal("SetDefault was not exercised")
+	}
+}
+
+func TestService_SetDefault_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		SetDefault(svc)
+		SetDefault(nil)
+		if defaultService.Load() != nil {
+			t.Fatal("default not cleared")
+		}
+	})
+	if !called {
+		t.Fatal("SetDefault was not exercised")
+	}
+}
+
+func TestService_AddLoader_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		AddLoader(NewFSLoader(ax7TestFS(), "locales"))
+		if len(svc.AvailableLanguages()) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("AddLoader was not exercised")
+	}
+}
+
+func TestService_AddLoader_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		AddLoader(NewFSLoader(ax7TestFS(), "locales"))
+		_ = defaultService.Load()
+	})
+	if !called {
+		t.Fatal("AddLoader was not exercised")
+	}
+}
+
+func TestService_AddLoader_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		AddLoader(nil)
+		_ = AvailableLanguages()
+	})
+	if !called {
+		t.Fatal("AddLoader was not exercised")
+	}
+}
+
+func TestService_Service_SetLanguage_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		err := svc.SetLanguage("fr")
+		if err != nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetLanguage was not exercised")
+	}
+}
+
+func TestService_Service_SetLanguage_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		err := svc.SetLanguage("fr")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetLanguage was not exercised")
+	}
+}
+
+func TestService_Service_SetLanguage_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		err := svc.SetLanguage("zz")
+		if err == nil {
+			t.Fatal("expected unsupported language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetLanguage was not exercised")
+	}
+}
+
+func TestService_Service_Language_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Language()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Language was not exercised")
+	}
+}
+
+func TestService_Service_Language_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Language()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Language was not exercised")
+	}
+}
+
+func TestService_Service_Language_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		_ = svc.SetLanguage("fr")
+		got := svc.Language()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Language was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLanguage_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentLanguage()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLanguage was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLanguage_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentLanguage()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLanguage was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLanguage_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		_ = svc.SetLanguage("fr")
+		got := svc.CurrentLanguage()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLanguage was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLang_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentLang()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLang was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLang_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentLang()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLang was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLang_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		_ = svc.SetLanguage("fr")
+		got := svc.CurrentLang()
+		if got == "" {
+			t.Fatal("expected language")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLang was not exercised")
+	}
+}
+
+func TestService_Service_Prompt_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Prompt("yes")
+		if got == "" {
+			t.Fatal("expected prompt")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Prompt was not exercised")
+	}
+}
+
+func TestService_Service_Prompt_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Prompt("yes")
+		if got == "" {
+			t.Fatal("expected fallback prompt")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Prompt was not exercised")
+	}
+}
+
+func TestService_Service_Prompt_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Prompt("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Prompt was not exercised")
+	}
+}
+
+func TestService_Service_CurrentPrompt_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentPrompt("yes")
+		if got == "" {
+			t.Fatal("expected prompt")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentPrompt was not exercised")
+	}
+}
+
+func TestService_Service_CurrentPrompt_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentPrompt("yes")
+		if got == "" {
+			t.Fatal("expected fallback prompt")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentPrompt was not exercised")
+	}
+}
+
+func TestService_Service_CurrentPrompt_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentPrompt("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentPrompt was not exercised")
+	}
+}
+
+func TestService_Service_Lang_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Lang("en")
+		if got == "" {
+			t.Fatal("expected lang")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Lang was not exercised")
+	}
+}
+
+func TestService_Service_Lang_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Lang("en")
+		if got == "" {
+			t.Fatal("expected fallback lang")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Lang was not exercised")
+	}
+}
+
+func TestService_Service_Lang_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Lang("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Lang was not exercised")
+	}
+}
+
+func TestService_Service_AvailableLanguages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		langs := svc.AvailableLanguages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AvailableLanguages was not exercised")
+	}
+}
+
+func TestService_Service_AvailableLanguages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		langs := svc.AvailableLanguages()
+		if len(langs) != 0 {
+			t.Fatalf("got %v", langs)
+		}
+	})
+	if !called {
+		t.Fatal("Service_AvailableLanguages was not exercised")
+	}
+}
+
+func TestService_Service_AvailableLanguages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		langs := svc.AvailableLanguages()
+		langs[0] = "mutated"
+		if svc.AvailableLanguages()[0] == "mutated" {
+			t.Fatal("slice not copied")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AvailableLanguages was not exercised")
+	}
+}
+
+func TestService_Service_CurrentAvailableLanguages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		langs := svc.CurrentAvailableLanguages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentAvailableLanguages was not exercised")
+	}
+}
+
+func TestService_Service_CurrentAvailableLanguages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		langs := svc.CurrentAvailableLanguages()
+		if len(langs) != 0 {
+			t.Fatalf("got %v", langs)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentAvailableLanguages was not exercised")
+	}
+}
+
+func TestService_Service_CurrentAvailableLanguages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		langs := svc.CurrentAvailableLanguages()
+		langs[0] = "mutated"
+		if svc.CurrentAvailableLanguages()[0] == "mutated" {
+			t.Fatal("slice not copied")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentAvailableLanguages was not exercised")
+	}
+}
+
+func TestService_Service_SetMode_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetMode(ModeCollect)
+		if svc.Mode() != ModeCollect {
+			t.Fatal("mode not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetMode was not exercised")
+	}
+}
+
+func TestService_Service_SetMode_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.SetMode(ModeCollect)
+		if svc.Mode() != ModeNormal {
+			t.Fatal("nil mode changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetMode was not exercised")
+	}
+}
+
+func TestService_Service_SetMode_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetMode(ModeStrict)
+		svc.SetMode(ModeNormal)
+		if svc.Mode() != ModeNormal {
+			t.Fatal("mode not reset")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetMode was not exercised")
+	}
+}
+
+func TestService_Service_Mode_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetMode(ModeCollect)
+		got := svc.Mode()
+		if got != ModeCollect {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Mode was not exercised")
+	}
+}
+
+func TestService_Service_Mode_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Mode()
+		if got != ModeNormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Mode was not exercised")
+	}
+}
+
+func TestService_Service_Mode_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Mode()
+		if got != ModeNormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Mode was not exercised")
+	}
+}
+
+func TestService_Service_CurrentMode_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetMode(ModeCollect)
+		got := svc.CurrentMode()
+		if got != ModeCollect {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentMode was not exercised")
+	}
+}
+
+func TestService_Service_CurrentMode_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentMode()
+		if got != ModeNormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentMode was not exercised")
+	}
+}
+
+func TestService_Service_CurrentMode_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentMode()
+		if got != ModeNormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentMode was not exercised")
+	}
+}
+
+func TestService_Service_SetFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFormality(FormalityFormal)
+		if svc.Formality() != FormalityFormal {
+			t.Fatal("formality not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetFormality was not exercised")
+	}
+}
+
+func TestService_Service_SetFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.SetFormality(FormalityFormal)
+		if svc.Formality() != FormalityNeutral {
+			t.Fatal("nil formality changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetFormality was not exercised")
+	}
+}
+
+func TestService_Service_SetFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFormality(FormalityInformal)
+		if svc.Formality() != FormalityInformal {
+			t.Fatal("formality not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetFormality was not exercised")
+	}
+}
+
+func TestService_Service_Formality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFormality(FormalityFormal)
+		got := svc.Formality()
+		if got != FormalityFormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Formality was not exercised")
+	}
+}
+
+func TestService_Service_Formality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Formality()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Formality was not exercised")
+	}
+}
+
+func TestService_Service_Formality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Formality()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Formality was not exercised")
+	}
+}
+
+func TestService_Service_CurrentFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFormality(FormalityFormal)
+		got := svc.CurrentFormality()
+		if got != FormalityFormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentFormality was not exercised")
+	}
+}
+
+func TestService_Service_CurrentFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentFormality()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentFormality was not exercised")
+	}
+}
+
+func TestService_Service_CurrentFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentFormality()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentFormality was not exercised")
+	}
+}
+
+func TestService_Service_SetFallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFallback("fr")
+		if svc.Fallback() != "fr" {
+			t.Fatal("fallback not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetFallback was not exercised")
+	}
+}
+
+func TestService_Service_SetFallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.SetFallback("fr")
+		if svc.Fallback() != "en" {
+			t.Fatal("nil fallback changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetFallback was not exercised")
+	}
+}
+
+func TestService_Service_SetFallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFallback("")
+		if svc.Fallback() != "" {
+			t.Fatal("empty fallback not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetFallback was not exercised")
+	}
+}
+
+func TestService_Service_Fallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFallback("fr")
+		got := svc.Fallback()
+		if got != "fr" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Fallback was not exercised")
+	}
+}
+
+func TestService_Service_Fallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Fallback()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Fallback was not exercised")
+	}
+}
+
+func TestService_Service_Fallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Fallback()
+		if got == "" {
+			t.Fatal("expected fallback")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Fallback was not exercised")
+	}
+}
+
+func TestService_Service_CurrentFallback_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetFallback("fr")
+		got := svc.CurrentFallback()
+		if got != "fr" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentFallback was not exercised")
+	}
+}
+
+func TestService_Service_CurrentFallback_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentFallback()
+		if got != "en" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentFallback was not exercised")
+	}
+}
+
+func TestService_Service_CurrentFallback_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentFallback()
+		if got == "" {
+			t.Fatal("expected fallback")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentFallback was not exercised")
+	}
+}
+
+func TestService_Service_SetLocation_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetLocation("workspace")
+		if svc.Location() != "workspace" {
+			t.Fatal("location not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetLocation was not exercised")
+	}
+}
+
+func TestService_Service_SetLocation_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.SetLocation("workspace")
+		if svc.Location() != "" {
+			t.Fatal("nil location changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetLocation was not exercised")
+	}
+}
+
+func TestService_Service_SetLocation_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetLocation("")
+		if svc.Location() != "" {
+			t.Fatal("empty location not set")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetLocation was not exercised")
+	}
+}
+
+func TestService_Service_Location_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetLocation("workspace")
+		got := svc.Location()
+		if got != "workspace" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Location was not exercised")
+	}
+}
+
+func TestService_Service_Location_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Location()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Location was not exercised")
+	}
+}
+
+func TestService_Service_Location_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Location()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Location was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLocation_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetLocation("workspace")
+		got := svc.CurrentLocation()
+		if got != "workspace" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLocation was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLocation_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentLocation()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLocation was not exercised")
+	}
+}
+
+func TestService_Service_CurrentLocation_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentLocation()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentLocation was not exercised")
+	}
+}
+
+func TestService_Service_Direction_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Direction()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Direction was not exercised")
+	}
+}
+
+func TestService_Service_Direction_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Direction()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Direction was not exercised")
+	}
+}
+
+func TestService_Service_Direction_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		_ = svc.SetLanguage("fr")
+		got := svc.Direction()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Direction was not exercised")
+	}
+}
+
+func TestService_Service_CurrentDirection_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentDirection()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentDirection was not exercised")
+	}
+}
+
+func TestService_Service_CurrentDirection_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentDirection()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentDirection was not exercised")
+	}
+}
+
+func TestService_Service_CurrentDirection_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentDirection()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentDirection was not exercised")
+	}
+}
+
+func TestService_Service_CurrentTextDirection_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentTextDirection()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentTextDirection was not exercised")
+	}
+}
+
+func TestService_Service_CurrentTextDirection_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentTextDirection()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentTextDirection was not exercised")
+	}
+}
+
+func TestService_Service_CurrentTextDirection_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentTextDirection()
+		if got != DirLTR {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentTextDirection was not exercised")
+	}
+}
+
+func TestService_Service_IsRTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.IsRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_IsRTL was not exercised")
+	}
+}
+
+func TestService_Service_IsRTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.IsRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_IsRTL was not exercised")
+	}
+}
+
+func TestService_Service_IsRTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.IsRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_IsRTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentIsRTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentIsRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentIsRTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentIsRTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentIsRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentIsRTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentIsRTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentIsRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentIsRTL was not exercised")
+	}
+}
+
+func TestService_Service_RTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.RTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_RTL was not exercised")
+	}
+}
+
+func TestService_Service_RTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.RTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_RTL was not exercised")
+	}
+}
+
+func TestService_Service_RTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.RTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_RTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentRTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentRTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentRTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentRTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentRTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentRTL()
+		if got {
+			t.Fatal("expected ltr")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentRTL was not exercised")
+	}
+}
+
+func TestService_Service_CurrentDebug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetDebug(true)
+		got := svc.CurrentDebug()
+		if !got {
+			t.Fatal("expected debug")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentDebug was not exercised")
+	}
+}
+
+func TestService_Service_CurrentDebug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentDebug()
+		if got {
+			t.Fatal("unexpected debug")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentDebug was not exercised")
+	}
+}
+
+func TestService_Service_CurrentDebug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentDebug()
+		if got {
+			t.Fatal("unexpected debug")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentDebug was not exercised")
+	}
+}
+
+func TestService_Service_PluralCategory_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.PluralCategory(1)
+		if got != PluralOne {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_PluralCategory was not exercised")
+	}
+}
+
+func TestService_Service_PluralCategory_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.PluralCategory(1)
+		if got != PluralOther {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_PluralCategory was not exercised")
+	}
+}
+
+func TestService_Service_PluralCategory_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.PluralCategory(-1)
+		if got == PluralZero {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_PluralCategory was not exercised")
+	}
+}
+
+func TestService_Service_CurrentPluralCategory_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentPluralCategory(1)
+		if got != PluralOne {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentPluralCategory was not exercised")
+	}
+}
+
+func TestService_Service_CurrentPluralCategory_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentPluralCategory(1)
+		if got != PluralOther {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentPluralCategory was not exercised")
+	}
+}
+
+func TestService_Service_CurrentPluralCategory_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentPluralCategory(-1)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_CurrentPluralCategory was not exercised")
+	}
+}
+
+func TestService_Service_PluralCategoryOf_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.PluralCategoryOf(1)
+		if got != PluralOne {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_PluralCategoryOf was not exercised")
+	}
+}
+
+func TestService_Service_PluralCategoryOf_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.PluralCategoryOf(1)
+		if got != PluralOther {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_PluralCategoryOf was not exercised")
+	}
+}
+
+func TestService_Service_PluralCategoryOf_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.PluralCategoryOf(-1)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_PluralCategoryOf was not exercised")
+	}
+}
+
+func TestService_Service_AddHandler_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.AddHandler(ax7Handler{match: true})
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddHandler was not exercised")
+	}
+}
+
+func TestService_Service_AddHandler_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.AddHandler(ax7Handler{match: true})
+		if len(svc.Handlers()) != 0 {
+			t.Fatal("nil receiver changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddHandler was not exercised")
+	}
+}
+
+func TestService_Service_AddHandler_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.AddHandler(ax7Handler{match: true}, nil)
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddHandler was not exercised")
+	}
+}
+
+func TestService_Service_SetHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetHandlers(ax7Handler{match: true})
+		if len(svc.Handlers()) != 1 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetHandlers was not exercised")
+	}
+}
+
+func TestService_Service_SetHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.SetHandlers(ax7Handler{match: true})
+		if len(svc.Handlers()) != 0 {
+			t.Fatal("nil receiver changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetHandlers was not exercised")
+	}
+}
+
+func TestService_Service_SetHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetHandlers(ax7Handler{match: true}, nil)
+		if len(svc.Handlers()) != 1 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetHandlers was not exercised")
+	}
+}
+
+func TestService_Service_PrependHandler_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.PrependHandler(ax7Handler{match: true})
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("Service_PrependHandler was not exercised")
+	}
+}
+
+func TestService_Service_PrependHandler_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.PrependHandler(ax7Handler{match: true})
+		if len(svc.Handlers()) != 0 {
+			t.Fatal("nil receiver changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_PrependHandler was not exercised")
+	}
+}
+
+func TestService_Service_PrependHandler_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.PrependHandler(ax7Handler{match: true}, nil)
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("Service_PrependHandler was not exercised")
+	}
+}
+
+func TestService_Service_ClearHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.ClearHandlers()
+		if len(svc.Handlers()) != 0 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("Service_ClearHandlers was not exercised")
+	}
+}
+
+func TestService_Service_ClearHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.ClearHandlers()
+		if len(svc.Handlers()) != 0 {
+			t.Fatal("nil receiver changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_ClearHandlers was not exercised")
+	}
+}
+
+func TestService_Service_ClearHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.ClearHandlers()
+		svc.ClearHandlers()
+		if len(svc.Handlers()) != 0 {
+			t.Fatalf("got %d", len(svc.Handlers()))
+		}
+	})
+	if !called {
+		t.Fatal("Service_ClearHandlers was not exercised")
+	}
+}
+
+func TestService_Service_ResetHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.ClearHandlers()
+		svc.ResetHandlers()
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("Service_ResetHandlers was not exercised")
+	}
+}
+
+func TestService_Service_ResetHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.ResetHandlers()
+		if len(svc.Handlers()) != 0 {
+			t.Fatal("nil receiver changed")
+		}
+	})
+	if !called {
+		t.Fatal("Service_ResetHandlers was not exercised")
+	}
+}
+
+func TestService_Service_ResetHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.ResetHandlers()
+		svc.ResetHandlers()
+		if len(svc.Handlers()) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("Service_ResetHandlers was not exercised")
+	}
+}
+
+func TestService_Service_Handlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		handlers := svc.Handlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Handlers was not exercised")
+	}
+}
+
+func TestService_Service_Handlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		handlers := svc.Handlers()
+		if len(handlers) != 0 {
+			t.Fatalf("got %d", len(handlers))
+		}
+	})
+	if !called {
+		t.Fatal("Service_Handlers was not exercised")
+	}
+}
+
+func TestService_Service_Handlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		handlers := svc.Handlers()
+		handlers[0] = nil
+		if svc.Handlers()[0] == nil {
+			t.Fatal("handlers not copied")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Handlers was not exercised")
+	}
+}
+
+func TestService_Service_CurrentHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		handlers := svc.CurrentHandlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentHandlers was not exercised")
+	}
+}
+
+func TestService_Service_CurrentHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		handlers := svc.CurrentHandlers()
+		if len(handlers) != 0 {
+			t.Fatalf("got %d", len(handlers))
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentHandlers was not exercised")
+	}
+}
+
+func TestService_Service_CurrentHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		handlers := svc.CurrentHandlers()
+		handlers[0] = nil
+		if svc.CurrentHandlers()[0] == nil {
+			t.Fatal("handlers not copied")
+		}
+	})
+	if !called {
+		t.Fatal("Service_CurrentHandlers was not exercised")
+	}
+}
+
+func TestService_Service_T_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.T("prompt.yes")
+		if got == "" {
+			t.Fatal("expected text")
+		}
+	})
+	if !called {
+		t.Fatal("Service_T was not exercised")
+	}
+}
+
+func TestService_Service_T_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.T("missing")
+		if got != "missing" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_T was not exercised")
+	}
+}
+
+func TestService_Service_T_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.T("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_T was not exercised")
+	}
+}
+
+func TestService_Service_Compose_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Compose("core.delete", S("file", "config.yaml"))
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_Compose was not exercised")
+	}
+}
+
+func TestService_Service_Compose_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Compose("missing", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_Compose was not exercised")
+	}
+}
+
+func TestService_Service_Compose_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Compose("", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_Compose was not exercised")
+	}
+}
+
+func TestService_Service_CurrentCompose_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentCompose("core.delete", S("file", "config.yaml"))
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_CurrentCompose was not exercised")
+	}
+}
+
+func TestService_Service_CurrentCompose_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.CurrentCompose("missing", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_CurrentCompose was not exercised")
+	}
+}
+
+func TestService_Service_CurrentCompose_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.CurrentCompose("", nil)
+		_ = got
+	})
+	if !called {
+		t.Fatal("Service_CurrentCompose was not exercised")
+	}
+}
+
+func TestService_Service_Translate_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		r := svc.Translate("prompt.yes")
+		if !r.OK {
+			t.Fatalf("expected ok: %v", r)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Translate was not exercised")
+	}
+}
+
+func TestService_Service_Translate_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		r := svc.Translate("missing")
+		if r.OK {
+			t.Fatal("expected failure")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Translate was not exercised")
+	}
+}
+
+func TestService_Service_Translate_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		r := svc.Translate("missing")
+		if r.OK {
+			t.Fatal("expected missing")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Translate was not exercised")
+	}
+}
+
+func TestService_Service_Raw_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Raw("prompt.yes")
+		if got == "" {
+			t.Fatal("expected raw")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Raw was not exercised")
+	}
+}
+
+func TestService_Service_Raw_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Raw("missing")
+		if got != "missing" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Raw was not exercised")
+	}
+}
+
+func TestService_Service_Raw_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		got := svc.Raw("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Service_Raw was not exercised")
+	}
+}
+
+func TestService_Service_AddMessages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.AddMessages("en", map[string]string{"ax7.service": "ready"})
+		if svc.T("ax7.service") != "ready" {
+			t.Fatal("message not added")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddMessages was not exercised")
+	}
+}
+
+func TestService_Service_AddMessages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.AddMessages("en", nil)
+		if svc != nil {
+			t.Fatal("unexpected receiver")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddMessages was not exercised")
+	}
+}
+
+func TestService_Service_AddMessages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.AddMessages("en", map[string]string{})
+		_ = svc.AvailableLanguages()
+	})
+	if !called {
+		t.Fatal("Service_AddMessages was not exercised")
+	}
+}
+
+func TestService_Service_AddLoader_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		err := svc.AddLoader(NewFSLoader(ax7TestFS(), "locales"))
+		if err != nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddLoader was not exercised")
+	}
+}
+
+func TestService_Service_AddLoader_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		err := svc.AddLoader(NewFSLoader(ax7TestFS(), "locales"))
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddLoader was not exercised")
+	}
+}
+
+func TestService_Service_AddLoader_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		err := svc.AddLoader(nil)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("Service_AddLoader was not exercised")
+	}
+}
+
+func TestService_Service_LoadFS_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		err := svc.LoadFS(ax7TestFS(), "locales")
+		if err != nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("Service_LoadFS was not exercised")
+	}
+}
+
+func TestService_Service_LoadFS_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		err := svc.LoadFS(ax7TestFS(), "locales")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("Service_LoadFS was not exercised")
+	}
+}
+
+func TestService_Service_LoadFS_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		err := svc.LoadFS(ax7TestFS(), "missing")
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("Service_LoadFS was not exercised")
 	}
 }

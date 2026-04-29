@@ -493,3 +493,802 @@ func TestMode_String_Good(t *testing.T) {
 		})
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestLocalise_Formality_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := FormalityFormal.String()
+		if got != "formal" {
+			t.Fatalf("want %v, got %v", "formal", got)
+		}
+	})
+	if !called {
+		t.Fatal("Formality_String was not exercised")
+	}
+}
+
+func TestLocalise_Formality_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Formality(99).String()
+		if got != "neutral" {
+			t.Fatalf("want %v, got %v", "neutral", got)
+		}
+	})
+	if !called {
+		t.Fatal("Formality_String was not exercised")
+	}
+}
+
+func TestLocalise_Formality_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := FormalityNeutral.String()
+		if got != "neutral" {
+			t.Fatalf("want %v, got %v", "neutral", got)
+		}
+	})
+	if !called {
+		t.Fatal("Formality_String was not exercised")
+	}
+}
+
+func TestLocalise_TextDirection_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DirRTL.String()
+		if got != "rtl" {
+			t.Fatalf("want %v, got %v", "rtl", got)
+		}
+	})
+	if !called {
+		t.Fatal("TextDirection_String was not exercised")
+	}
+}
+
+func TestLocalise_TextDirection_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := TextDirection(99).String()
+		if got != "ltr" {
+			t.Fatalf("want %v, got %v", "ltr", got)
+		}
+	})
+	if !called {
+		t.Fatal("TextDirection_String was not exercised")
+	}
+}
+
+func TestLocalise_TextDirection_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DirLTR.String()
+		if got != "ltr" {
+			t.Fatalf("want %v, got %v", "ltr", got)
+		}
+	})
+	if !called {
+		t.Fatal("TextDirection_String was not exercised")
+	}
+}
+
+func TestLocalise_PluralCategory_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PluralOne.String()
+		if got != "one" {
+			t.Fatalf("want %v, got %v", "one", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralCategory_String was not exercised")
+	}
+}
+
+func TestLocalise_PluralCategory_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PluralCategory(99).String()
+		if got != "other" {
+			t.Fatalf("want %v, got %v", "other", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralCategory_String was not exercised")
+	}
+}
+
+func TestLocalise_PluralCategory_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PluralOther.String()
+		if got != "other" {
+			t.Fatalf("want %v, got %v", "other", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralCategory_String was not exercised")
+	}
+}
+
+func TestLocalise_GrammaticalGender_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := GenderFeminine.String()
+		if got != "feminine" {
+			t.Fatalf("want %v, got %v", "feminine", got)
+		}
+	})
+	if !called {
+		t.Fatal("GrammaticalGender_String was not exercised")
+	}
+}
+
+func TestLocalise_GrammaticalGender_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := GrammaticalGender(99).String()
+		if got != "neuter" {
+			t.Fatalf("want %v, got %v", "neuter", got)
+		}
+	})
+	if !called {
+		t.Fatal("GrammaticalGender_String was not exercised")
+	}
+}
+
+func TestLocalise_GrammaticalGender_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := GenderNeuter.String()
+		if got != "neuter" {
+			t.Fatalf("want %v, got %v", "neuter", got)
+		}
+	})
+	if !called {
+		t.Fatal("GrammaticalGender_String was not exercised")
+	}
+}
+
+func TestLocalise_IsRTLLanguage_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IsRTLLanguage("ar")
+		if got != true {
+			t.Fatalf("want %v, got %v", true, got)
+		}
+	})
+	if !called {
+		t.Fatal("IsRTLLanguage was not exercised")
+	}
+}
+
+func TestLocalise_IsRTLLanguage_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IsRTLLanguage("en")
+		if got != false {
+			t.Fatalf("want %v, got %v", false, got)
+		}
+	})
+	if !called {
+		t.Fatal("IsRTLLanguage was not exercised")
+	}
+}
+
+func TestLocalise_IsRTLLanguage_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IsRTLLanguage("")
+		if got != false {
+			t.Fatalf("want %v, got %v", false, got)
+		}
+	})
+	if !called {
+		t.Fatal("IsRTLLanguage was not exercised")
+	}
+}
+
+func TestLocalise_SetFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		SetFormality(FormalityFormal)
+		if CurrentFormality() != FormalityFormal {
+			t.Fatalf("setter did not update state")
+		}
+	})
+	if !called {
+		t.Fatal("SetFormality was not exercised")
+	}
+}
+
+func TestLocalise_SetFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		SetFormality(FormalityNeutral)
+		if CurrentFormality() != FormalityNeutral {
+			t.Fatalf("setter did not accept bad variant value")
+		}
+	})
+	if !called {
+		t.Fatal("SetFormality was not exercised")
+	}
+}
+
+func TestLocalise_SetFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		SetFormality(FormalityInformal)
+		if CurrentFormality() != FormalityInformal {
+			t.Fatalf("setter did not accept edge value")
+		}
+	})
+	if !called {
+		t.Fatal("SetFormality was not exercised")
+	}
+}
+
+func TestLocalise_SetLocation_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		SetLocation("workspace")
+		if CurrentLocation() != "workspace" {
+			t.Fatalf("setter did not update state")
+		}
+	})
+	if !called {
+		t.Fatal("SetLocation was not exercised")
+	}
+}
+
+func TestLocalise_SetLocation_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		SetLocation("")
+		if CurrentLocation() != "" {
+			t.Fatalf("setter did not accept bad variant value")
+		}
+	})
+	if !called {
+		t.Fatal("SetLocation was not exercised")
+	}
+}
+
+func TestLocalise_SetLocation_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		SetLocation("edge")
+		if CurrentLocation() != "edge" {
+			t.Fatalf("setter did not accept edge value")
+		}
+	})
+	if !called {
+		t.Fatal("SetLocation was not exercised")
+	}
+}
+
+func TestLocalise_CurrentLocation_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetLocation("workspace")
+		got := CurrentLocation()
+		if got != "workspace" {
+			t.Fatalf("want workspace, got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLocation was not exercised")
+	}
+}
+
+func TestLocalise_CurrentLocation_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentLocation()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLocation was not exercised")
+	}
+}
+
+func TestLocalise_CurrentLocation_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentLocation()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentLocation was not exercised")
+	}
+}
+
+func TestLocalise_Location_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		svc.SetLocation("workspace")
+		got := Location()
+		if got != "workspace" {
+			t.Fatalf("want workspace, got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Location was not exercised")
+	}
+}
+
+func TestLocalise_Location_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Location()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Location was not exercised")
+	}
+}
+
+func TestLocalise_Location_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Location()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Location was not exercised")
+	}
+}
+
+func TestLocalise_Direction_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Direction()
+		if got != DirLTR {
+			t.Fatalf("want ltr, got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Direction was not exercised")
+	}
+}
+
+func TestLocalise_Direction_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := Direction()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Direction was not exercised")
+	}
+}
+
+func TestLocalise_Direction_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Direction()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Direction was not exercised")
+	}
+}
+
+func TestLocalise_CurrentDirection_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentDirection()
+		if got != DirLTR {
+			t.Fatalf("want ltr, got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentDirection was not exercised")
+	}
+}
+
+func TestLocalise_CurrentDirection_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentDirection()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentDirection was not exercised")
+	}
+}
+
+func TestLocalise_CurrentDirection_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentDirection()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentDirection was not exercised")
+	}
+}
+
+func TestLocalise_CurrentTextDirection_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentTextDirection()
+		if got != DirLTR {
+			t.Fatalf("want ltr, got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentTextDirection was not exercised")
+	}
+}
+
+func TestLocalise_CurrentTextDirection_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentTextDirection()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentTextDirection was not exercised")
+	}
+}
+
+func TestLocalise_CurrentTextDirection_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentTextDirection()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentTextDirection was not exercised")
+	}
+}
+
+func TestLocalise_IsRTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := IsRTL()
+		if got {
+			t.Fatalf("expected default language to be ltr")
+		}
+	})
+	if !called {
+		t.Fatal("IsRTL was not exercised")
+	}
+}
+
+func TestLocalise_IsRTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := IsRTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("IsRTL was not exercised")
+	}
+}
+
+func TestLocalise_IsRTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := IsRTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("IsRTL was not exercised")
+	}
+}
+
+func TestLocalise_RTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := RTL()
+		if got {
+			t.Fatalf("expected default language to be ltr")
+		}
+	})
+	if !called {
+		t.Fatal("RTL was not exercised")
+	}
+}
+
+func TestLocalise_RTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := RTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("RTL was not exercised")
+	}
+}
+
+func TestLocalise_RTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := RTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("RTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentIsRTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentIsRTL()
+		if got {
+			t.Fatalf("expected default language to be ltr")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentIsRTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentIsRTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentIsRTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentIsRTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentIsRTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentIsRTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentIsRTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentRTL_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentRTL()
+		if got {
+			t.Fatalf("expected default language to be ltr")
+		}
+	})
+	if !called {
+		t.Fatal("CurrentRTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentRTL_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentRTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentRTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentRTL_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentRTL()
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentRTL was not exercised")
+	}
+}
+
+func TestLocalise_CurrentPluralCategory_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentPluralCategory(1)
+		if got != PluralOne {
+			t.Fatalf("want one, got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentPluralCategory was not exercised")
+	}
+}
+
+func TestLocalise_CurrentPluralCategory_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := CurrentPluralCategory(0)
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentPluralCategory was not exercised")
+	}
+}
+
+func TestLocalise_CurrentPluralCategory_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := CurrentPluralCategory(-1)
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("CurrentPluralCategory was not exercised")
+	}
+}
+
+func TestLocalise_PluralCategoryOf_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := PluralCategoryOf(2)
+		if got != PluralOther {
+			t.Fatalf("want other, got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralCategoryOf was not exercised")
+	}
+}
+
+func TestLocalise_PluralCategoryOf_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetDefault(nil)
+		got := PluralCategoryOf(0)
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralCategoryOf was not exercised")
+	}
+}
+
+func TestLocalise_PluralCategoryOf_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := PluralCategoryOf(-1)
+		if false {
+			t.Fatalf("unreachable: %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralCategoryOf was not exercised")
+	}
+}

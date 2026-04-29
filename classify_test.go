@@ -6,7 +6,7 @@ import (
 	"iter"
 	"testing"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 	"dappco.re/go/inference"
 )
 
@@ -209,5 +209,200 @@ func TestClassifyCorpus_ResultCountMismatch(t *testing.T) {
 	}
 	if output.Len() != 0 {
 		t.Errorf("output len = %d, want 0", output.Len())
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestClassify_WithBatchSize_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithBatchSize(2)(&cfg)
+		if cfg.batchSize != 2 {
+			t.Fatalf("got %d", cfg.batchSize)
+		}
+	})
+	if !called {
+		t.Fatal("WithBatchSize was not exercised")
+	}
+}
+
+func TestClassify_WithBatchSize_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithBatchSize(0)(&cfg)
+		if cfg.batchSize != 0 {
+			t.Fatalf("got %d", cfg.batchSize)
+		}
+	})
+	if !called {
+		t.Fatal("WithBatchSize was not exercised")
+	}
+}
+
+func TestClassify_WithBatchSize_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithBatchSize(-1)(&cfg)
+		if cfg.batchSize != -1 {
+			t.Fatalf("got %d", cfg.batchSize)
+		}
+	})
+	if !called {
+		t.Fatal("WithBatchSize was not exercised")
+	}
+}
+
+func TestClassify_WithPromptField_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithPromptField("text")(&cfg)
+		if cfg.promptField != "text" {
+			t.Fatalf("got %q", cfg.promptField)
+		}
+	})
+	if !called {
+		t.Fatal("WithPromptField was not exercised")
+	}
+}
+
+func TestClassify_WithPromptField_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithPromptField("")(&cfg)
+		if cfg.promptField != "" {
+			t.Fatalf("got %q", cfg.promptField)
+		}
+	})
+	if !called {
+		t.Fatal("WithPromptField was not exercised")
+	}
+}
+
+func TestClassify_WithPromptField_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithPromptField("nested.prompt")(&cfg)
+		if cfg.promptField != "nested.prompt" {
+			t.Fatalf("got %q", cfg.promptField)
+		}
+	})
+	if !called {
+		t.Fatal("WithPromptField was not exercised")
+	}
+}
+
+func TestClassify_WithPromptTemplate_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithPromptTemplate("Classify: %s")(&cfg)
+		if cfg.promptTemplate != "Classify: %s" {
+			t.Fatalf("got %q", cfg.promptTemplate)
+		}
+	})
+	if !called {
+		t.Fatal("WithPromptTemplate was not exercised")
+	}
+}
+
+func TestClassify_WithPromptTemplate_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithPromptTemplate("")(&cfg)
+		if cfg.promptTemplate != "" {
+			t.Fatalf("got %q", cfg.promptTemplate)
+		}
+	})
+	if !called {
+		t.Fatal("WithPromptTemplate was not exercised")
+	}
+}
+
+func TestClassify_WithPromptTemplate_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		cfg := defaultClassifyConfig()
+		WithPromptTemplate("[%s]")(&cfg)
+		if cfg.promptTemplate != "[%s]" {
+			t.Fatalf("got %q", cfg.promptTemplate)
+		}
+	})
+	if !called {
+		t.Fatal("WithPromptTemplate was not exercised")
+	}
+}
+
+func TestClassify_ClassifyCorpus_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := &mockModel{classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			results := make([]inference.ClassifyResult, len(prompts))
+			for i := range prompts {
+				results[i] = inference.ClassifyResult{Token: inference.Token{Text: "technical"}}
+			}
+			return results, nil
+		}}
+		input := bytes.NewBufferString(`{"prompt":"Delete the file"}` + "\n")
+		stats, err := ClassifyCorpus(context.Background(), model, input, &bytes.Buffer{})
+		if err != nil || stats.Total != 1 {
+			t.Fatalf("stats=%+v err=%v", stats, err)
+		}
+	})
+	if !called {
+		t.Fatal("ClassifyCorpus was not exercised")
+	}
+}
+
+func TestClassify_ClassifyCorpus_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := &mockModel{classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			return make([]inference.ClassifyResult, len(prompts)), nil
+		}}
+		input := bytes.NewBufferString("not-json\n")
+		stats, err := ClassifyCorpus(context.Background(), model, input, &bytes.Buffer{})
+		if err != nil || stats.Skipped != 1 {
+			t.Fatalf("stats=%+v err=%v", stats, err)
+		}
+	})
+	if !called {
+		t.Fatal("ClassifyCorpus was not exercised")
+	}
+}
+
+func TestClassify_ClassifyCorpus_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := &mockModel{classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			return make([]inference.ClassifyResult, len(prompts)), nil
+		}}
+		input := bytes.NewBufferString("")
+		stats, err := ClassifyCorpus(context.Background(), model, input, &bytes.Buffer{})
+		if err != nil || stats.Total != 0 {
+			t.Fatalf("stats=%+v err=%v", stats, err)
+		}
+	})
+	if !called {
+		t.Fatal("ClassifyCorpus was not exercised")
 	}
 }

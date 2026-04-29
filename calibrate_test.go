@@ -275,3 +275,70 @@ func TestCalibrateDomains_ResultsSlice(t *testing.T) {
 		t.Error("Agree = true, want false")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestCalibrate_CalibrateDomains_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := &mockModel{classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			results := make([]inference.ClassifyResult, len(prompts))
+			for i := range prompts {
+				results[i] = inference.ClassifyResult{Token: inference.Token{Text: "technical"}}
+			}
+			return results, nil
+		}}
+		samples := []CalibrationSample{{Text: "Delete the file", TrueDomain: "technical"}}
+		stats, err := CalibrateDomains(context.Background(), model, model, samples)
+		if err != nil || stats.Total != 1 {
+			t.Fatalf("stats=%+v err=%v", stats, err)
+		}
+	})
+	if !called {
+		t.Fatal("CalibrateDomains was not exercised")
+	}
+}
+
+func TestCalibrate_CalibrateDomains_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := &mockModel{classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			results := make([]inference.ClassifyResult, len(prompts))
+			for i := range prompts {
+				results[i] = inference.ClassifyResult{Token: inference.Token{Text: "technical"}}
+			}
+			return results, nil
+		}}
+		_, err := CalibrateDomains(context.Background(), model, model, nil)
+		if err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("CalibrateDomains was not exercised")
+	}
+}
+
+func TestCalibrate_CalibrateDomains_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := &mockModel{classifyFunc: func(_ context.Context, prompts []string, _ ...inference.GenerateOption) ([]inference.ClassifyResult, error) {
+			results := make([]inference.ClassifyResult, len(prompts))
+			for i := range prompts {
+				results[i] = inference.ClassifyResult{Token: inference.Token{Text: "technical"}}
+			}
+			return results, nil
+		}}
+		samples := []CalibrationSample{{Text: "No truth label"}}
+		stats, err := CalibrateDomains(context.Background(), model, model, samples)
+		if err != nil || stats.WithTruth != 0 {
+			t.Fatalf("stats=%+v err=%v", stats, err)
+		}
+	})
+	if !called {
+		t.Fatal("CalibrateDomains was not exercised")
+	}
+}

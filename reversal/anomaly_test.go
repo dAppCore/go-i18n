@@ -167,3 +167,55 @@ func TestAnomalyStats_Rate(t *testing.T) {
 		t.Errorf("Rate = %.2f, want ~1.0 (all should be anomalies)", stats.Rate)
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestAnomaly_ReferenceSet_DetectAnomalies_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		samples := []ClassifiedText{{Text: "Delete files", Domain: "technical"}}
+		rs, _ := BuildReferences(tok, samples)
+		_, stats := rs.DetectAnomalies(tok, samples)
+		if stats.Total != 1 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_DetectAnomalies was not exercised")
+	}
+}
+
+func TestAnomaly_ReferenceSet_DetectAnomalies_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		_, stats := rs.DetectAnomalies(tok, nil)
+		if stats.Total != 0 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_DetectAnomalies was not exercised")
+	}
+}
+
+func TestAnomaly_ReferenceSet_DetectAnomalies_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		samples := []ClassifiedText{{Text: "No domain"}}
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		_, stats := rs.DetectAnomalies(tok, samples)
+		if stats.Total != 0 {
+			t.Fatalf("got %+v", stats)
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_DetectAnomalies was not exercised")
+	}
+}

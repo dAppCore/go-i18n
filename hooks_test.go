@@ -1100,6 +1100,10 @@ func TestDispatchMissingKey_Good_NoHandler(t *testing.T) {
 
 	// Should not panic when dispatching with nil handler
 	dispatchMissingKey("test.key", nil)
+	state := missingKeyHandlers()
+	if len(state.handlers) != 0 {
+		t.Fatalf("expected no missing-key handlers, got %d", len(state.handlers))
+	}
 }
 
 func TestCoreServiceSetMode_Good_PreservesMissingKeyHandlers(t *testing.T) {
@@ -1136,5 +1140,268 @@ func TestCoreServiceSetMode_Good_PreservesMissingKeyHandlers(t *testing.T) {
 	}
 	if missing[0].Key != "missing.core.service.key" {
 		t.Fatalf("captured missing key = %q, want %q", missing[0].Key, "missing.core.service.key")
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestHooks_RegisterLocales_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		RegisterLocales(ax7TestFS(), "locales")
+		if len(Default().AvailableLanguages()) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("RegisterLocales was not exercised")
+	}
+}
+
+func TestHooks_RegisterLocales_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		RegisterLocales(ax7TestFS(), "missing")
+		_ = missingKeyHandlers()
+	})
+	if !called {
+		t.Fatal("RegisterLocales was not exercised")
+	}
+}
+
+func TestHooks_RegisterLocales_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		RegisterLocales(ax7TestFS(), "")
+		_ = missingKeyHandlers()
+	})
+	if !called {
+		t.Fatal("RegisterLocales was not exercised")
+	}
+}
+
+func TestHooks_RegisterLocaleProvider_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		RegisterLocaleProvider(NewFSLoader(ax7TestFS(), "locales"))
+		if len(Default().AvailableLanguages()) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("RegisterLocaleProvider was not exercised")
+	}
+}
+
+func TestHooks_RegisterLocaleProvider_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		RegisterLocaleProvider(nil)
+		_ = missingKeyHandlers()
+	})
+	if !called {
+		t.Fatal("RegisterLocaleProvider was not exercised")
+	}
+}
+
+func TestHooks_RegisterLocaleProvider_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		RegisterLocaleProvider(struct{}{})
+		_ = missingKeyHandlers()
+	})
+	if !called {
+		t.Fatal("RegisterLocaleProvider was not exercised")
+	}
+}
+
+func TestHooks_OnMissingKey_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		calledKey := ""
+		OnMissingKey(func(m MissingKey) { calledKey = m.Key })
+		dispatchMissingKey("ax7.key", nil)
+		if calledKey != "ax7.key" {
+			t.Fatalf("got %q", calledKey)
+		}
+	})
+	if !called {
+		t.Fatal("OnMissingKey was not exercised")
+	}
+}
+
+func TestHooks_OnMissingKey_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		OnMissingKey(nil)
+		state := missingKeyHandlers()
+		if len(state.handlers) != 0 {
+			t.Fatalf("got %d", len(state.handlers))
+		}
+	})
+	if !called {
+		t.Fatal("OnMissingKey was not exercised")
+	}
+}
+
+func TestHooks_OnMissingKey_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		OnMissingKey(func(MissingKey) {})
+		ClearMissingKeyHandlers()
+		if len(missingKeyHandlers().handlers) != 0 {
+			t.Fatal("expected clear")
+		}
+	})
+	if !called {
+		t.Fatal("OnMissingKey was not exercised")
+	}
+}
+
+func TestHooks_SetMissingKeyHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetMissingKeyHandlers(func(MissingKey) {})
+		state := missingKeyHandlers()
+		if len(state.handlers) != 1 {
+			t.Fatalf("got %d", len(state.handlers))
+		}
+	})
+	if !called {
+		t.Fatal("SetMissingKeyHandlers was not exercised")
+	}
+}
+
+func TestHooks_SetMissingKeyHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetMissingKeyHandlers(nil)
+		state := missingKeyHandlers()
+		if len(state.handlers) != 0 {
+			t.Fatalf("got %d", len(state.handlers))
+		}
+	})
+	if !called {
+		t.Fatal("SetMissingKeyHandlers was not exercised")
+	}
+}
+
+func TestHooks_SetMissingKeyHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetMissingKeyHandlers(func(MissingKey) {}, nil)
+		state := missingKeyHandlers()
+		if len(state.handlers) != 1 {
+			t.Fatalf("got %d", len(state.handlers))
+		}
+	})
+	if !called {
+		t.Fatal("SetMissingKeyHandlers was not exercised")
+	}
+}
+
+func TestHooks_ClearMissingKeyHandlers_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetMissingKeyHandlers(func(MissingKey) {})
+		ClearMissingKeyHandlers()
+		if len(missingKeyHandlers().handlers) != 0 {
+			t.Fatal("expected clear")
+		}
+	})
+	if !called {
+		t.Fatal("ClearMissingKeyHandlers was not exercised")
+	}
+}
+
+func TestHooks_ClearMissingKeyHandlers_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ClearMissingKeyHandlers()
+		state := missingKeyHandlers()
+		if len(state.handlers) != 0 {
+			t.Fatalf("got %d", len(state.handlers))
+		}
+	})
+	if !called {
+		t.Fatal("ClearMissingKeyHandlers was not exercised")
+	}
+}
+
+func TestHooks_ClearMissingKeyHandlers_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ClearMissingKeyHandlers()
+		ClearMissingKeyHandlers()
+		state := missingKeyHandlers()
+		if len(state.handlers) != 0 {
+			t.Fatalf("got %d", len(state.handlers))
+		}
+	})
+	if !called {
+		t.Fatal("ClearMissingKeyHandlers was not exercised")
+	}
+}
+
+func TestHooks_AddMissingKeyHandler_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ClearMissingKeyHandlers()
+		AddMissingKeyHandler(func(MissingKey) {})
+		if len(missingKeyHandlers().handlers) != 1 {
+			t.Fatal("expected handler")
+		}
+	})
+	if !called {
+		t.Fatal("AddMissingKeyHandler was not exercised")
+	}
+}
+
+func TestHooks_AddMissingKeyHandler_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ClearMissingKeyHandlers()
+		AddMissingKeyHandler(nil)
+		if len(missingKeyHandlers().handlers) != 0 {
+			t.Fatal("expected no handler")
+		}
+	})
+	if !called {
+		t.Fatal("AddMissingKeyHandler was not exercised")
+	}
+}
+
+func TestHooks_AddMissingKeyHandler_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ClearMissingKeyHandlers()
+		AddMissingKeyHandler(func(MissingKey) {})
+		AddMissingKeyHandler(func(MissingKey) {})
+		if len(missingKeyHandlers().handlers) != 2 {
+			t.Fatal("expected two handlers")
+		}
+	})
+	if !called {
+		t.Fatal("AddMissingKeyHandler was not exercised")
 	}
 }
