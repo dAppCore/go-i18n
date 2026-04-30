@@ -1,0 +1,1002 @@
+package i18n
+
+import "testing"
+
+func TestLabelHandler(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	h := LabelHandler{}
+
+	if !h.Match("i18n.label.status") {
+		t.Error("LabelHandler should match i18n.label.*")
+	}
+	if h.Match("other.key") {
+		t.Error("LabelHandler should not match other.key")
+	}
+
+	got := h.Handle("i18n.label.status", nil, nil)
+	if got != "Status:" {
+		t.Errorf("LabelHandler.Handle(status) = %q, want %q", got, "Status:")
+	}
+
+	got = h.Handle("i18n.label.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("LabelHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
+}
+
+func TestProgressHandler(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	h := ProgressHandler{}
+
+	if !h.Match("i18n.progress.build") {
+		t.Error("ProgressHandler should match i18n.progress.*")
+	}
+
+	// Without subject
+	got := h.Handle("i18n.progress.build", nil, nil)
+	if got != "Building..." {
+		t.Errorf("ProgressHandler.Handle(build) = %q, want %q", got, "Building...")
+	}
+
+	// With subject
+	got = h.Handle("i18n.progress.build", []any{"project"}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, project) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{S("project", "config.yaml")}, nil)
+	if got != "Building config.yaml..." {
+		t.Errorf("ProgressHandler.Handle(build, Subject) = %q, want %q", got, "Building config.yaml...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{C("project")}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, TranslationContext) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{map[string]any{"Subject": "project"}}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, map[Subject:project]) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.build", []any{map[string]string{"Subject": "project"}}, nil)
+	if got != "Building project..." {
+		t.Errorf("ProgressHandler.Handle(build, map[string]string[Subject:project]) = %q, want %q", got, "Building project...")
+	}
+
+	got = h.Handle("i18n.progress.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("ProgressHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
+}
+
+func TestCountHandler(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	h := CountHandler{}
+
+	if !h.Match("i18n.count.file") {
+		t.Error("CountHandler should match i18n.count.*")
+	}
+
+	tests := []struct {
+		key  string
+		args []any
+		want string
+	}{
+		{"i18n.count.file", []any{1}, "1 file"},
+		{"i18n.count.file", []any{5}, "5 files"},
+		{"i18n.count.file", []any{0}, "0 files"},
+		{"i18n.count.child", []any{3}, "3 children"},
+		{"i18n.count.url", []any{2}, "2 URLs"},
+		{"i18n.count.api", []any{2}, "2 APIs"},
+		{"i18n.count.cpus", []any{2}, "2 CPUs"},
+		{"i18n.count.file", nil, "file"},
+		{"i18n.count.url", nil, "URL"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			got := h.Handle(tt.key, tt.args, nil)
+			if got != tt.want {
+				t.Errorf("CountHandler.Handle(%q, %v) = %q, want %q", tt.key, tt.args, got, tt.want)
+			}
+		})
+	}
+
+	got := h.Handle("i18n.count.file", []any{S("file", "config.yaml").Count(3)}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, Subject.Count(3)) = %q, want %q", got, "3 files")
+	}
+
+	got = h.Handle("i18n.count.file", []any{map[string]string{"Count": "3"}}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, map[string]string[Count:3]) = %q, want %q", got, "3 files")
+	}
+
+	got = h.Handle("i18n.count.file", []any{C("file").Set("Count", 3)}, nil)
+	if got != "3 files" {
+		t.Errorf("CountHandler.Handle(file, TranslationContext.Count=3) = %q, want %q", got, "3 files")
+	}
+
+	got = h.Handle("i18n.count.file", []any{C("file")}, nil)
+	if got != "1 file" {
+		t.Errorf("CountHandler.Handle(file, TranslationContext default count) = %q, want %q", got, "1 file")
+	}
+
+	got = h.Handle("i18n.count.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("CountHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
+}
+
+func TestDoneHandler(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	h := DoneHandler{}
+
+	if !h.Match("i18n.done.delete") {
+		t.Error("DoneHandler should match i18n.done.*")
+	}
+
+	// With subject
+	got := h.Handle("i18n.done.delete", []any{"config.yaml"}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, config.yaml) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{S("file", "config.yaml")}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, Subject) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{C("config.yaml")}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, TranslationContext) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{map[string]any{"Subject": "config.yaml"}}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, map[Subject:config.yaml]) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	got = h.Handle("i18n.done.delete", []any{map[string]string{"Subject": "config.yaml"}}, nil)
+	if got != "Config.yaml deleted" {
+		t.Errorf("DoneHandler.Handle(delete, map[string]string[Subject:config.yaml]) = %q, want %q", got, "Config.yaml deleted")
+	}
+
+	// Without subject — just past tense
+	got = h.Handle("i18n.done.delete", nil, nil)
+	if got != "Deleted" {
+		t.Errorf("DoneHandler.Handle(delete) = %q, want %q", got, "Deleted")
+	}
+
+	got = h.Handle("i18n.done.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("DoneHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
+}
+
+func TestFailHandler(t *testing.T) {
+	h := FailHandler{}
+
+	if !h.Match("i18n.fail.push") {
+		t.Error("FailHandler should match i18n.fail.*")
+	}
+
+	got := h.Handle("i18n.fail.push", []any{"commits"}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, commits) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{S("commit", "commits")}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, Subject) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{C("commits")}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, TranslationContext) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{map[string]any{"Subject": "commits"}}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, map[Subject:commits]) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", []any{map[string]string{"Subject": "commits"}}, nil)
+	if got != "Failed to push commits" {
+		t.Errorf("FailHandler.Handle(push, map[string]string[Subject:commits]) = %q, want %q", got, "Failed to push commits")
+	}
+
+	got = h.Handle("i18n.fail.push", nil, nil)
+	if got != "Failed to push" {
+		t.Errorf("FailHandler.Handle(push) = %q, want %q", got, "Failed to push")
+	}
+
+	got = h.Handle("i18n.fail.", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("FailHandler.Handle(empty) = %q, want %q", got, "fallback")
+	}
+}
+
+func TestNumericHandler(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	h := NumericHandler{}
+
+	tests := []struct {
+		key  string
+		args []any
+		want string
+	}{
+		{"i18n.numeric.number", []any{int64(1234567)}, "1,234,567"},
+		{"i18n.numeric.ordinal", []any{1}, "1st"},
+		{"i18n.numeric.ordinal", []any{2}, "2nd"},
+		{"i18n.numeric.ordinal", []any{3}, "3rd"},
+		{"i18n.numeric.ordinal", []any{11}, "11th"},
+		{"i18n.numeric.percent", []any{0.85}, "85%"},
+		{"i18n.numeric.bytes", []any{int64(1536000)}, "1.46 MB"},
+		{"i18n.numeric.number", []any{"1234567"}, "1,234,567"},
+		{"i18n.numeric.ago", []any{5, "minutes"}, "5 minutes ago"},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.key, func(t *testing.T) {
+			got := h.Handle(tt.key, tt.args, func() string { return "fallback" })
+			if got != tt.want {
+				t.Errorf("NumericHandler.Handle(%q, %v) = %q, want %q", tt.key, tt.args, got, tt.want)
+			}
+		})
+	}
+
+	// No args falls through to next
+	got := h.Handle("i18n.numeric.number", nil, func() string { return "fallback" })
+	if got != "fallback" {
+		t.Errorf("NumericHandler with no args should fallback, got %q", got)
+	}
+
+	// No args and no fallback should not panic.
+	got = h.Handle("i18n.numeric.number", nil, nil)
+	if got != "" {
+		t.Errorf("NumericHandler with no args and no fallback = %q, want empty string", got)
+	}
+}
+
+func TestCountHandler_UsesLocaleNumberFormat(t *testing.T) {
+	prev := Default()
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := errorFromResult(SetLanguage("fr")); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.file", []any{1234}, nil)
+	want := "1 234 files"
+	if got != want {
+		t.Errorf("CountHandler.Handle(locale format) = %q, want %q", got, want)
+	}
+}
+
+func TestCountHandler_PreservesExactWordDisplay(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["go_mod"]
+	data.Words["go_mod"] = "go.mod"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["go_mod"] = original
+			return
+		}
+		delete(data.Words, "go_mod")
+	})
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.go_mod", []any{2}, nil)
+	if got != "2 go.mod" {
+		t.Fatalf("CountHandler.Handle(go_mod, 2) = %q, want %q", got, "2 go.mod")
+	}
+}
+
+func TestCountHandler_PreservesPhraseDisplay(t *testing.T) {
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+
+	data := GetGrammarData("en")
+	if data == nil {
+		t.Fatal("GetGrammarData(\"en\") returned nil")
+	}
+	original, existed := data.Words["up_to_date"]
+	data.Words["up_to_date"] = "up to date"
+	t.Cleanup(func() {
+		if existed {
+			data.Words["up_to_date"] = original
+			return
+		}
+		delete(data.Words, "up_to_date")
+	})
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.up_to_date", []any{2}, nil)
+	if got != "2 up to date" {
+		t.Fatalf("CountHandler.Handle(up_to_date, 2) = %q, want %q", got, "2 up to date")
+	}
+}
+
+func TestCountHandler_PluralisesLocaleNounPhrases(t *testing.T) {
+	prev := Default()
+	svc, err := serviceFromResult(New())
+	if err != nil {
+		t.Fatalf("New() failed: %v", err)
+	}
+	SetDefault(svc)
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	if err := errorFromResult(SetLanguage("fr")); err != nil {
+		t.Fatalf("SetLanguage(fr) failed: %v", err)
+	}
+
+	h := CountHandler{}
+	got := h.Handle("i18n.count.mise à jour", []any{2}, nil)
+	if got != "2 mises à jour" {
+		t.Fatalf("CountHandler.Handle(mise à jour, 2) = %q, want %q", got, "2 mises à jour")
+	}
+}
+
+func TestRunHandlerChain(t *testing.T) {
+	handlers := DefaultHandlers()
+	fallback := func() string { return "missed" }
+
+	// Label handler catches it
+	got := RunHandlerChain(handlers, "i18n.label.status", nil, fallback)
+	if got != "Status:" {
+		t.Errorf("chain label = %q, want %q", got, "Status:")
+	}
+
+	// Non-matching key falls through to fallback
+	got = RunHandlerChain(handlers, "some.other.key", nil, fallback)
+	if got != "missed" {
+		t.Errorf("chain miss = %q, want %q", got, "missed")
+	}
+}
+
+func TestDefaultHandlers(t *testing.T) {
+	handlers := DefaultHandlers()
+	if len(handlers) != 6 {
+		t.Errorf("DefaultHandlers() returned %d handlers, want 6", len(handlers))
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestHandler_LabelHandler_Match_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := LabelHandler{}.Match("i18n.label.status")
+		if !got {
+			t.Fatal("expected match")
+		}
+	})
+	if !called {
+		t.Fatal("LabelHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_LabelHandler_Match_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := LabelHandler{}.Match("i18n.unknown.key")
+		if got {
+			t.Fatal("unexpected match")
+		}
+	})
+	if !called {
+		t.Fatal("LabelHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_LabelHandler_Match_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := LabelHandler{}.Match("")
+		if got {
+			t.Fatal("unexpected empty match")
+		}
+	})
+	if !called {
+		t.Fatal("LabelHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_LabelHandler_Handle_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := LabelHandler{}.Handle("i18n.label.status", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected handled value")
+		}
+	})
+	if !called {
+		t.Fatal("LabelHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_LabelHandler_Handle_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := LabelHandler{}.Handle("i18n.unknown.key", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected fallback value")
+		}
+	})
+	if !called {
+		t.Fatal("LabelHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_LabelHandler_Handle_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := LabelHandler{}.Handle("i18n.label.status", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected value")
+		}
+	})
+	if !called {
+		t.Fatal("LabelHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_ProgressHandler_Match_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := ProgressHandler{}.Match("i18n.progress.build")
+		if !got {
+			t.Fatal("expected match")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_ProgressHandler_Match_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := ProgressHandler{}.Match("i18n.unknown.key")
+		if got {
+			t.Fatal("unexpected match")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_ProgressHandler_Match_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := ProgressHandler{}.Match("")
+		if got {
+			t.Fatal("unexpected empty match")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_ProgressHandler_Handle_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := ProgressHandler{}.Handle("i18n.progress.build", []any{"docs"}, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected handled value")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_ProgressHandler_Handle_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := ProgressHandler{}.Handle("i18n.unknown.key", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected fallback value")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_ProgressHandler_Handle_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := ProgressHandler{}.Handle("i18n.progress.build", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected value")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_CountHandler_Match_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := CountHandler{}.Match("i18n.count.file")
+		if !got {
+			t.Fatal("expected match")
+		}
+	})
+	if !called {
+		t.Fatal("CountHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_CountHandler_Match_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := CountHandler{}.Match("i18n.unknown.key")
+		if got {
+			t.Fatal("unexpected match")
+		}
+	})
+	if !called {
+		t.Fatal("CountHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_CountHandler_Match_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := CountHandler{}.Match("")
+		if got {
+			t.Fatal("unexpected empty match")
+		}
+	})
+	if !called {
+		t.Fatal("CountHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_CountHandler_Handle_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := CountHandler{}.Handle("i18n.count.file", []any{2}, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected handled value")
+		}
+	})
+	if !called {
+		t.Fatal("CountHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_CountHandler_Handle_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := CountHandler{}.Handle("i18n.unknown.key", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected fallback value")
+		}
+	})
+	if !called {
+		t.Fatal("CountHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_CountHandler_Handle_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := CountHandler{}.Handle("i18n.count.file", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected value")
+		}
+	})
+	if !called {
+		t.Fatal("CountHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_DoneHandler_Match_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := DoneHandler{}.Match("i18n.done.delete")
+		if !got {
+			t.Fatal("expected match")
+		}
+	})
+	if !called {
+		t.Fatal("DoneHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_DoneHandler_Match_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := DoneHandler{}.Match("i18n.unknown.key")
+		if got {
+			t.Fatal("unexpected match")
+		}
+	})
+	if !called {
+		t.Fatal("DoneHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_DoneHandler_Match_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := DoneHandler{}.Match("")
+		if got {
+			t.Fatal("unexpected empty match")
+		}
+	})
+	if !called {
+		t.Fatal("DoneHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_DoneHandler_Handle_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := DoneHandler{}.Handle("i18n.done.delete", []any{"file"}, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected handled value")
+		}
+	})
+	if !called {
+		t.Fatal("DoneHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_DoneHandler_Handle_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := DoneHandler{}.Handle("i18n.unknown.key", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected fallback value")
+		}
+	})
+	if !called {
+		t.Fatal("DoneHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_DoneHandler_Handle_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := DoneHandler{}.Handle("i18n.done.delete", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected value")
+		}
+	})
+	if !called {
+		t.Fatal("DoneHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_FailHandler_Match_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := FailHandler{}.Match("i18n.fail.delete")
+		if !got {
+			t.Fatal("expected match")
+		}
+	})
+	if !called {
+		t.Fatal("FailHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_FailHandler_Match_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := FailHandler{}.Match("i18n.unknown.key")
+		if got {
+			t.Fatal("unexpected match")
+		}
+	})
+	if !called {
+		t.Fatal("FailHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_FailHandler_Match_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := FailHandler{}.Match("")
+		if got {
+			t.Fatal("unexpected empty match")
+		}
+	})
+	if !called {
+		t.Fatal("FailHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_FailHandler_Handle_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := FailHandler{}.Handle("i18n.fail.delete", []any{"file"}, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected handled value")
+		}
+	})
+	if !called {
+		t.Fatal("FailHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_FailHandler_Handle_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := FailHandler{}.Handle("i18n.unknown.key", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected fallback value")
+		}
+	})
+	if !called {
+		t.Fatal("FailHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_FailHandler_Handle_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := FailHandler{}.Handle("i18n.fail.delete", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected value")
+		}
+	})
+	if !called {
+		t.Fatal("FailHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_NumericHandler_Match_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := NumericHandler{}.Match("i18n.numeric.number")
+		if !got {
+			t.Fatal("expected match")
+		}
+	})
+	if !called {
+		t.Fatal("NumericHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_NumericHandler_Match_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := NumericHandler{}.Match("i18n.unknown.key")
+		if got {
+			t.Fatal("unexpected match")
+		}
+	})
+	if !called {
+		t.Fatal("NumericHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_NumericHandler_Match_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := NumericHandler{}.Match("")
+		if got {
+			t.Fatal("unexpected empty match")
+		}
+	})
+	if !called {
+		t.Fatal("NumericHandler_Match was not exercised")
+	}
+}
+
+func TestHandler_NumericHandler_Handle_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := NumericHandler{}.Handle("i18n.numeric.number", []any{1234}, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected handled value")
+		}
+	})
+	if !called {
+		t.Fatal("NumericHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_NumericHandler_Handle_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := NumericHandler{}.Handle("i18n.unknown.key", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected fallback value")
+		}
+	})
+	if !called {
+		t.Fatal("NumericHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_NumericHandler_Handle_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := NumericHandler{}.Handle("i18n.numeric.number", nil, func() string { return "fallback" })
+		if got == "" {
+			t.Fatal("expected value")
+		}
+	})
+	if !called {
+		t.Fatal("NumericHandler_Handle was not exercised")
+	}
+}
+
+func TestHandler_DefaultHandlers_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		handlers := DefaultHandlers()
+		if len(handlers) == 0 {
+			t.Fatal("expected handlers")
+		}
+	})
+	if !called {
+		t.Fatal("DefaultHandlers was not exercised")
+	}
+}
+
+func TestHandler_DefaultHandlers_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		handlers := DefaultHandlers()
+		if len(handlers) < 6 {
+			t.Fatalf("got %d", len(handlers))
+		}
+	})
+	if !called {
+		t.Fatal("DefaultHandlers was not exercised")
+	}
+}
+
+func TestHandler_DefaultHandlers_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		handlers := DefaultHandlers()
+		handlers[0] = nil
+		if DefaultHandlers()[0] == nil {
+			t.Fatal("source handlers mutated")
+		}
+	})
+	if !called {
+		t.Fatal("DefaultHandlers was not exercised")
+	}
+}
+
+func TestHandler_RunHandlerChain_Good(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := RunHandlerChain([]KeyHandler{ax7Handler{match: true, value: "handled"}}, "x", nil, func() string { return "fallback" })
+		if got != "handled" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("RunHandlerChain was not exercised")
+	}
+}
+
+func TestHandler_RunHandlerChain_Bad(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := RunHandlerChain(nil, "x", nil, func() string { return "fallback" })
+		if got != "fallback" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("RunHandlerChain was not exercised")
+	}
+}
+
+func TestHandler_RunHandlerChain_Ugly(t *testing.T) {
+	called := false
+	noPanicForAudit(t, func() {
+		called = true
+		got := RunHandlerChain([]KeyHandler{nil, ax7Handler{match: false}}, "x", nil, func() string { return "fallback" })
+		if got != "fallback" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("RunHandlerChain was not exercised")
+	}
+}
