@@ -1,0 +1,1804 @@
+package i18n
+
+import (
+	// Note: AX-6 — cmp.Compare provides standard three-way comparison; core has no equivalent.
+	"cmp"
+	// Note: AX-6 — go:embed requires embed.FS for bundled locale assets; core.Embed cannot be the target type.
+	"embed"
+	// Note: AX-6 — fs.FS is the structural public API for caller-provided locale filesystems.
+	"io/fs"
+	// Note: AX-6 — language lists and lookup variants need generic slice sort/clone helpers; core has no equivalent.
+	"slices"
+
+	"dappco.re/go"
+	golog "dappco.re/go/log"
+	"golang.org/x/text/language"
+)
+
+// Service provides grammar-aware internationalisation.
+//
+//	svc, err := i18n.New()
+//	i18n.SetDefault(svc)
+type Service struct {
+	loader           Loader
+	messages         map[string]map[string]Message // lang -> key -> message
+	currentLang      string
+	fallbackLang     string
+	requestedLang    string
+	languageExplicit bool
+	availableLangs   []language.Tag
+	mode             Mode
+	debug            bool
+	formality        Formality
+	location         string
+	handlers         []KeyHandler
+	loadedLocales    map[int]struct{}
+	loadedProviders  map[int]struct{}
+	mu               core.RWMutex
+}
+
+// Option configures a Service during construction.
+//
+//	svc, err := i18n.New(i18n.WithLanguage("en"))
+type Option func(*Service)
+
+// WithFallback sets the fallback language for missing translations.
+func WithFallback(lang string) Option {
+	return func(s *Service) { s.fallbackLang = normalizeLanguageTag(lang) }
+}
+
+// WithLanguage sets an explicit initial language for the service.
+//
+// The language is applied after the loader has populated the available
+// languages, so it can resolve to the best supported tag instead of failing
+// during option construction.
+func WithLanguage(lang string) Option {
+	return func(s *Service) { s.requestedLang = normalizeLanguageTag(lang) }
+}
+
+// WithFormality sets the default formality level.
+func WithFormality(f Formality) Option {
+	return func(s *Service) { s.formality = f }
+}
+
+// WithLocation sets the default location context.
+func WithLocation(location string) Option {
+	return func(s *Service) { s.location = location }
+}
+
+// WithHandlers sets custom handlers (replaces default handlers).
+func WithHandlers(handlers ...KeyHandler) Option {
+	return func(s *Service) {
+		s.handlers = filterNilHandlers(append([]KeyHandler(nil), handlers...))
+	}
+}
+
+// WithDefaultHandlers adds the default i18n.* namespace handlers.
+func WithDefaultHandlers() Option {
+	return func(s *Service) {
+		for _, handler := range DefaultHandlers() {
+			if hasHandlerType(s.handlers, handler) {
+				continue
+			}
+			s.handlers = append(s.handlers, handler)
+		}
+	}
+}
+
+// WithMode sets the translation mode.
+func WithMode(m Mode) Option {
+	return func(s *Service) { s.mode = m }
+}
+
+// WithDebug enables or disables debug mode.
+func WithDebug(enabled bool) Option {
+	return func(s *Service) { s.debug = enabled }
+}
+
+var (
+	defaultService core.AtomicPointer[Service]
+	defaultInitMu  core.Mutex
+)
+
+//go:embed locales/*.json
+var localeFS embed.FS
+
+var _ Translator = (*Service)(nil)
+
+type loadedLocale struct {
+	Messages map[string]Message
+	Grammar  *GrammarData
+}
+
+func localeLoadResult(messages map[string]Message, grammar *GrammarData) core.Result {
+	return core.Ok(loadedLocale{Messages: messages, Grammar: grammar})
+}
+
+func failResult(v any) core.Result {
+	if r, ok := v.(core.Result); ok {
+		if !r.OK {
+			return r
+		}
+		if err, ok := r.Value.(error); ok {
+			return core.Fail(err)
+		}
+		return core.Fail(core.NewError(r.Error()))
+	}
+	if err, ok := v.(error); ok {
+		return core.Fail(err)
+	}
+	return core.Fail(core.NewError(core.Sprintf("%v", v)))
+}
+
+func localeFromResult(r core.Result) (map[string]Message, *GrammarData, core.Result) {
+	if !r.OK {
+		return nil, nil, r
+	}
+	switch v := r.Value.(type) {
+	case loadedLocale:
+		return v.Messages, v.Grammar, core.Ok(nil)
+	case []any:
+		if len(v) < 2 {
+			return nil, nil, core.Fail(core.NewError("i18n: loader result must contain messages and grammar"))
+		}
+		messages, ok := v[0].(map[string]Message)
+		if !ok {
+			return nil, nil, core.Fail(core.NewError("i18n: loader result messages have unexpected type"))
+		}
+		grammar, _ := v[1].(*GrammarData)
+		return messages, grammar, core.Ok(nil)
+	default:
+		return nil, nil, core.Fail(core.NewError("i18n: loader returned unexpected result value"))
+	}
+}
+
+// New creates a new i18n service with embedded locales.
+//
+// Example:
+//
+//	r := i18n.New(i18n.WithLanguage("en"))
+func New(opts ...Option) core.Result {
+	return NewWithLoader(NewFSLoader(localeFS, "locales"), opts...)
+}
+
+// NewService creates a new i18n service with embedded locales.
+//
+// Example:
+//
+//	r := i18n.NewService(i18n.WithFallback("en"))
+//
+// This is a named alias for New that keeps the constructor intent explicit
+// for callers that prefer service-oriented naming.
+func NewService(opts ...Option) core.Result {
+	return New(opts...)
+}
+
+// NewWithFS creates a new i18n service loading locales from the given filesystem.
+//
+// Example:
+//
+//	r := i18n.NewWithFS(core.DirFS("."), "locales")
+func NewWithFS(fsys fs.FS, dir string, opts ...Option) core.Result {
+	return NewWithLoader(NewFSLoader(fsys, dir), opts...)
+}
+
+// NewServiceWithFS creates a new i18n service loading locales from the given filesystem.
+//
+// Example:
+//
+//	r := i18n.NewServiceWithFS(core.DirFS("."), "locales")
+func NewServiceWithFS(fsys fs.FS, dir string, opts ...Option) core.Result {
+	return NewWithFS(fsys, dir, opts...)
+}
+
+// NewWithLoader creates a new i18n service with a custom loader.
+//
+// Example:
+//
+//	r := i18n.NewWithLoader(loader)
+func NewWithLoader(loader Loader, opts ...Option) core.Result {
+	if loader == nil {
+		return failResult(golog.E("NewWithLoader", "nil loader", nil))
+	}
+	s := &Service{
+		loader:          loader,
+		messages:        make(map[string]map[string]Message),
+		fallbackLang:    "en",
+		handlers:        DefaultHandlers(),
+		loadedLocales:   make(map[int]struct{}),
+		loadedProviders: make(map[int]struct{}),
+	}
+	for _, opt := range opts {
+		opt(s)
+	}
+
+	langs := loader.Languages()
+	if len(langs) == 0 {
+		// Check if the loader exposes a scan error (e.g. FSLoader).
+		if el, ok := loader.(interface{ LanguagesErr() core.Result }); ok {
+			if langResult := el.LanguagesErr(); !langResult.OK {
+				return failResult(golog.E("NewWithLoader", "no languages available", core.NewError(langResult.Error())))
+			}
+		}
+		return failResult(golog.E("NewWithLoader", "no languages available from loader", nil))
+	}
+
+	for _, lang := range langs {
+		messages, grammar, loadResult := localeFromResult(loader.Load(lang))
+		if !loadResult.OK {
+			return failResult(golog.E("NewWithLoader", "load locale: "+lang, core.NewError(loadResult.Error())))
+		}
+		lang = normalizeLanguageTag(lang)
+		s.ingestLocaleData(lang, messages, grammar)
+	}
+
+	if detected := detectLanguage(s.availableLangs); detected != "" {
+		s.currentLang = detected
+	} else {
+		s.currentLang = s.fallbackLang
+	}
+
+	if s.requestedLang != "" {
+		if r := s.SetLanguage(s.requestedLang); !r.OK {
+			return r
+		}
+	}
+
+	return core.Ok(s)
+}
+
+// NewServiceWithLoader creates a new i18n service with a custom loader.
+//
+// Example:
+//
+//	r := i18n.NewServiceWithLoader(loader)
+func NewServiceWithLoader(loader Loader, opts ...Option) core.Result {
+	return NewWithLoader(loader, opts...)
+}
+
+// Init initialises the default global service if none has been set via SetDefault.
+//
+// Example:
+//
+//	if r := i18n.Init(); !r.OK { return r }
+func Init() core.Result {
+	if defaultService.Load() != nil {
+		return core.Ok(nil)
+	}
+	defaultInitMu.Lock()
+	defer defaultInitMu.Unlock()
+	// Re-check after taking the lock so concurrent callers do not create
+	// duplicate services.
+	if defaultService.Load() != nil {
+		return core.Ok(nil)
+	}
+	svcResult := New()
+	if !svcResult.OK {
+		return svcResult
+	}
+	svc := svcResult.Value.(*Service)
+	// Register and load any locales queued before initialisation.
+	loadRegisteredLocales(svc)
+	// CAS prevents overwriting a concurrent SetDefault call that raced between
+	// the Load check above and this store.
+	if !defaultService.CompareAndSwap(nil, svc) {
+		// If a concurrent caller already installed a service, load registered
+		// locales into that active default service instead.
+		loadRegisteredLocales(defaultService.Load())
+	}
+	return core.Ok(nil)
+}
+
+// Default returns the global i18n service, initialising if needed.
+//
+// Example:
+//
+//	svc := i18n.Default()
+//
+// Returns nil if initialisation fails (error is logged).
+func Default() *Service {
+	if svc := defaultService.Load(); svc != nil {
+		return svc
+	}
+	if r := Init(); !r.OK {
+		golog.Error("failed to initialise default service", "err", r.Error())
+	}
+	return defaultService.Load()
+}
+
+// SetDefault sets the global i18n service.
+//
+// Example:
+//
+//	i18n.SetDefault(svc)
+//
+// Passing nil clears the default service.
+func SetDefault(s *Service) {
+	defaultService.Store(s)
+	if s == nil {
+		return
+	}
+	registeredLocalesMu.Lock()
+	hasRegistrations := len(registeredLocales) > 0 || len(registeredLocaleProviders) > 0
+	registeredLocalesMu.Unlock()
+	if hasRegistrations {
+		loadRegisteredLocales(s)
+	}
+}
+
+// AddLoader loads translations from a Loader into the default service.
+//
+// Example:
+//
+//	i18n.AddLoader(loader)
+//
+// Call this from init() in packages that ship their own locale files:
+//
+//	//go:embed *.json
+//	var localeFS embed.FS
+//	func init() { i18n.AddLoader(i18n.NewFSLoader(localeFS, ".")) }
+//
+// Note: When using the Core framework, NewCoreService creates a fresh Service
+// and calls SetDefault, so init-time AddLoader calls are superseded. In that
+// context, packages should implement LocaleProvider instead.
+func AddLoader(loader Loader) {
+	svc := Default()
+	if svc == nil {
+		return
+	}
+	if r := svc.AddLoader(loader); !r.OK {
+		golog.Error("i18n: AddLoader failed", "err", r.Error())
+	}
+}
+
+func (s *Service) loadJSON(lang string, data []byte) core.Result {
+	var raw map[string]any
+	if r := core.JSONUnmarshal(data, &raw); !r.OK {
+		return r
+	}
+	messages := make(map[string]Message)
+	grammarData := &GrammarData{
+		Verbs:   make(map[string]VerbForms),
+		Nouns:   make(map[string]NounForms),
+		Words:   make(map[string]string),
+		Intents: make(map[string]Intent),
+	}
+	flattenWithGrammar("", raw, messages, grammarData)
+	s.ingestLocaleData(lang, messages, grammarData)
+	return core.Ok(nil)
+}
+
+// SetLanguage sets the language for translations.
+func (s *Service) SetLanguage(lang string) core.Result {
+	if s == nil {
+		return core.Fail(ErrServiceNotInitialised)
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	lang = normalizeLanguageTag(lang)
+	requestedLang, err := language.Parse(lang)
+	if err != nil {
+		return failResult(golog.E("Service.SetLanguage", "invalid language tag: "+lang, err))
+	}
+	if len(s.availableLangs) == 0 {
+		return failResult(golog.E("Service.SetLanguage", "no languages available", nil))
+	}
+	matcher := language.NewMatcher(s.availableLangs)
+	bestMatch, bestIndex, confidence := matcher.Match(requestedLang)
+	if confidence == language.No {
+		return failResult(golog.E("Service.SetLanguage", "unsupported language: "+lang+" (available: "+joinAvailableLanguagesLocked(s.availableLangs)+")", nil))
+	}
+	if bestIndex >= 0 && bestIndex < len(s.availableLangs) {
+		s.currentLang = s.availableLangs[bestIndex].String()
+	} else {
+		s.currentLang = bestMatch.String()
+	}
+	s.languageExplicit = true
+	return core.Ok(nil)
+}
+
+// Language returns the service's currently-active language tag, defaulting
+// to "en" when the receiver is nil.
+//
+//	lang := svc.Language() // → "en", "fr", ...
+func (s *Service) Language() string {
+	if s == nil {
+		return "en"
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.currentLang
+}
+
+// CurrentLanguage returns the current language tag.
+func (s *Service) CurrentLanguage() string {
+	return s.Language()
+}
+
+// CurrentLang is a short alias for CurrentLanguage.
+func (s *Service) CurrentLang() string {
+	return s.CurrentLanguage()
+}
+
+// Prompt translates a prompt key from the prompt namespace using this service.
+func (s *Service) Prompt(key string) string {
+	if s == nil {
+		key = normalizeLookupKey(key)
+		if key == "" {
+			return ""
+		}
+		return promptLookupKeys(key)[0]
+	}
+	key = normalizeLookupKey(key)
+	if key == "" {
+		return ""
+	}
+	lookupKeys := promptLookupKeys(key)
+	for _, lookupKey := range lookupKeys {
+		s.mu.RLock()
+		text := s.resolveDirectLocked(lookupKey, nil)
+		s.mu.RUnlock()
+		if text != "" {
+			return text
+		}
+	}
+	return lookupKeys[0]
+}
+
+// CurrentPrompt is a short alias for Prompt.
+func (s *Service) CurrentPrompt(key string) string {
+	return s.Prompt(key)
+}
+
+func promptLookupKeys(key string) []string {
+	switch {
+	case core.HasPrefix(key, "prompt."):
+		suffix := core.TrimPrefix(key, "prompt.")
+		if suffix == "" {
+			return []string{key, "common.prompt"}
+		}
+		return []string{key, namespaceLookupKey("common.prompt", suffix)}
+	case core.HasPrefix(key, "common.prompt."):
+		suffix := core.TrimPrefix(key, "common.prompt.")
+		if suffix == "" {
+			return []string{key, "prompt"}
+		}
+		return []string{key, namespaceLookupKey("prompt", suffix)}
+	default:
+		return []string{namespaceLookupKey("prompt", key), namespaceLookupKey("common.prompt", key)}
+	}
+}
+
+// Lang translates a language label from the lang namespace using this service.
+func (s *Service) Lang(key string) string {
+	if s == nil {
+		key = normalizeLookupKey(key)
+		if key == "" {
+			return ""
+		}
+		return namespaceLookupKey("lang", key)
+	}
+	key = normalizeLookupKey(key)
+	if key == "" {
+		return ""
+	}
+	lookupKey := namespaceLookupKey("lang", key)
+	s.mu.RLock()
+	text := s.resolveDirectLocked(lookupKey, nil)
+	s.mu.RUnlock()
+	if text != "" {
+		return text
+	}
+	if idx := indexAny(key, "-_"); idx > 0 {
+		if base := key[:idx]; base != "" {
+			baseLookupKey := namespaceLookupKey("lang", base)
+			s.mu.RLock()
+			text = s.resolveDirectLocked(baseLookupKey, nil)
+			s.mu.RUnlock()
+			if text != "" {
+				return text
+			}
+		}
+	}
+	return s.handleMissingKey(lookupKey, nil)
+}
+
+// AvailableLanguages returns the language tags currently loaded into the
+// service, in insertion order. Returns an empty slice on nil receiver.
+//
+//	tags := svc.AvailableLanguages() // → ["en", "fr", "de"]
+func (s *Service) AvailableLanguages() []string {
+	if s == nil {
+		return []string{}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	langs := make([]string, len(s.availableLangs))
+	for i, tag := range s.availableLangs {
+		langs[i] = tag.String()
+	}
+	return langs
+}
+
+// CurrentAvailableLanguages returns the current language tags.
+func (s *Service) CurrentAvailableLanguages() []string {
+	return s.AvailableLanguages()
+}
+
+// SetMode updates the service's resolution mode (e.g. ModeNormal,
+// ModeStrict). No-op on nil receiver.
+//
+//	svc.SetMode(ModeStrict)
+func (s *Service) SetMode(m Mode) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.mode = m
+	s.mu.Unlock()
+}
+
+// Mode returns the current resolution mode.
+//
+//	mode := svc.Mode()
+func (s *Service) Mode() Mode {
+	if s == nil {
+		return ModeNormal
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.mode
+}
+
+// CurrentMode is a short alias for Mode.
+//
+//	mode := svc.CurrentMode()
+func (s *Service) CurrentMode() Mode { return s.Mode() }
+
+// SetFormality updates the service's default formality (formal, informal,
+// neutral). No-op on nil receiver.
+//
+//	svc.SetFormality(FormalityFormal)
+func (s *Service) SetFormality(f Formality) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.formality = f
+	s.mu.Unlock()
+}
+
+// Formality returns the service's current default formality.
+//
+//	f := svc.Formality()
+func (s *Service) Formality() Formality {
+	if s == nil {
+		return FormalityNeutral
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.formality
+}
+
+// CurrentFormality is a short alias for Formality.
+//
+//	f := svc.CurrentFormality()
+func (s *Service) CurrentFormality() Formality {
+	return s.Formality()
+}
+
+// SetFallback assigns the language tag to use when a key is missing from the
+// active language. No-op on nil receiver.
+//
+//	svc.SetFallback("en")
+func (s *Service) SetFallback(lang string) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	s.fallbackLang = normalizeLanguageTag(lang)
+	s.mu.Unlock()
+}
+
+// Fallback returns the currently-configured fallback language tag.
+//
+//	tag := svc.Fallback() // → "en"
+func (s *Service) Fallback() string {
+	if s == nil {
+		return "en"
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.fallbackLang
+}
+
+// CurrentFallback is a short alias for Fallback.
+//
+//	tag := svc.CurrentFallback()
+func (s *Service) CurrentFallback() string { return s.Fallback() }
+
+// SetLocation sets the default location/scope used by translations that
+// branch on it. No-op on nil receiver.
+//
+//	svc.SetLocation("dashboard")
+func (s *Service) SetLocation(location string) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.location = location
+}
+
+// Location returns the service's default location/scope.
+//
+//	loc := svc.Location()
+func (s *Service) Location() string {
+	if s == nil {
+		return ""
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return s.location
+}
+
+// CurrentLocation returns the current default location context.
+func (s *Service) CurrentLocation() string {
+	return s.Location()
+}
+
+// Direction returns the text direction for the service's active language
+// (DirLTR or DirRTL). Defaults to DirLTR for nil receiver or non-RTL langs.
+//
+//	dir := svc.Direction() // → DirLTR for "en", DirRTL for "ar"
+func (s *Service) Direction() TextDirection {
+	if s == nil {
+		return DirLTR
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if IsRTLLanguage(s.currentLang) {
+		return DirRTL
+	}
+	return DirLTR
+}
+
+// CurrentDirection returns the current text direction.
+func (s *Service) CurrentDirection() TextDirection {
+	return s.Direction()
+}
+
+// CurrentTextDirection is a more explicit alias for CurrentDirection.
+func (s *Service) CurrentTextDirection() TextDirection {
+	return s.CurrentDirection()
+}
+
+// IsRTL reports whether the active language renders right-to-left.
+//
+//	if svc.IsRTL() { /* mirror UI chrome */ }
+func (s *Service) IsRTL() bool { return s.Direction() == DirRTL }
+
+// CurrentIsRTL is a short alias for IsRTL.
+//
+//	if svc.CurrentIsRTL() { /* mirror UI chrome */ }
+func (s *Service) CurrentIsRTL() bool { return s.IsRTL() }
+
+// RTL is a short alias for IsRTL.
+func (s *Service) RTL() bool { return s.IsRTL() }
+
+// CurrentRTL is a short alias for CurrentIsRTL.
+func (s *Service) CurrentRTL() bool { return s.CurrentIsRTL() }
+
+// CurrentDebug is a short alias for Debug.
+//
+//	on := svc.CurrentDebug()
+func (s *Service) CurrentDebug() bool {
+	return s.Debug()
+}
+
+// PluralCategory returns the CLDR plural category (one/few/many/other/zero/
+// two) for n in the service's active language. Defaults to PluralOther on
+// nil receiver.
+//
+//	cat := svc.PluralCategory(2) // English → PluralOther
+func (s *Service) PluralCategory(n int) PluralCategory {
+	if s == nil {
+		return PluralOther
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	return GetPluralCategory(s.currentLang, n)
+}
+
+// CurrentPluralCategory returns the plural category for the current language.
+func (s *Service) CurrentPluralCategory(n int) PluralCategory {
+	return s.PluralCategory(n)
+}
+
+// PluralCategoryOf is a short alias for CurrentPluralCategory.
+func (s *Service) PluralCategoryOf(n int) PluralCategory {
+	return s.CurrentPluralCategory(n)
+}
+
+func joinAvailableLanguagesLocked(tags []language.Tag) string {
+	if len(tags) == 0 {
+		return ""
+	}
+	langs := make([]string, len(tags))
+	for i, tag := range tags {
+		langs[i] = tag.String()
+	}
+	slices.Sort(langs)
+	return core.Join(", ", langs...)
+}
+
+// AddHandler appends one or more KeyHandlers to the end of the chain. Nil
+// entries are silently dropped. No-op on nil receiver.
+//
+//	svc.AddHandler(MyCustomHandler{})
+func (s *Service) AddHandler(handlers ...KeyHandler) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.handlers = append(s.handlers, filterNilHandlers(handlers)...)
+}
+
+// SetHandlers replaces the current handler chain.
+func (s *Service) SetHandlers(handlers ...KeyHandler) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.handlers = filterNilHandlers(handlers)
+}
+
+// PrependHandler inserts one or more KeyHandlers at the front of the chain
+// so they run before any existing handlers. Nil entries are silently
+// dropped. No-op on nil receiver.
+//
+//	svc.PrependHandler(MyOverrideHandler{})
+func (s *Service) PrependHandler(handlers ...KeyHandler) {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	handlers = filterNilHandlers(handlers)
+	if len(handlers) == 0 {
+		return
+	}
+	s.handlers = append(append([]KeyHandler(nil), handlers...), s.handlers...)
+}
+
+// ClearHandlers removes every handler from the chain, leaving keys to be
+// resolved purely from the loaded message catalogue. No-op on nil receiver.
+//
+//	svc.ClearHandlers()
+func (s *Service) ClearHandlers() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.handlers = nil
+}
+
+// ResetHandlers restores the built-in default handler chain.
+func (s *Service) ResetHandlers() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	s.handlers = DefaultHandlers()
+}
+
+// Handlers returns a snapshot copy of the current handler chain so callers
+// can introspect or pass it elsewhere without holding the service lock.
+//
+//	chain := svc.Handlers()
+func (s *Service) Handlers() []KeyHandler {
+	if s == nil {
+		return []KeyHandler{}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	result := make([]KeyHandler, len(s.handlers))
+	copy(result, s.handlers)
+	return result
+}
+
+// CurrentHandlers returns a copy of the current handler chain.
+func (s *Service) CurrentHandlers() []KeyHandler {
+	return s.Handlers()
+}
+
+// T translates a message by its ID with handler chain support.
+//
+//	T("i18n.label.status")              // "Status:"
+//	T("i18n.progress.build")            // "Building..."
+//	T("i18n.count.file", 5)             // "5 files"
+//	T("i18n.done.delete", "file")       // "File deleted"
+//	T("i18n.fail.delete", "file")       // "Failed to delete file"
+func (s *Service) T(messageID string, args ...any) string {
+	if s == nil {
+		return messageID
+	}
+	result, _ := s.translateWithStatus(messageID, args...)
+	s.mu.RLock()
+	debug := s.debug
+	s.mu.RUnlock()
+	if debug {
+		return debugFormat(messageID, result)
+	}
+	return result
+}
+
+// Compose resolves a semantic intent key into the composed output forms
+// documented by the RFC-style intent blocks.
+func (s *Service) Compose(key string, subject *Subject) Composed {
+	if s == nil {
+		return Composed{}
+	}
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	intent, hasIntent := s.lookupIntentDefinitionLocked(key)
+	if !core.HasPrefix(key, "core.") && !hasIntent {
+		return Composed{}
+	}
+	question := s.resolveIntentFieldLocked(key, "question", subject, intent)
+	confirm := s.resolveIntentFieldLocked(key, "confirm", subject, intent)
+	if confirm == "" && intent.Meta.Dangerous && question != "" {
+		confirm = question
+	}
+	success := s.resolveIntentFieldLocked(key, "success", subject, intent)
+	failure := s.resolveIntentFieldLocked(key, "failure", subject, intent)
+	return Composed{
+		Question: question,
+		Confirm:  confirm,
+		Success:  success,
+		Failure:  failure,
+		Meta:     intent.Meta,
+	}
+}
+
+// CurrentCompose is a short alias for Compose.
+func (s *Service) CurrentCompose(key string, subject *Subject) Composed {
+	return s.Compose(key, subject)
+}
+
+// Translate translates a message by its ID and returns a Core result.
+func (s *Service) Translate(messageID string, args ...any) core.Result {
+	if s == nil {
+		return core.Fail(core.NewError(messageID))
+	}
+	value, ok := s.translateWithStatus(messageID, args...)
+	s.mu.RLock()
+	debug := s.debug
+	s.mu.RUnlock()
+	if debug {
+		value = debugFormat(messageID, value)
+	}
+	if !ok {
+		return core.Fail(core.NewError(value))
+	}
+	return core.Ok(value)
+}
+
+func (s *Service) translateWithStatus(messageID string, args ...any) (string, bool) {
+	if s == nil {
+		return messageID, false
+	}
+	s.mu.RLock()
+	handlers := append([]KeyHandler(nil), s.handlers...)
+	s.mu.RUnlock()
+
+	result := RunHandlerChain(handlers, messageID, args, func() string {
+		var data any
+		if len(args) > 0 {
+			data = args[0]
+		}
+
+		s.mu.RLock()
+		text := s.resolveWithFallbackLocked(messageID, data)
+		if text == "" {
+			text = s.resolveIntentQuestionLocked(messageID, data)
+		}
+		s.mu.RUnlock()
+		return text
+	})
+	if result != "" {
+		return result, true
+	}
+	return s.handleMissingKey(messageID, args), false
+}
+
+// resolveDirect performs exact-key lookup in the current language, its base
+// language tag, and then the configured fallback language.
+func (s *Service) resolveDirectLocked(messageID string, data any) string {
+	if text := s.tryResolveLocked(s.currentLang, messageID, data); text != "" {
+		return text
+	}
+	if base := baseLanguageTag(s.currentLang); base != "" && base != s.currentLang {
+		if text := s.tryResolveLocked(base, messageID, data); text != "" {
+			return text
+		}
+	}
+	if text := s.tryResolveLocked(s.fallbackLang, messageID, data); text != "" {
+		return text
+	}
+	if base := baseLanguageTag(s.fallbackLang); base != "" && base != s.fallbackLang {
+		return s.tryResolveLocked(base, messageID, data)
+	}
+	return ""
+}
+
+func (s *Service) resolveWithFallbackLocked(messageID string, data any) string {
+	if text := s.resolveDirectLocked(messageID, data); text != "" {
+		return text
+	}
+	if core.Contains(messageID, ".") {
+		parts := core.Split(messageID, ".")
+		verb := parts[len(parts)-1]
+		commonKey := "common.action." + verb
+		if text := s.resolveDirectLocked(commonKey, data); text != "" {
+			return text
+		}
+		commonKey = "common." + verb
+		if text := s.resolveDirectLocked(commonKey, data); text != "" {
+			return text
+		}
+	}
+	return ""
+}
+
+func (s *Service) lookupIntentDefinitionLocked(key string) (Intent, bool) {
+	if s == nil || key == "" {
+		return Intent{}, false
+	}
+	for _, lang := range []string{s.currentLang, s.fallbackLang} {
+		if intent, ok := lookupIntentInLanguage(lang, key); ok {
+			return intent, true
+		}
+	}
+	return Intent{}, false
+}
+
+func lookupIntentInLanguage(lang, key string) (Intent, bool) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" || key == "" {
+		return Intent{}, false
+	}
+	data := GetGrammarData(lang)
+	if data == nil || len(data.Intents) == 0 {
+		return Intent{}, false
+	}
+	intent, ok := data.Intents[key]
+	if !ok {
+		return Intent{}, false
+	}
+	return cloneIntent(intent), true
+}
+
+func (s *Service) resolveIntentQuestionLocked(key string, data any) string {
+	if s == nil || key == "" {
+		return ""
+	}
+	if !core.HasPrefix(key, "core.") {
+		if _, ok := s.lookupIntentDefinitionLocked(key); !ok {
+			return ""
+		}
+	}
+	intent, _ := s.lookupIntentDefinitionLocked(key)
+	return s.resolveIntentFieldLocked(key, "question", data, intent)
+}
+
+func (s *Service) resolveIntentFieldLocked(key, field string, data any, intent Intent) string {
+	if key == "" || field == "" {
+		return ""
+	}
+	fullKey := key + "." + field
+	if text := s.resolveDirectLocked(fullKey, data); text != "" {
+		if !core.Contains(text, "{{") {
+			return text
+		}
+		if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+			if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
+				return rendered
+			}
+		}
+		return text
+	}
+	if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+		return renderIntentTemplate(tmpl, data)
+	}
+	switch field {
+	case "question":
+		if text := s.resolveWithFallbackLocked(key, data); text != "" {
+			if core.Contains(text, "{{") {
+				if tmpl := intentTemplateForField(intent, field); tmpl != "" {
+					if rendered := renderIntentTemplate(tmpl, data); rendered != "" {
+						return rendered
+					}
+				}
+			}
+			return text
+		}
+		verb := intentVerbForKey(key, intent)
+		if verb == "" {
+			return ""
+		}
+		subject := intentSubjectText(data)
+		title := Title(renderWord(s.currentLang, verb))
+		if subject == "" {
+			return title + "?"
+		}
+		return title + " " + subject + "?"
+	case "success":
+		if verb := intentVerbForKey(key, intent); verb != "" {
+			return actionResultForLanguages(s.grammarLanguagesLocked(), verb, intentSubjectText(data))
+		}
+	case "failure":
+		if verb := intentVerbForKey(key, intent); verb != "" {
+			return actionFailedForLanguages(s.grammarLanguagesLocked(), verb, intentSubjectText(data))
+		}
+	}
+	return ""
+}
+
+func (s *Service) grammarLanguagesLocked() []string {
+	if s == nil {
+		return []string{"en"}
+	}
+	return []string{s.currentLang, s.fallbackLang}
+}
+
+func intentTemplateForField(intent Intent, field string) string {
+	switch field {
+	case "question":
+		return intent.Question
+	case "confirm":
+		return intent.Confirm
+	case "success":
+		return intent.Success
+	case "failure":
+		return intent.Failure
+	default:
+		return ""
+	}
+}
+
+func renderIntentTemplate(text string, data any) string {
+	if text == "" {
+		return ""
+	}
+	switch v := data.(type) {
+	case nil:
+		return executeIntentTemplate(text, newTemplateData(nil))
+	case *Subject:
+		return executeIntentTemplate(text, newTemplateData(v))
+	default:
+		return applyTemplate(text, data)
+	}
+}
+
+func intentVerbForKey(key string, intent Intent) string {
+	if verb := intentVerbBase(intent.Meta.Verb); verb != "" {
+		return verb
+	}
+	return intentBaseFromKey(key)
+}
+
+func intentVerbBase(verb string) string {
+	verb = core.Trim(verb)
+	if verb == "" {
+		return ""
+	}
+	if parts := core.Split(verb, "."); len(parts) > 0 {
+		verb = parts[len(parts)-1]
+	}
+	return core.Trim(verb)
+}
+
+func intentBaseFromKey(key string) string {
+	key = core.Trim(key)
+	if key == "" {
+		return ""
+	}
+	parts := core.Split(key, ".")
+	if len(parts) == 0 {
+		return key
+	}
+	return core.Trim(parts[len(parts)-1])
+}
+
+func intentSubjectText(data any) string {
+	switch v := data.(type) {
+	case *Subject:
+		if v != nil {
+			return v.String()
+		}
+	case string:
+		return v
+	}
+	return ""
+}
+
+func (s *Service) tryResolveLocked(lang, key string, data any) string {
+	context, gender, location, formality := s.getEffectiveContextGenderLocationAndFormality(data)
+	extra := s.getEffectiveContextExtra(data)
+	for _, lookupKey := range lookupVariants(key, context, gender, location, formality, extra) {
+		if text := s.resolveMessageLocked(lang, lookupKey, data); text != "" {
+			return text
+		}
+	}
+	return ""
+}
+
+func (s *Service) resolveMessageLocked(lang, key string, data any) string {
+	msg, ok := s.getMessage(lang, key)
+	if !ok {
+		return ""
+	}
+	text := msg.Text
+	if msg.IsPlural() {
+		count := getCount(data)
+		category := GetPluralCategory(lang, count)
+		text = msg.ForCategory(category)
+	}
+	if text == "" {
+		return ""
+	}
+	if data != nil {
+		text = applyTemplate(text, data)
+	}
+	return text
+}
+
+func (s *Service) getEffectiveContextGenderLocationAndFormality(data any) (string, string, string, Formality) {
+	if ctx, ok := data.(*TranslationContext); ok && ctx != nil {
+		formality := ctx.FormalityValue()
+		if formality == FormalityNeutral {
+			formality = s.formality
+		}
+		location := ctx.LocationString()
+		if location == "" {
+			location = s.location
+		}
+		return ctx.ContextString(), ctx.GenderString(), location, formality
+	}
+	if subj, ok := data.(*Subject); ok && subj != nil {
+		formality := subj.formality
+		if formality == FormalityNeutral {
+			formality = s.formality
+		}
+		location := subj.location
+		if location == "" {
+			location = s.location
+		}
+		return "", subj.gender, location, formality
+	}
+	if m, ok := data.(map[string]any); ok {
+		var context string
+		var gender string
+		location := s.location
+		formality := s.formality
+		if v, ok := mapValueString(m, "Context"); ok {
+			context = v
+		}
+		if v, ok := mapValueString(m, "Gender"); ok {
+			gender = v
+		}
+		if v, ok := mapValueString(m, "Location"); ok {
+			location = v
+		}
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			formality = f
+		}
+		return context, gender, location, formality
+	}
+	if m, ok := data.(map[string]string); ok {
+		var context string
+		var gender string
+		location := s.location
+		formality := s.formality
+		if v, ok := mapValueString(m, "Context"); ok {
+			context = v
+		}
+		if v, ok := mapValueString(m, "Gender"); ok {
+			gender = v
+		}
+		if v, ok := mapValueString(m, "Location"); ok {
+			location = v
+		}
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			formality = f
+		}
+		return context, gender, location, formality
+	}
+	return "", "", s.location, s.getEffectiveFormality(data)
+}
+
+func (s *Service) getEffectiveContextExtra(data any) map[string]any {
+	switch v := data.(type) {
+	case *TranslationContext:
+		if v == nil || len(v.Extra) == 0 {
+			return nil
+		}
+		return v.Extra
+	case map[string]any:
+		return contextMapValues(v)
+	case map[string]string:
+		return contextMapValues(v)
+	default:
+		return nil
+	}
+}
+
+func mergeContextExtra(dst map[string]any, value any) {
+	if dst == nil || value == nil {
+		return
+	}
+	switch extra := value.(type) {
+	case map[string]any:
+		for key, item := range extra {
+			dst[key] = item
+		}
+	case map[string]string:
+		for key, item := range extra {
+			dst[key] = item
+		}
+	case *TranslationContext:
+		if extra == nil || len(extra.Extra) == 0 {
+			return
+		}
+		for key, item := range extra.Extra {
+			dst[key] = item
+		}
+	}
+}
+
+func (s *Service) getEffectiveFormality(data any) Formality {
+	if ctx, ok := data.(*TranslationContext); ok && ctx != nil {
+		if ctx.Formality != FormalityNeutral {
+			return ctx.Formality
+		}
+	}
+	if subj, ok := data.(*Subject); ok && subj != nil {
+		if subj.formality != FormalityNeutral {
+			return subj.formality
+		}
+	}
+	if m, ok := data.(map[string]any); ok {
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			return f
+		}
+	}
+	if m, ok := data.(map[string]string); ok {
+		if f, ok := parseFormalityValue(m["Formality"]); ok {
+			return f
+		}
+	}
+	return s.formality
+}
+
+func parseFormalityValue(value any) (Formality, bool) {
+	switch f := value.(type) {
+	case Formality:
+		if f != FormalityNeutral {
+			return f, true
+		}
+	case string:
+		switch core.Lower(f) {
+		case "formal":
+			return FormalityFormal, true
+		case "informal":
+			return FormalityInformal, true
+		}
+	}
+	return FormalityNeutral, false
+}
+
+func lookupVariants(key, context, gender, location string, formality Formality, extra map[string]any) []string {
+	var variants []string
+	if context != "" {
+		if gender != "" && location != "" && formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+location+"._"+formality.String())
+		}
+		if gender != "" && location != "" {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+location)
+		}
+		if gender != "" && formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+formality.String())
+		}
+		if gender != "" {
+			variants = append(variants, key+"._"+context+"._"+gender)
+		}
+		if location != "" && formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+location+"._"+formality.String())
+		}
+		if location != "" {
+			variants = append(variants, key+"._"+context+"._"+location)
+		}
+		if formality != FormalityNeutral {
+			variants = append(variants, key+"._"+context+"._"+formality.String())
+		}
+		variants = append(variants, key+"._"+context)
+	}
+	if gender != "" && location != "" && formality != FormalityNeutral {
+		variants = append(variants, key+"._"+gender+"._"+location+"._"+formality.String())
+	}
+	if gender != "" && location != "" {
+		variants = append(variants, key+"._"+gender+"._"+location)
+	}
+	if gender != "" && formality != FormalityNeutral {
+		variants = append(variants, key+"._"+gender+"._"+formality.String())
+	}
+	if gender != "" {
+		variants = append(variants, key+"._"+gender)
+	}
+	if location != "" && formality != FormalityNeutral {
+		variants = append(variants, key+"._"+location+"._"+formality.String())
+	}
+	if location != "" {
+		variants = append(variants, key+"._"+location)
+	}
+	if formality != FormalityNeutral {
+		variants = append(variants, key+"._"+formality.String())
+	}
+	if extraSuffix := lookupExtraSuffix(extra); extraSuffix != "" {
+		base := slices.Clone(variants)
+		var extraVariants []string
+		for _, variant := range base {
+			extraVariants = append(extraVariants, variant+extraSuffix)
+		}
+		variants = append(extraVariants, variants...)
+	}
+	variants = append(variants, key)
+	return variants
+}
+
+func lookupExtraSuffix(extra map[string]any) string {
+	if len(extra) == 0 {
+		return ""
+	}
+	keys := make([]string, 0, len(extra))
+	for key := range extra {
+		keys = append(keys, key)
+	}
+	slices.Sort(keys)
+	b := core.NewBuilder()
+	for _, key := range keys {
+		name := lookupSegment(key)
+		if name == "" {
+			continue
+		}
+		value := lookupSegment(core.Sprintf("%v", extra[key]))
+		if value == "" {
+			continue
+		}
+		b.WriteString("._")
+		b.WriteString(name)
+		b.WriteString("._")
+		b.WriteString(value)
+	}
+	return b.String()
+}
+
+func lookupSegment(s string) string {
+	s = core.Trim(s)
+	if s == "" {
+		return ""
+	}
+	b := core.NewBuilder()
+	lastUnderscore := false
+	for _, r := range core.Lower(s) {
+		switch {
+		case core.IsLetter(r), core.IsDigit(r):
+			b.WriteRune(r)
+			lastUnderscore = false
+		case r == '_' || r == '-' || r == '.' || core.IsSpace(r):
+			if !lastUnderscore {
+				b.WriteByte('_')
+				lastUnderscore = true
+			}
+		}
+	}
+	return trimRuneRun(b.String(), '_')
+}
+
+// trimRuneRun strips repeated occurrences of r from both ends of s.
+//
+//	trimRuneRun("__foo__", '_') // "foo"
+func trimRuneRun(s string, r rune) string {
+	start := 0
+	for start < len(s) {
+		rn, size := firstRuneOf(s[start:])
+		if rn != r {
+			break
+		}
+		start += size
+	}
+	end := len(s)
+	for end > start {
+		rn, size := lastRuneOf(s[start:end])
+		if rn != r {
+			break
+		}
+		end -= size
+	}
+	return s[start:end]
+}
+
+// compareStrings compares two strings lexicographically (a < b: -1, a == b: 0, a > b: 1).
+//
+//	compareStrings("en", "fr") // -1
+func compareStrings(a, b string) int {
+	return cmp.Compare(a, b)
+}
+
+func firstRuneOf(s string) (rune, int) {
+	for _, r := range s {
+		return r, len(string(r))
+	}
+	return 0, 0
+}
+
+func lastRuneOf(s string) (rune, int) {
+	var last rune
+	var size int
+	for _, r := range s {
+		last = r
+		size = len(string(r))
+	}
+	return last, size
+}
+
+func (s *Service) handleMissingKey(key string, args []any) string {
+	switch s.mode {
+	case ModeStrict:
+		panic(core.Sprintf("i18n: missing translation key %q", key))
+	case ModeCollect:
+		argsMap := missingKeyArgs(args)
+		dispatchMissingKey(key, argsMap)
+		return "[" + key + "]"
+	default:
+		return key
+	}
+}
+
+func missingKeyArgs(args []any) map[string]any {
+	if len(args) == 0 {
+		return nil
+	}
+	result := make(map[string]any)
+	for _, arg := range args {
+		mergeMissingKeyArgs(result, arg)
+	}
+	if len(result) == 0 {
+		return nil
+	}
+	return result
+}
+
+func mergeMissingKeyArgs(dst map[string]any, value any) {
+	if dst == nil || value == nil {
+		return
+	}
+	switch v := value.(type) {
+	case map[string]any:
+		for key, item := range contextMapValuesAny(v) {
+			dst[key] = item
+		}
+	case map[string]string:
+		for key, item := range contextMapValuesString(v) {
+			dst[key] = item
+		}
+	case *TranslationContext:
+		for key, item := range missingKeyContextArgs(v) {
+			dst[key] = item
+		}
+	case *Subject:
+		for key, item := range missingKeySubjectArgs(v) {
+			dst[key] = item
+		}
+	}
+}
+
+func missingKeyContextArgs(ctx *TranslationContext) map[string]any {
+	if ctx == nil {
+		return nil
+	}
+	data := templateDataForRendering(ctx)
+	result, _ := data.(map[string]any)
+	return result
+}
+
+func missingKeySubjectArgs(subj *Subject) map[string]any {
+	if subj == nil {
+		return nil
+	}
+	data := templateDataForRendering(subj)
+	result, _ := data.(map[string]any)
+	return result
+}
+
+// Raw translates without i18n.* namespace magic.
+func (s *Service) Raw(messageID string, args ...any) string {
+	if s == nil {
+		return messageID
+	}
+	s.mu.RLock()
+	var data any
+	if len(args) > 0 {
+		data = args[0]
+	}
+	text := s.resolveDirectLocked(messageID, data)
+	debug := s.debug
+	s.mu.RUnlock()
+	if text == "" {
+		text = s.handleMissingKey(messageID, args)
+	}
+	if debug {
+		return debugFormat(messageID, text)
+	}
+	return text
+}
+
+func (s *Service) getMessage(lang, key string) (Message, bool) {
+	msgs, ok := s.messages[lang]
+	if !ok {
+		return Message{}, false
+	}
+	msg, ok := msgs[key]
+	return msg, ok
+}
+
+// AddMessages adds messages for a language at runtime.
+func (s *Service) AddMessages(lang string, messages map[string]string) {
+	if s == nil {
+		return
+	}
+	lang = normalizeLanguageTag(lang)
+	if lang == "" {
+		return
+	}
+
+	s.mu.Lock()
+	if s.messages[lang] == nil {
+		s.messages[lang] = make(map[string]Message)
+	}
+	for key, text := range messages {
+		s.messages[lang][key] = Message{Text: text}
+	}
+	s.addAvailableLanguageLocked(language.Make(lang))
+	s.mu.Unlock()
+
+	s.autoDetectLanguage()
+}
+
+// AddLoader loads translations from an additional Loader, merging messages
+// and grammar data into the existing service. This is the correct way to
+// add package-specific translations at runtime.
+func (s *Service) AddLoader(loader Loader) core.Result {
+	if s == nil {
+		return core.Fail(ErrServiceNotInitialised)
+	}
+	if loader == nil {
+		return failResult(golog.E("Service.AddLoader", "nil loader", nil))
+	}
+	langs := loader.Languages()
+	if len(langs) == 0 {
+		if el, ok := loader.(interface{ LanguagesErr() core.Result }); ok {
+			if langResult := el.LanguagesErr(); !langResult.OK {
+				return failResult(golog.E("Service.AddLoader", "read locales directory", core.NewError(langResult.Error())))
+			}
+		}
+		return failResult(golog.E("Service.AddLoader", "no languages available from loader", nil))
+	}
+	for _, lang := range langs {
+		messages, grammar, loadResult := localeFromResult(loader.Load(lang))
+		if !loadResult.OK {
+			return failResult(golog.E("Service.AddLoader", "load locale: "+lang, core.NewError(loadResult.Error())))
+		}
+		lang = normalizeLanguageTag(lang)
+		s.ingestLocaleData(lang, messages, grammar)
+	}
+	s.autoDetectLanguage()
+	return core.Ok(nil)
+}
+
+func (s *Service) ingestLocaleData(lang string, messages map[string]Message, grammar *GrammarData) {
+	lang = normalizeLanguageTag(lang)
+	if lang == "" {
+		return
+	}
+
+	s.mu.Lock()
+	existing := s.messages[lang]
+	if existing == nil {
+		s.messages[lang] = make(map[string]Message, len(messages))
+	}
+	for key, message := range messages {
+		s.messages[lang][key] = message
+	}
+	s.addAvailableLanguageLocked(language.Make(lang))
+	s.mu.Unlock()
+
+	// Keep grammar merges outside the service mutex. Message-store updates are
+	// the only part that need to be serialized here.
+	if grammarDataHasContent(grammar) {
+		if existing != nil {
+			MergeGrammarData(lang, grammar)
+		} else {
+			SetGrammarData(lang, grammar)
+		}
+	}
+}
+
+func (s *Service) hasLocaleRegistrationLoaded(id int) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.loadedLocales) == 0 {
+		return false
+	}
+	_, ok := s.loadedLocales[id]
+	return ok
+}
+
+func (s *Service) markLocaleRegistrationLoaded(id int) {
+	if id == 0 || s == nil {
+		return
+	}
+	s.mu.Lock()
+	if s.loadedLocales == nil {
+		s.loadedLocales = make(map[int]struct{})
+	}
+	s.loadedLocales[id] = struct{}{}
+	s.mu.Unlock()
+}
+
+func (s *Service) hasLocaleProviderLoaded(id int) bool {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+	if len(s.loadedProviders) == 0 {
+		return false
+	}
+	_, ok := s.loadedProviders[id]
+	return ok
+}
+
+func (s *Service) markLocaleProviderLoaded(id int) {
+	if id == 0 || s == nil {
+		return
+	}
+	s.mu.Lock()
+	if s.loadedProviders == nil {
+		s.loadedProviders = make(map[int]struct{})
+	}
+	s.loadedProviders[id] = struct{}{}
+	s.mu.Unlock()
+}
+
+func (s *Service) addAvailableLanguageLocked(tag language.Tag) {
+	if s == nil || tag == (language.Tag{}) {
+		return
+	}
+	if !slices.Contains(s.availableLangs, tag) {
+		s.availableLangs = append(s.availableLangs, tag)
+		slices.SortFunc(s.availableLangs, func(a, b language.Tag) int {
+			return compareStrings(a.String(), b.String())
+		})
+	}
+}
+
+// LoadFS loads additional locale files from a filesystem.
+//
+// Example:
+//
+//	_ = svc.LoadFS(os.DirFS("."), "locales")
+//
+// Deprecated: Use AddLoader(NewFSLoader(fsys, dir)) instead for proper grammar handling.
+func (s *Service) LoadFS(fsys fs.FS, dir string) core.Result {
+	if s == nil {
+		return core.Fail(ErrServiceNotInitialised)
+	}
+	loader := NewFSLoader(fsys, dir)
+	langs := loader.Languages()
+	if len(langs) == 0 {
+		if langResult := loader.LanguagesErr(); !langResult.OK {
+			return failResult(golog.E("Service.LoadFS", "read locales directory", core.NewError(langResult.Error())))
+		}
+		return failResult(golog.E("Service.LoadFS", "no languages available", nil))
+	}
+	return s.AddLoader(loader)
+}
+
+func (s *Service) autoDetectLanguage() {
+	if s == nil {
+		return
+	}
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if s.languageExplicit {
+		return
+	}
+	if detected := detectLanguage(s.availableLangs); detected != "" {
+		s.currentLang = detected
+	}
+}
+
+func hasHandlerType(handlers []KeyHandler, candidate KeyHandler) bool {
+	switch candidate.(type) {
+	case LabelHandler:
+		return hasLabelHandler(handlers)
+	case ProgressHandler:
+		return hasProgressHandler(handlers)
+	case CountHandler:
+		return hasCountHandler(handlers)
+	case DoneHandler:
+		return hasDoneHandler(handlers)
+	case FailHandler:
+		return hasFailHandler(handlers)
+	case NumericHandler:
+		return hasNumericHandler(handlers)
+	}
+	return false
+}
+
+func hasLabelHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(LabelHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasProgressHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(ProgressHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasCountHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(CountHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasDoneHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(DoneHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasFailHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(FailHandler); ok {
+			return true
+		}
+	}
+	return false
+}
+
+func hasNumericHandler(handlers []KeyHandler) bool {
+	for _, handler := range handlers {
+		if _, ok := handler.(NumericHandler); ok {
+			return true
+		}
+	}
+	return false
+}
