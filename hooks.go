@@ -6,7 +6,7 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 	log "dappco.re/go/log"
 )
 

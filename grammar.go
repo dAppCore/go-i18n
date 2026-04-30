@@ -10,7 +10,7 @@ import (
 	// Note: AX-6 — grammar casing and initialism rules need Unicode rune classes; pinned core has no rune helpers.
 	"unicode"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 // GetGrammarData returns the grammar data for the specified language.

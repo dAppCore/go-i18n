@@ -6,9 +6,9 @@ import (
 	"io"
 	"time"
 
-	"dappco.re/go/core"
-	log "dappco.re/go/log"
+	"dappco.re/go"
 	"dappco.re/go/inference"
+	log "dappco.re/go/log"
 )
 
 // ClassifyStats reports metrics from a ClassifyCorpus run.

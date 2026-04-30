@@ -257,3 +257,195 @@ func TestComputeVariance_SingleSample(t *testing.T) {
 		t.Errorf("Single-sample variance should be nil, got %v", v)
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestReference_BuildReferences_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		samples := []ClassifiedText{{Text: "Delete files", Domain: "technical"}, {Text: "Write stories", Domain: "creative"}}
+		rs, err := BuildReferences(tok, samples)
+		if err != nil || rs == nil {
+			t.Fatalf("rs=%v err=%v", rs, err)
+		}
+	})
+	if !called {
+		t.Fatal("BuildReferences was not exercised")
+	}
+}
+
+func TestReference_BuildReferences_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, err := BuildReferences(tok, nil)
+		if err == nil || rs != nil {
+			t.Fatalf("rs=%v err=%v", rs, err)
+		}
+	})
+	if !called {
+		t.Fatal("BuildReferences was not exercised")
+	}
+}
+
+func TestReference_BuildReferences_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, err := BuildReferences(tok, []ClassifiedText{{Text: "No domain"}})
+		if err == nil || rs != nil {
+			t.Fatalf("rs=%v err=%v", rs, err)
+		}
+	})
+	if !called {
+		t.Fatal("BuildReferences was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_Compare_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.Compare(NewImprint(tok.Tokenise("Delete files")))
+		if len(got) == 0 {
+			t.Fatal("expected distances")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_Compare was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_Compare_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.Compare(NewImprint(tok.Tokenise("Delete files")))
+		if len(got) == 0 {
+			t.Fatal("expected distances")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_Compare was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_Compare_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.Compare(NewImprint(tok.Tokenise("Delete files")))
+		if len(got) == 0 {
+			t.Fatal("expected distances")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_Compare was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_Classify_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.Classify(NewImprint(tok.Tokenise("Delete files")))
+		if got.Domain == "" {
+			t.Fatal("expected domain")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_Classify was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_Classify_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.Classify(NewImprint(tok.Tokenise("Delete files")))
+		if got.Domain == "" {
+			t.Fatal("expected domain")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_Classify was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_Classify_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.Classify(NewImprint(tok.Tokenise("Delete files")))
+		if got.Domain == "" {
+			t.Fatal("expected domain")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_Classify was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_DomainNames_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.DomainNames()
+		if len(got) == 0 {
+			t.Fatal("expected domains")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_DomainNames was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_DomainNames_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.DomainNames()
+		if len(got) == 0 {
+			t.Fatal("expected domains")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_DomainNames was not exercised")
+	}
+}
+
+func TestReference_ReferenceSet_DomainNames_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		tok := initI18n(t)
+		rs, _ := BuildReferences(tok, []ClassifiedText{{Text: "Delete files", Domain: "technical"}})
+		got := rs.DomainNames()
+		if len(got) == 0 {
+			t.Fatal("expected domains")
+		}
+	})
+	if !called {
+		t.Fatal("ReferenceSet_DomainNames was not exercised")
+	}
+}

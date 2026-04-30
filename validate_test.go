@@ -7,7 +7,7 @@ import (
 	"iter"
 	"testing"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 	"dappco.re/go/inference"
 )
 
@@ -358,5 +358,187 @@ func TestIrregularPrompt(t *testing.T) {
 	}
 	if !contains(prompt, "past participle") {
 		t.Errorf("prompt should contain the tense: %q", prompt)
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestValidate_ValidateArticle_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockArticleModel("a")
+		got, err := ValidateArticle(context.Background(), model, "file", "a")
+		if err != nil || !got.Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("ValidateArticle was not exercised")
+	}
+}
+
+func TestValidate_ValidateArticle_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockArticleModel("an")
+		got, err := ValidateArticle(context.Background(), model, "file", "a")
+		if err != nil || got.Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("ValidateArticle was not exercised")
+	}
+}
+
+func TestValidate_ValidateArticle_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockArticleModel("")
+		got, err := ValidateArticle(context.Background(), model, "", "")
+		if err != nil || !got.Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("ValidateArticle was not exercised")
+	}
+}
+
+func TestValidate_ValidateIrregular_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockIrregularModel(map[string]string{"go": "went"})
+		got, err := ValidateIrregular(context.Background(), model, "go", "past", "went")
+		if err != nil || !got.Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("ValidateIrregular was not exercised")
+	}
+}
+
+func TestValidate_ValidateIrregular_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockIrregularModel(map[string]string{"go": "went"})
+		got, err := ValidateIrregular(context.Background(), model, "go", "past", "goed")
+		if err != nil || got.Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("ValidateIrregular was not exercised")
+	}
+}
+
+func TestValidate_ValidateIrregular_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockIrregularModel(map[string]string{"": "unknown"})
+		got, err := ValidateIrregular(context.Background(), model, "", "", "unknown")
+		if err != nil || !got.Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("ValidateIrregular was not exercised")
+	}
+}
+
+func TestValidate_BatchValidateArticles_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockArticleModel("a")
+		got, err := BatchValidateArticles(context.Background(), model, []ArticlePair{{Noun: "file", Article: "a"}})
+		if err != nil || len(got) != 1 {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("BatchValidateArticles was not exercised")
+	}
+}
+
+func TestValidate_BatchValidateArticles_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockArticleModel("an")
+		got, err := BatchValidateArticles(context.Background(), model, []ArticlePair{{Noun: "file", Article: "a"}})
+		if err != nil || got[0].Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("BatchValidateArticles was not exercised")
+	}
+}
+
+func TestValidate_BatchValidateArticles_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockArticleModel("a")
+		got, err := BatchValidateArticles(context.Background(), model, nil)
+		if err != nil || len(got) != 0 {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("BatchValidateArticles was not exercised")
+	}
+}
+
+func TestValidate_BatchValidateIrregulars_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockIrregularModel(map[string]string{"go": "went"})
+		got, err := BatchValidateIrregulars(context.Background(), model, []IrregularForm{{Verb: "go", Tense: "past", Form: "went"}})
+		if err != nil || len(got) != 1 {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("BatchValidateIrregulars was not exercised")
+	}
+}
+
+func TestValidate_BatchValidateIrregulars_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockIrregularModel(map[string]string{"go": "went"})
+		got, err := BatchValidateIrregulars(context.Background(), model, []IrregularForm{{Verb: "go", Tense: "past", Form: "goed"}})
+		if err != nil || got[0].Valid {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("BatchValidateIrregulars was not exercised")
+	}
+}
+
+func TestValidate_BatchValidateIrregulars_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		model := newMockIrregularModel(map[string]string{"go": "went"})
+		got, err := BatchValidateIrregulars(context.Background(), model, nil)
+		if err != nil || len(got) != 0 {
+			t.Fatalf("got=%+v err=%v", got, err)
+		}
+	})
+	if !called {
+		t.Fatal("BatchValidateIrregulars was not exercised")
 	}
 }

@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"sync"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 // CoreService wraps the i18n Service as a Core framework service.
@@ -142,12 +142,12 @@ func (s *CoreService) OnStartup(_ context.Context) core.Result {
 	if svc := s.wrapped(); svc != nil && svc.Mode() == ModeCollect {
 		s.ensureMissingKeyCollector()
 	}
-	return core.Result{OK: true}
+	return core.Ok(nil)
 }
 
 // OnShutdown finalises the i18n service.
 func (s *CoreService) OnShutdown(_ context.Context) core.Result {
-	return core.Result{OK: true}
+	return core.Ok(nil)
 }
 
 func (s *CoreService) ensureMissingKeyCollector() {
@@ -240,7 +240,7 @@ func (s *CoreService) Translate(messageID string, args ...any) core.Result {
 	if svc := s.wrapped(); svc != nil {
 		return svc.Translate(messageID, args...)
 	}
-	return core.Result{Value: messageID, OK: false}
+	return core.Fail(core.NewError(messageID))
 }
 
 // Raw translates without namespace handler magic.

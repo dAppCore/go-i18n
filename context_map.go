@@ -1,6 +1,6 @@
 package i18n
 
-import "dappco.re/go/core"
+import "dappco.re/go"
 
 func mapValueString(values any, key string) (string, bool) {
 	switch m := values.(type) {

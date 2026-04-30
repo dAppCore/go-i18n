@@ -10,7 +10,7 @@ import (
 	// Note: AX-6 — language lists and lookup variants need generic slice sort/clone helpers; core has no equivalent.
 	"slices"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 	log "dappco.re/go/log"
 	"golang.org/x/text/language"
 )
@@ -826,7 +826,7 @@ func (s *Service) CurrentCompose(key string, subject *Subject) Composed {
 // Translate translates a message by its ID and returns a Core result.
 func (s *Service) Translate(messageID string, args ...any) core.Result {
 	if s == nil {
-		return core.Result{Value: messageID, OK: false}
+		return core.Fail(core.NewError(messageID))
 	}
 	value, ok := s.translateWithStatus(messageID, args...)
 	s.mu.RLock()
@@ -835,7 +835,10 @@ func (s *Service) Translate(messageID string, args ...any) core.Result {
 	if debug {
 		value = debugFormat(messageID, value)
 	}
-	return core.Result{Value: value, OK: ok}
+	if !ok {
+		return core.Fail(core.NewError(value))
+	}
+	return core.Ok(value)
 }
 
 func (s *Service) translateWithStatus(messageID string, args ...any) (string, bool) {

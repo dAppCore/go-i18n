@@ -240,3 +240,753 @@ func TestTranslationContext_FullChain_Good(t *testing.T) {
 		t.Fatalf("want %v, got %v", "cardiology", ctx.Get("speciality"))
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestContext_C_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("navigation")
+		if ctx.Context != "navigation" {
+			t.Fatalf("got %q", ctx.Context)
+		}
+	})
+	if !called {
+		t.Fatal("C was not exercised")
+	}
+}
+
+func TestContext_C_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("")
+		if ctx.Context != "" {
+			t.Fatalf("got %q", ctx.Context)
+		}
+	})
+	if !called {
+		t.Fatal("C was not exercised")
+	}
+}
+
+func TestContext_C_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Count(0)
+		if ctx.CountInt() != 0 {
+			t.Fatalf("want 0")
+		}
+	})
+	if !called {
+		t.Fatal("C was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_WithGender_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").WithGender("f")
+		if ctx.GenderString() != "f" {
+			t.Fatalf("want f")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_WithGender was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_WithGender_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.WithGender("f")
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_WithGender was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_WithGender_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").WithGender("")
+		if ctx.GenderString() != "" {
+			t.Fatalf("want empty")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_WithGender was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_In_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").In("workspace")
+		if ctx.LocationString() != "workspace" {
+			t.Fatalf("want workspace")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_In was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_In_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.In("workspace")
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_In was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_In_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").In("")
+		if ctx.LocationString() != "" {
+			t.Fatalf("want empty")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_In was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Formal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Formal()
+		if ctx.FormalityValue() != FormalityFormal {
+			t.Fatalf("want formal")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Formal was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Formal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.Formal()
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Formal was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Formal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Formal().Informal()
+		if ctx.FormalityValue() != FormalityInformal {
+			t.Fatalf("want informal")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Formal was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Informal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Informal()
+		if ctx.FormalityValue() != FormalityInformal {
+			t.Fatalf("want informal")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Informal was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Informal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.Informal()
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Informal was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Informal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Informal().Formal()
+		if ctx.FormalityValue() != FormalityFormal {
+			t.Fatalf("want formal")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Informal was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_WithFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").WithFormality(FormalityFormal)
+		if ctx.FormalityValue() != FormalityFormal {
+			t.Fatalf("want formal")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_WithFormality was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_WithFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.WithFormality(FormalityFormal)
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_WithFormality was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_WithFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").WithFormality(FormalityNeutral)
+		if ctx.FormalityValue() != FormalityNeutral {
+			t.Fatalf("want neutral")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_WithFormality was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Count_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Count(3)
+		if ctx.CountInt() != 3 {
+			t.Fatalf("want 3")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Count was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Count_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.Count(3)
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Count was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Count_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Count(0)
+		if ctx.CountInt() != 0 {
+			t.Fatalf("want 0")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Count was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Set_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Set("k", "v")
+		if ctx.Get("k") != "v" {
+			t.Fatalf("want v")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Set was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Set_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.Set("k", "v")
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Set was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Set_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Set("", 1)
+		if ctx.Get("") != 1 {
+			t.Fatalf("want 1")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Set was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Get_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Set("k", "v")
+		got := ctx.Get("k")
+		if got != "v" {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Get was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Get_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.Get("k")
+		if got != nil {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Get was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_Get_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.Get("k")
+		if got != nil {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_Get was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_ContextString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("navigation")
+		got := ctx.ContextString()
+		if got != "navigation" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_ContextString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_ContextString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.ContextString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_ContextString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_ContextString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.ContextString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_ContextString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("navigation")
+		got := ctx.String()
+		if got != "navigation" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_String was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.String()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_String was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.String()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_String was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_GenderString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").WithGender("f")
+		got := ctx.GenderString()
+		if got != "f" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_GenderString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_GenderString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.GenderString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_GenderString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_GenderString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.GenderString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_GenderString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_LocationString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").In("workspace")
+		got := ctx.LocationString()
+		if got != "workspace" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_LocationString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_LocationString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.LocationString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_LocationString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_LocationString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.LocationString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_LocationString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_FormalityValue_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Formal()
+		got := ctx.FormalityValue()
+		if got != FormalityFormal {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_FormalityValue was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_FormalityValue_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.FormalityValue()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_FormalityValue was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_FormalityValue_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.FormalityValue()
+		if got != FormalityNeutral {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_FormalityValue was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_CountInt_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Count(3)
+		got := ctx.CountInt()
+		if got != 3 {
+			t.Fatalf("got %d", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_CountInt was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_CountInt_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.CountInt()
+		if got != 1 {
+			t.Fatalf("got %d", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_CountInt was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_CountInt_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.CountInt()
+		if got != 1 {
+			t.Fatalf("got %d", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_CountInt was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_CountString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Count(1234)
+		got := ctx.CountString()
+		if got != "1,234" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_CountString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_CountString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.CountString()
+		if got != "1" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_CountString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_CountString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.CountString()
+		if got != "1" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_CountString was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_IsPlural_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ctx := C("x").Count(2)
+		got := ctx.IsPlural()
+		if !got {
+			t.Fatalf("want plural")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_IsPlural was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_IsPlural_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.IsPlural()
+		if got {
+			t.Fatalf("nil is not plural")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_IsPlural was not exercised")
+	}
+}
+
+func TestContext_TranslationContext_IsPlural_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var ctx *TranslationContext
+		got := ctx.IsPlural()
+		if got {
+			t.Fatalf("nil is not plural")
+		}
+	})
+	if !called {
+		t.Fatal("TranslationContext_IsPlural was not exercised")
+	}
+}

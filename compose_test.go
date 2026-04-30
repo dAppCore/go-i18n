@@ -3,7 +3,7 @@ package i18n
 import (
 	"testing"
 
-	"dappco.re/go/core"
+	"dappco.re/go"
 )
 
 // --- S() constructor ---
@@ -334,5 +334,841 @@ func TestSubject_FullChain_Good(t *testing.T) {
 	}
 	if !(subj.IsPlural()) {
 		t.Fatal("expected true")
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestCompose_S_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "config.yaml")
+		if subj.Noun != "file" {
+			t.Fatalf("want file, got %q", subj.Noun)
+		}
+	})
+	if !called {
+		t.Fatal("S was not exercised")
+	}
+}
+
+func TestCompose_S_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("", nil)
+		if subj.CountInt() != 1 {
+			t.Fatalf("want default count")
+		}
+	})
+	if !called {
+		t.Fatal("S was not exercised")
+	}
+}
+
+func TestCompose_S_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", 42).Count(0)
+		if subj.CountInt() != 0 {
+			t.Fatalf("want zero count")
+		}
+	})
+	if !called {
+		t.Fatal("S was not exercised")
+	}
+}
+
+func TestCompose_ComposeIntent_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ComposeIntent(Intent{Question: "Delete {{.Subject}}?"}, S("file", "config.yaml"))
+		if got.Question != "Delete config.yaml?" {
+			t.Fatalf("got %q", got.Question)
+		}
+	})
+	if !called {
+		t.Fatal("ComposeIntent was not exercised")
+	}
+}
+
+func TestCompose_ComposeIntent_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := (Intent{}).Compose(nil)
+		if got.Question != "" {
+			t.Fatalf("got %q", got.Question)
+		}
+	})
+	if !called {
+		t.Fatal("ComposeIntent was not exercised")
+	}
+}
+
+func TestCompose_ComposeIntent_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ComposeIntent(Intent{Question: "{{.Count}}"}, S("file", "x").Count(0))
+		if got.Question != "0" {
+			t.Fatalf("got %q", got.Question)
+		}
+	})
+	if !called {
+		t.Fatal("ComposeIntent was not exercised")
+	}
+}
+
+func TestCompose_Intent_Compose_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := (Intent{Success: "Done {{.Subject}}"}).Compose(S("file", "config.yaml"))
+		if got.Success != "Done config.yaml" {
+			t.Fatalf("got %q", got.Success)
+		}
+	})
+	if !called {
+		t.Fatal("Intent_Compose was not exercised")
+	}
+}
+
+func TestCompose_Intent_Compose_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := (Intent{}).Compose(nil)
+		if got.Question != "" {
+			t.Fatalf("got %q", got.Question)
+		}
+	})
+	if !called {
+		t.Fatal("Intent_Compose was not exercised")
+	}
+}
+
+func TestCompose_Intent_Compose_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ComposeIntent(Intent{Question: "{{.Count}}"}, S("file", "x").Count(0))
+		if got.Question != "0" {
+			t.Fatalf("got %q", got.Question)
+		}
+	})
+	if !called {
+		t.Fatal("Intent_Compose was not exercised")
+	}
+}
+
+func TestCompose_Subject_Count_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(3)
+		if subj.CountInt() != 3 {
+			t.Fatalf("want 3")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Count was not exercised")
+	}
+}
+
+func TestCompose_Subject_Count_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.Count(3)
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Count was not exercised")
+	}
+}
+
+func TestCompose_Subject_Count_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(0)
+		if subj.CountInt() != 0 {
+			t.Fatalf("want 0")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Count was not exercised")
+	}
+}
+
+func TestCompose_Subject_Gender_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Gender("f")
+		if subj.GenderString() != "f" {
+			t.Fatalf("want f")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Gender was not exercised")
+	}
+}
+
+func TestCompose_Subject_Gender_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.Gender("f")
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Gender was not exercised")
+	}
+}
+
+func TestCompose_Subject_Gender_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Gender("")
+		if subj.GenderString() != "" {
+			t.Fatalf("want empty")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Gender was not exercised")
+	}
+}
+
+func TestCompose_Subject_In_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").In("workspace")
+		if subj.LocationString() != "workspace" {
+			t.Fatalf("want workspace")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_In was not exercised")
+	}
+}
+
+func TestCompose_Subject_In_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.In("workspace")
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_In was not exercised")
+	}
+}
+
+func TestCompose_Subject_In_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").In("")
+		if subj.LocationString() != "" {
+			t.Fatalf("want empty")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_In was not exercised")
+	}
+}
+
+func TestCompose_Subject_Formal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Formal()
+		if !subj.IsFormal() {
+			t.Fatalf("want formal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Formal was not exercised")
+	}
+}
+
+func TestCompose_Subject_Formal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.Formal()
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Formal was not exercised")
+	}
+}
+
+func TestCompose_Subject_Formal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Formal().Informal()
+		if subj.IsFormal() {
+			t.Fatalf("want not formal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Formal was not exercised")
+	}
+}
+
+func TestCompose_Subject_Informal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Informal()
+		if !subj.IsInformal() {
+			t.Fatalf("want informal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Informal was not exercised")
+	}
+}
+
+func TestCompose_Subject_Informal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.Informal()
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Informal was not exercised")
+	}
+}
+
+func TestCompose_Subject_Informal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Informal().Formal()
+		if subj.IsInformal() {
+			t.Fatalf("want not informal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_Informal was not exercised")
+	}
+}
+
+func TestCompose_Subject_SetFormality_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").SetFormality(FormalityFormal)
+		if subj.FormalityString() != "formal" {
+			t.Fatalf("want formal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_SetFormality was not exercised")
+	}
+}
+
+func TestCompose_Subject_SetFormality_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.SetFormality(FormalityFormal)
+		if got != nil {
+			t.Fatalf("nil receiver should return nil")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_SetFormality was not exercised")
+	}
+}
+
+func TestCompose_Subject_SetFormality_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").SetFormality(FormalityNeutral)
+		if subj.FormalityString() != "neutral" {
+			t.Fatalf("want neutral")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_SetFormality was not exercised")
+	}
+}
+
+func TestCompose_Subject_String_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "config.yaml")
+		got := subj.String()
+		if got != "config.yaml" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_String was not exercised")
+	}
+}
+
+func TestCompose_Subject_String_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.String()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_String was not exercised")
+	}
+}
+
+func TestCompose_Subject_String_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("n", 42)
+		got := subj.String()
+		if got != "42" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_String was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsPlural_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(2)
+		got := subj.IsPlural()
+		if !got {
+			t.Fatalf("want plural")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsPlural was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsPlural_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.IsPlural()
+		if got {
+			t.Fatalf("nil is not plural")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsPlural was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsPlural_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(1)
+		got := subj.IsPlural()
+		if got {
+			t.Fatalf("one is not plural")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsPlural was not exercised")
+	}
+}
+
+func TestCompose_Subject_CountInt_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(3)
+		got := subj.CountInt()
+		if got != 3 {
+			t.Fatalf("got %d", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_CountInt was not exercised")
+	}
+}
+
+func TestCompose_Subject_CountInt_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.CountInt()
+		if got != 1 {
+			t.Fatalf("got %d", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_CountInt was not exercised")
+	}
+}
+
+func TestCompose_Subject_CountInt_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(-1)
+		got := subj.CountInt()
+		if got != -1 {
+			t.Fatalf("got %d", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_CountInt was not exercised")
+	}
+}
+
+func TestCompose_Subject_CountString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(1234)
+		got := subj.CountString()
+		if got != "1,234" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_CountString was not exercised")
+	}
+}
+
+func TestCompose_Subject_CountString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.CountString()
+		if got != "1" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_CountString was not exercised")
+	}
+}
+
+func TestCompose_Subject_CountString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").Count(0)
+		got := subj.CountString()
+		if got != "0" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_CountString was not exercised")
+	}
+}
+
+func TestCompose_Subject_GenderString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Gender("f")
+		got := subj.GenderString()
+		if got != "f" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_GenderString was not exercised")
+	}
+}
+
+func TestCompose_Subject_GenderString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.GenderString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_GenderString was not exercised")
+	}
+}
+
+func TestCompose_Subject_GenderString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a")
+		got := subj.GenderString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_GenderString was not exercised")
+	}
+}
+
+func TestCompose_Subject_LocationString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x").In("workspace")
+		got := subj.LocationString()
+		if got != "workspace" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_LocationString was not exercised")
+	}
+}
+
+func TestCompose_Subject_LocationString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.LocationString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_LocationString was not exercised")
+	}
+}
+
+func TestCompose_Subject_LocationString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x")
+		got := subj.LocationString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_LocationString was not exercised")
+	}
+}
+
+func TestCompose_Subject_NounString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("file", "x")
+		got := subj.NounString()
+		if got != "file" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_NounString was not exercised")
+	}
+}
+
+func TestCompose_Subject_NounString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.NounString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_NounString was not exercised")
+	}
+}
+
+func TestCompose_Subject_NounString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("", "x")
+		got := subj.NounString()
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_NounString was not exercised")
+	}
+}
+
+func TestCompose_Subject_FormalityString_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Formal()
+		got := subj.FormalityString()
+		if got != "formal" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_FormalityString was not exercised")
+	}
+}
+
+func TestCompose_Subject_FormalityString_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.FormalityString()
+		if got != "neutral" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_FormalityString was not exercised")
+	}
+}
+
+func TestCompose_Subject_FormalityString_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a")
+		got := subj.FormalityString()
+		if got != "neutral" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Subject_FormalityString was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsFormal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Formal()
+		got := subj.IsFormal()
+		if !got {
+			t.Fatalf("want formal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsFormal was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsFormal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.IsFormal()
+		if got {
+			t.Fatalf("nil is not formal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsFormal was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsFormal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a")
+		got := subj.IsFormal()
+		if got {
+			t.Fatalf("neutral is not formal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsFormal was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsInformal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a").Informal()
+		got := subj.IsInformal()
+		if !got {
+			t.Fatalf("want informal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsInformal was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsInformal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var subj *Subject
+		got := subj.IsInformal()
+		if got {
+			t.Fatalf("nil is not informal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsInformal was not exercised")
+	}
+}
+
+func TestCompose_Subject_IsInformal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		subj := S("user", "a")
+		got := subj.IsInformal()
+		if got {
+			t.Fatalf("neutral is not informal")
+		}
+	})
+	if !called {
+		t.Fatal("Subject_IsInformal was not exercised")
 	}
 }

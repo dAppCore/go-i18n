@@ -4,9 +4,9 @@ import (
 	"context"
 	"time"
 
-	"dappco.re/go/core"
-	log "dappco.re/go/log"
+	"dappco.re/go"
 	"dappco.re/go/inference"
+	log "dappco.re/go/log"
 )
 
 // CalibrationSample is a single text entry for model comparison.

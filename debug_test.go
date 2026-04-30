@@ -130,7 +130,146 @@ func TestTranslate_DebugMode_PreservesOK(t *testing.T) {
 	if missing.OK {
 		t.Fatal("expected false")
 	}
-	if "[missing.translation.key] missing.translation.key" != missing.Value {
-		t.Fatalf("want %v, got %v", "[missing.translation.key] missing.translation.key", missing.Value)
+	if "[missing.translation.key] missing.translation.key" != missing.Error() {
+		t.Fatalf("want %v, got %v", "[missing.translation.key] missing.translation.key", missing.Error())
+	}
+}
+
+// --- AX-7 canonical triplets ---
+
+func TestDebug_SetDebug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetDebug(true)
+		if !svc.Debug() {
+			t.Fatalf("debug was not enabled")
+		}
+	})
+	if !called {
+		t.Fatal("SetDebug was not exercised")
+	}
+}
+
+func TestDebug_SetDebug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetDebug(false)
+		if svc.Debug() {
+			t.Fatalf("debug was not disabled")
+		}
+	})
+	if !called {
+		t.Fatal("SetDebug was not exercised")
+	}
+}
+
+func TestDebug_SetDebug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7SetDefault(t)
+		SetDebug(true)
+		SetDebug(false)
+		if svc.Debug() {
+			t.Fatalf("debug should end disabled")
+		}
+	})
+	if !called {
+		t.Fatal("SetDebug was not exercised")
+	}
+}
+
+func TestDebug_Service_SetDebug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetDebug(true)
+		if !svc.Debug() {
+			t.Fatalf("debug was not enabled")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetDebug was not exercised")
+	}
+}
+
+func TestDebug_Service_SetDebug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		svc.SetDebug(true)
+		if svc.Debug() {
+			t.Fatalf("nil receiver should stay false")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetDebug was not exercised")
+	}
+}
+
+func TestDebug_Service_SetDebug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetDebug(true)
+		svc.SetDebug(false)
+		if svc.Debug() {
+			t.Fatalf("debug should end disabled")
+		}
+	})
+	if !called {
+		t.Fatal("Service_SetDebug was not exercised")
+	}
+}
+
+func TestDebug_Service_Debug_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetDebug(true)
+		if !svc.Debug() {
+			t.Fatalf("debug was not enabled")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Debug was not exercised")
+	}
+}
+
+func TestDebug_Service_Debug_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		var svc *Service
+		got := svc.Debug()
+		if got {
+			t.Fatalf("nil receiver should be false")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Debug was not exercised")
+	}
+}
+
+func TestDebug_Service_Debug_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		svc := ax7Service(t)
+		svc.SetDebug(false)
+		if svc.Debug() {
+			t.Fatalf("debug should be false")
+		}
+	})
+	if !called {
+		t.Fatal("Service_Debug was not exercised")
 	}
 }

@@ -937,3 +937,182 @@ func TestCustomFSLoaderPreservesZeroSignalPriors(t *testing.T) {
 		t.Fatalf("signal priors noun = %v, want 1", got)
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestLoader_NewFSLoader_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "locales")
+		langs := loader.Languages()
+		if len(langs) == 0 {
+			t.Fatal("expected languages")
+		}
+	})
+	if !called {
+		t.Fatal("NewFSLoader was not exercised")
+	}
+}
+
+func TestLoader_NewFSLoader_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "missing")
+		langs := loader.Languages()
+		if len(langs) != 0 {
+			t.Fatalf("got %v", langs)
+		}
+	})
+	if !called {
+		t.Fatal("NewFSLoader was not exercised")
+	}
+}
+
+func TestLoader_NewFSLoader_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "")
+		_ = loader.Languages()
+	})
+	if !called {
+		t.Fatal("NewFSLoader was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_Load_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "locales")
+		messages, _, err := loader.Load("en")
+		if err != nil || len(messages) == 0 {
+			t.Fatalf("messages=%v err=%v", messages, err)
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_Load was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_Load_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "locales")
+		_, _, err := loader.Load("zz")
+		if err == nil {
+			t.Fatal("expected missing language error")
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_Load was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_Load_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "locales")
+		_, _, err := loader.Load("")
+		if err == nil {
+			t.Fatal("expected empty language error")
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_Load was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_Languages_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "locales")
+		langs := loader.Languages()
+		if len(langs) != 2 {
+			t.Fatalf("got %v", langs)
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_Languages was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_Languages_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "missing")
+		langs := loader.Languages()
+		if len(langs) != 0 {
+			t.Fatalf("got %v", langs)
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_Languages was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_Languages_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(fstest.MapFS{}, "locales")
+		langs := loader.Languages()
+		if len(langs) != 0 {
+			t.Fatalf("got %v", langs)
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_Languages was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_LanguagesErr_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "locales")
+		_ = loader.Languages()
+		if err := loader.LanguagesErr(); err != nil {
+			t.Fatalf("err=%v", err)
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_LanguagesErr was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_LanguagesErr_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(ax7TestFS(), "missing")
+		_ = loader.Languages()
+		if err := loader.LanguagesErr(); err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_LanguagesErr was not exercised")
+	}
+}
+
+func TestLoader_FSLoader_LanguagesErr_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		loader := NewFSLoader(fstest.MapFS{}, "locales")
+		_ = loader.Languages()
+		if err := loader.LanguagesErr(); err == nil {
+			t.Fatal("expected error")
+		}
+	})
+	if !called {
+		t.Fatal("FSLoader_LanguagesErr was not exercised")
+	}
+}

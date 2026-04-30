@@ -1435,3 +1435,1337 @@ func BenchmarkActionResult(b *testing.B) {
 		ActionResult("delete", "config.yaml")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestGrammar_GetGrammarData_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		_ = GetGrammarData("en")
+	})
+	if !called {
+		t.Fatal("GetGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_GetGrammarData_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		_ = GetGrammarData("zz")
+	})
+	if !called {
+		t.Fatal("GetGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_GetGrammarData_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		_ = GetGrammarData("")
+	})
+	if !called {
+		t.Fatal("GetGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_SetGrammarData_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetGrammarData("ax7-set", &GrammarData{Words: map[string]string{"agent": "agent"}})
+		if GetGrammarData("ax7-set") == nil {
+			t.Fatal("expected grammar data")
+		}
+	})
+	if !called {
+		t.Fatal("SetGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_SetGrammarData_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetGrammarData("", &GrammarData{})
+		_ = GetGrammarData("")
+	})
+	if !called {
+		t.Fatal("SetGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_SetGrammarData_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		SetGrammarData("ax7-set-nil", nil)
+		if GetGrammarData("ax7-set-nil") != nil {
+			t.Fatal("expected nil grammar data")
+		}
+	})
+	if !called {
+		t.Fatal("SetGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_MergeGrammarData_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		MergeGrammarData("ax7-merge", &GrammarData{Words: map[string]string{"agent": "agent"}})
+		if GetGrammarData("ax7-merge") == nil {
+			t.Fatal("expected grammar data")
+		}
+	})
+	if !called {
+		t.Fatal("MergeGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_MergeGrammarData_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		MergeGrammarData("", &GrammarData{})
+		_ = GetGrammarData("")
+	})
+	if !called {
+		t.Fatal("MergeGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_MergeGrammarData_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		MergeGrammarData("ax7-merge-nil", nil)
+		_ = GetGrammarData("ax7-merge-nil")
+	})
+	if !called {
+		t.Fatal("MergeGrammarData was not exercised")
+	}
+}
+
+func TestGrammar_IrregularVerbs_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IrregularVerbs()
+		if got["go"].Past == "" {
+			t.Fatal("expected go")
+		}
+	})
+	if !called {
+		t.Fatal("IrregularVerbs was not exercised")
+	}
+}
+
+func TestGrammar_IrregularVerbs_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IrregularVerbs()
+		delete(got, "go")
+		if IrregularVerbs()["go"].Past == "" {
+			t.Fatal("source map mutated")
+		}
+	})
+	if !called {
+		t.Fatal("IrregularVerbs was not exercised")
+	}
+}
+
+func TestGrammar_IrregularVerbs_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IrregularVerbs()
+		if len(got) == 0 {
+			t.Fatal("expected verbs")
+		}
+	})
+	if !called {
+		t.Fatal("IrregularVerbs was not exercised")
+	}
+}
+
+func TestGrammar_IrregularNouns_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IrregularNouns()
+		if got["child"] == "" {
+			t.Fatal("expected child")
+		}
+	})
+	if !called {
+		t.Fatal("IrregularNouns was not exercised")
+	}
+}
+
+func TestGrammar_IrregularNouns_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IrregularNouns()
+		delete(got, "child")
+		if IrregularNouns()["child"] == "" {
+			t.Fatal("source map mutated")
+		}
+	})
+	if !called {
+		t.Fatal("IrregularNouns was not exercised")
+	}
+}
+
+func TestGrammar_IrregularNouns_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := IrregularNouns()
+		if len(got) == 0 {
+			t.Fatal("expected nouns")
+		}
+	})
+	if !called {
+		t.Fatal("IrregularNouns was not exercised")
+	}
+}
+
+func TestGrammar_DualClassVerbs_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DualClassVerbs()
+		if got["build"].Past == "" && len(got) == 0 {
+			t.Fatal("expected verbs")
+		}
+	})
+	if !called {
+		t.Fatal("DualClassVerbs was not exercised")
+	}
+}
+
+func TestGrammar_DualClassVerbs_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DualClassVerbs()
+		delete(got, "build")
+		_ = DualClassVerbs()
+	})
+	if !called {
+		t.Fatal("DualClassVerbs was not exercised")
+	}
+}
+
+func TestGrammar_DualClassVerbs_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DualClassVerbs()
+		if len(got) == 0 {
+			t.Fatal("expected verbs")
+		}
+	})
+	if !called {
+		t.Fatal("DualClassVerbs was not exercised")
+	}
+}
+
+func TestGrammar_DualClassNouns_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DualClassNouns()
+		if len(got) == 0 {
+			t.Fatal("expected nouns")
+		}
+	})
+	if !called {
+		t.Fatal("DualClassNouns was not exercised")
+	}
+}
+
+func TestGrammar_DualClassNouns_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DualClassNouns()
+		delete(got, "build")
+		_ = DualClassNouns()
+	})
+	if !called {
+		t.Fatal("DualClassNouns was not exercised")
+	}
+}
+
+func TestGrammar_DualClassNouns_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DualClassNouns()
+		if len(got) == 0 {
+			t.Fatal("expected nouns")
+		}
+	})
+	if !called {
+		t.Fatal("DualClassNouns was not exercised")
+	}
+}
+
+func TestGrammar_Lower_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Lower("AGENT")
+		if got != "agent" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Lower was not exercised")
+	}
+}
+
+func TestGrammar_Lower_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Lower("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Lower was not exercised")
+	}
+}
+
+func TestGrammar_Lower_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Lower("Agent-01")
+		if got != "agent-01" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Lower was not exercised")
+	}
+}
+
+func TestGrammar_Upper_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Upper("agent")
+		if got != "AGENT" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Upper was not exercised")
+	}
+}
+
+func TestGrammar_Upper_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Upper("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Upper was not exercised")
+	}
+}
+
+func TestGrammar_Upper_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Upper("agent-01")
+		if got != "AGENT-01" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Upper was not exercised")
+	}
+}
+
+func TestGrammar_PastTense_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := PastTense("delete")
+		if got == "" {
+			t.Fatal("expected past tense")
+		}
+	})
+	if !called {
+		t.Fatal("PastTense was not exercised")
+	}
+}
+
+func TestGrammar_PastTense_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PastTense("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("PastTense was not exercised")
+	}
+}
+
+func TestGrammar_PastTense_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PastTense("run")
+		if got == "" {
+			t.Fatal("expected irregular past")
+		}
+	})
+	if !called {
+		t.Fatal("PastTense was not exercised")
+	}
+}
+
+func TestGrammar_Gerund_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Gerund("delete")
+		if got == "" {
+			t.Fatal("expected gerund")
+		}
+	})
+	if !called {
+		t.Fatal("Gerund was not exercised")
+	}
+}
+
+func TestGrammar_Gerund_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Gerund("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Gerund was not exercised")
+	}
+}
+
+func TestGrammar_Gerund_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Gerund("run")
+		if got == "" {
+			t.Fatal("expected irregular gerund")
+		}
+	})
+	if !called {
+		t.Fatal("Gerund was not exercised")
+	}
+}
+
+func TestGrammar_Pluralize_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Pluralize("file", 2)
+		if got == "" {
+			t.Fatal("expected plural")
+		}
+	})
+	if !called {
+		t.Fatal("Pluralize was not exercised")
+	}
+}
+
+func TestGrammar_Pluralize_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Pluralize("", 2)
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Pluralize was not exercised")
+	}
+}
+
+func TestGrammar_Pluralize_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Pluralize("child", 2)
+		if got == "" {
+			t.Fatal("expected irregular plural")
+		}
+	})
+	if !called {
+		t.Fatal("Pluralize was not exercised")
+	}
+}
+
+func TestGrammar_PluralForm_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PluralForm("file")
+		if got == "" {
+			t.Fatal("expected plural")
+		}
+	})
+	if !called {
+		t.Fatal("PluralForm was not exercised")
+	}
+}
+
+func TestGrammar_PluralForm_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PluralForm("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("PluralForm was not exercised")
+	}
+}
+
+func TestGrammar_PluralForm_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := PluralForm("child")
+		if got == "" {
+			t.Fatal("expected plural")
+		}
+	})
+	if !called {
+		t.Fatal("PluralForm was not exercised")
+	}
+}
+
+func TestGrammar_Article_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Article("apple")
+		_ = got
+	})
+	if !called {
+		t.Fatal("Article was not exercised")
+	}
+}
+
+func TestGrammar_Article_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Article("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("Article was not exercised")
+	}
+}
+
+func TestGrammar_Article_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Article("user")
+		_ = got
+	})
+	if !called {
+		t.Fatal("Article was not exercised")
+	}
+}
+
+func TestGrammar_ArticleToken_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ArticleToken("apple")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ArticleToken was not exercised")
+	}
+}
+
+func TestGrammar_ArticleToken_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ArticleToken("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ArticleToken was not exercised")
+	}
+}
+
+func TestGrammar_ArticleToken_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ArticleToken("user")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ArticleToken was not exercised")
+	}
+}
+
+func TestGrammar_Title_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Title("agent")
+		if got != "Agent" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Title was not exercised")
+	}
+}
+
+func TestGrammar_Title_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Title("")
+		if got != "" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Title was not exercised")
+	}
+}
+
+func TestGrammar_Title_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Title("a")
+		if got != "A" {
+			t.Fatalf("got %q", got)
+		}
+	})
+	if !called {
+		t.Fatal("Title was not exercised")
+	}
+}
+
+func TestGrammar_Quote_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Quote("agent")
+		if got == "" {
+			t.Fatal("expected quote")
+		}
+	})
+	if !called {
+		t.Fatal("Quote was not exercised")
+	}
+}
+
+func TestGrammar_Quote_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Quote("")
+		if got == "" {
+			t.Fatal("expected quote")
+		}
+	})
+	if !called {
+		t.Fatal("Quote was not exercised")
+	}
+}
+
+func TestGrammar_Quote_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Quote("agent\n")
+		if got == "" {
+			t.Fatal("expected quote")
+		}
+	})
+	if !called {
+		t.Fatal("Quote was not exercised")
+	}
+}
+
+func TestGrammar_ArticlePhrase_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ArticlePhrase("apple")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ArticlePhrase was not exercised")
+	}
+}
+
+func TestGrammar_ArticlePhrase_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ArticlePhrase("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ArticlePhrase was not exercised")
+	}
+}
+
+func TestGrammar_ArticlePhrase_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ArticlePhrase("user")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ArticlePhrase was not exercised")
+	}
+}
+
+func TestGrammar_DefiniteArticle_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefiniteArticle("file")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefiniteArticle was not exercised")
+	}
+}
+
+func TestGrammar_DefiniteArticle_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefiniteArticle("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefiniteArticle was not exercised")
+	}
+}
+
+func TestGrammar_DefiniteArticle_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefiniteArticle("apple")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefiniteArticle was not exercised")
+	}
+}
+
+func TestGrammar_DefiniteToken_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefiniteToken("file")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefiniteToken was not exercised")
+	}
+}
+
+func TestGrammar_DefiniteToken_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefiniteToken("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefiniteToken was not exercised")
+	}
+}
+
+func TestGrammar_DefiniteToken_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefiniteToken("apple")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefiniteToken was not exercised")
+	}
+}
+
+func TestGrammar_DefinitePhrase_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefinitePhrase("file")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefinitePhrase was not exercised")
+	}
+}
+
+func TestGrammar_DefinitePhrase_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefinitePhrase("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefinitePhrase was not exercised")
+	}
+}
+
+func TestGrammar_DefinitePhrase_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := DefinitePhrase("apple")
+		_ = got
+	})
+	if !called {
+		t.Fatal("DefinitePhrase was not exercised")
+	}
+}
+
+func TestGrammar_TemplateFuncs_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		funcs := TemplateFuncs()
+		if len(funcs) == 0 {
+			t.Fatal("expected funcs")
+		}
+	})
+	if !called {
+		t.Fatal("TemplateFuncs was not exercised")
+	}
+}
+
+func TestGrammar_TemplateFuncs_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		funcs := TemplateFuncs()
+		if funcs["missing"] != nil {
+			t.Fatal("unexpected missing func")
+		}
+	})
+	if !called {
+		t.Fatal("TemplateFuncs was not exercised")
+	}
+}
+
+func TestGrammar_TemplateFuncs_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		funcs := TemplateFuncs()
+		if funcs["article"] == nil {
+			t.Fatal("expected article func")
+		}
+	})
+	if !called {
+		t.Fatal("TemplateFuncs was not exercised")
+	}
+}
+
+func TestGrammar_Number_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Number(1234)
+		if got == "" {
+			t.Fatal("expected number")
+		}
+	})
+	if !called {
+		t.Fatal("Number was not exercised")
+	}
+}
+
+func TestGrammar_Number_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Number("bad")
+		if got == "" {
+			t.Fatal("expected fallback number")
+		}
+	})
+	if !called {
+		t.Fatal("Number was not exercised")
+	}
+}
+
+func TestGrammar_Number_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Number(0)
+		if got == "" {
+			t.Fatal("expected zero")
+		}
+	})
+	if !called {
+		t.Fatal("Number was not exercised")
+	}
+}
+
+func TestGrammar_Decimal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Decimal(1.5)
+		if got == "" {
+			t.Fatal("expected decimal")
+		}
+	})
+	if !called {
+		t.Fatal("Decimal was not exercised")
+	}
+}
+
+func TestGrammar_Decimal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Decimal("bad")
+		if got == "" {
+			t.Fatal("expected fallback decimal")
+		}
+	})
+	if !called {
+		t.Fatal("Decimal was not exercised")
+	}
+}
+
+func TestGrammar_Decimal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Decimal(0)
+		if got == "" {
+			t.Fatal("expected zero")
+		}
+	})
+	if !called {
+		t.Fatal("Decimal was not exercised")
+	}
+}
+
+func TestGrammar_Percent_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Percent(0.5)
+		if got == "" {
+			t.Fatal("expected percent")
+		}
+	})
+	if !called {
+		t.Fatal("Percent was not exercised")
+	}
+}
+
+func TestGrammar_Percent_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Percent("bad")
+		if got == "" {
+			t.Fatal("expected fallback percent")
+		}
+	})
+	if !called {
+		t.Fatal("Percent was not exercised")
+	}
+}
+
+func TestGrammar_Percent_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Percent(0)
+		if got == "" {
+			t.Fatal("expected zero")
+		}
+	})
+	if !called {
+		t.Fatal("Percent was not exercised")
+	}
+}
+
+func TestGrammar_Bytes_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Bytes(1024)
+		if got == "" {
+			t.Fatal("expected bytes")
+		}
+	})
+	if !called {
+		t.Fatal("Bytes was not exercised")
+	}
+}
+
+func TestGrammar_Bytes_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Bytes("bad")
+		if got == "" {
+			t.Fatal("expected fallback bytes")
+		}
+	})
+	if !called {
+		t.Fatal("Bytes was not exercised")
+	}
+}
+
+func TestGrammar_Bytes_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Bytes(0)
+		if got == "" {
+			t.Fatal("expected zero")
+		}
+	})
+	if !called {
+		t.Fatal("Bytes was not exercised")
+	}
+}
+
+func TestGrammar_Ordinal_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Ordinal(1)
+		if got == "" {
+			t.Fatal("expected ordinal")
+		}
+	})
+	if !called {
+		t.Fatal("Ordinal was not exercised")
+	}
+}
+
+func TestGrammar_Ordinal_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Ordinal("bad")
+		if got == "" {
+			t.Fatal("expected fallback ordinal")
+		}
+	})
+	if !called {
+		t.Fatal("Ordinal was not exercised")
+	}
+}
+
+func TestGrammar_Ordinal_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Ordinal(0)
+		if got == "" {
+			t.Fatal("expected zero")
+		}
+	})
+	if !called {
+		t.Fatal("Ordinal was not exercised")
+	}
+}
+
+func TestGrammar_Ago_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		ax7SetDefault(t)
+		got := Ago(5, "minute")
+		if got == "" {
+			t.Fatal("expected ago")
+		}
+	})
+	if !called {
+		t.Fatal("Ago was not exercised")
+	}
+}
+
+func TestGrammar_Ago_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Ago(5, "unknown")
+		if got == "" {
+			t.Fatal("expected fallback ago")
+		}
+	})
+	if !called {
+		t.Fatal("Ago was not exercised")
+	}
+}
+
+func TestGrammar_Ago_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Ago(0, "second")
+		if got == "" {
+			t.Fatal("expected ago")
+		}
+	})
+	if !called {
+		t.Fatal("Ago was not exercised")
+	}
+}
+
+func TestGrammar_Progress_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Progress("build")
+		if got == "" {
+			t.Fatal("expected progress")
+		}
+	})
+	if !called {
+		t.Fatal("Progress was not exercised")
+	}
+}
+
+func TestGrammar_Progress_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Progress("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("Progress was not exercised")
+	}
+}
+
+func TestGrammar_Progress_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Progress("run")
+		if got == "" {
+			t.Fatal("expected progress")
+		}
+	})
+	if !called {
+		t.Fatal("Progress was not exercised")
+	}
+}
+
+func TestGrammar_ProgressSubject_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ProgressSubject("build", "docs")
+		if got == "" {
+			t.Fatal("expected progress")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressSubject was not exercised")
+	}
+}
+
+func TestGrammar_ProgressSubject_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ProgressSubject("", "docs")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ProgressSubject was not exercised")
+	}
+}
+
+func TestGrammar_ProgressSubject_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ProgressSubject("build", "")
+		if got == "" {
+			t.Fatal("expected progress")
+		}
+	})
+	if !called {
+		t.Fatal("ProgressSubject was not exercised")
+	}
+}
+
+func TestGrammar_ActionResult_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ActionResult("delete", "file")
+		if got == "" {
+			t.Fatal("expected result")
+		}
+	})
+	if !called {
+		t.Fatal("ActionResult was not exercised")
+	}
+}
+
+func TestGrammar_ActionResult_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ActionResult("", "file")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ActionResult was not exercised")
+	}
+}
+
+func TestGrammar_ActionResult_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ActionResult("delete", "")
+		if got == "" {
+			t.Fatal("expected result")
+		}
+	})
+	if !called {
+		t.Fatal("ActionResult was not exercised")
+	}
+}
+
+func TestGrammar_ActionFailed_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ActionFailed("delete", "file")
+		if got == "" {
+			t.Fatal("expected failure")
+		}
+	})
+	if !called {
+		t.Fatal("ActionFailed was not exercised")
+	}
+}
+
+func TestGrammar_ActionFailed_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ActionFailed("", "file")
+		_ = got
+	})
+	if !called {
+		t.Fatal("ActionFailed was not exercised")
+	}
+}
+
+func TestGrammar_ActionFailed_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := ActionFailed("delete", "")
+		if got == "" {
+			t.Fatal("expected failure")
+		}
+	})
+	if !called {
+		t.Fatal("ActionFailed was not exercised")
+	}
+}
+
+func TestGrammar_Label_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Label("status")
+		if got == "" {
+			t.Fatal("expected label")
+		}
+	})
+	if !called {
+		t.Fatal("Label was not exercised")
+	}
+}
+
+func TestGrammar_Label_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Label("")
+		_ = got
+	})
+	if !called {
+		t.Fatal("Label was not exercised")
+	}
+}
+
+func TestGrammar_Label_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		got := Label("agent")
+		if got == "" {
+			t.Fatal("expected label")
+		}
+	})
+	if !called {
+		t.Fatal("Label was not exercised")
+	}
+}

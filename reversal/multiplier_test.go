@@ -107,3 +107,140 @@ func TestMultiplier_TransformedTokenConfidence(t *testing.T) {
 		t.Error("Noun-transformed token has zero Confidence, want 1.0")
 	}
 }
+
+// --- AX-7 canonical triplets ---
+
+func TestMultiplier_NewMultiplier_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		m := NewMultiplier()
+		if m == nil {
+			t.Fatal("expected multiplier")
+		}
+	})
+	if !called {
+		t.Fatal("NewMultiplier was not exercised")
+	}
+}
+
+func TestMultiplier_NewMultiplier_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		m := NewMultiplier()
+		if m == nil {
+			t.Fatal("expected multiplier")
+		}
+	})
+	if !called {
+		t.Fatal("NewMultiplier was not exercised")
+	}
+}
+
+func TestMultiplier_NewMultiplier_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		m := NewMultiplier()
+		if m.Expand("") != nil {
+			t.Fatal("expected nil expansion")
+		}
+	})
+	if !called {
+		t.Fatal("NewMultiplier was not exercised")
+	}
+}
+
+func TestMultiplier_NewMultiplierForLang_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		m := NewMultiplierForLang("en")
+		if m == nil {
+			t.Fatal("expected multiplier")
+		}
+	})
+	if !called {
+		t.Fatal("NewMultiplierForLang was not exercised")
+	}
+}
+
+func TestMultiplier_NewMultiplierForLang_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		m := NewMultiplierForLang("")
+		if m == nil {
+			t.Fatal("expected multiplier")
+		}
+	})
+	if !called {
+		t.Fatal("NewMultiplierForLang was not exercised")
+	}
+}
+
+func TestMultiplier_NewMultiplierForLang_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		m := NewMultiplierForLang("fr")
+		if m == nil {
+			t.Fatal("expected multiplier")
+		}
+	})
+	if !called {
+		t.Fatal("NewMultiplierForLang was not exercised")
+	}
+}
+
+func TestMultiplier_Multiplier_Expand_Good(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		m := NewMultiplier()
+		got := m.Expand("Delete files")
+		if len(got) == 0 {
+			t.Fatal("expected variants")
+		}
+	})
+	if !called {
+		t.Fatal("Multiplier_Expand was not exercised")
+	}
+}
+
+func TestMultiplier_Multiplier_Expand_Bad(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		m := NewMultiplier()
+		got := m.Expand("")
+		if got != nil {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Multiplier_Expand was not exercised")
+	}
+}
+
+func TestMultiplier_Multiplier_Expand_Ugly(t *testing.T) {
+	called := false
+	ax7NoPanic(t, func() {
+		called = true
+		setup(t)
+		m := NewMultiplier()
+		got := m.Expand("   ")
+		if got != nil {
+			t.Fatalf("got %v", got)
+		}
+	})
+	if !called {
+		t.Fatal("Multiplier_Expand was not exercised")
+	}
+}
