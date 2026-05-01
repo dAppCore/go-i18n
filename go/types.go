@@ -26,9 +26,12 @@ import (
 type Mode int
 
 const (
-	ModeNormal  Mode = iota // Returns key as-is (production)
-	ModeStrict              // Panics on missing key (dev/CI)
-	ModeCollect             // Dispatches MissingKey events, returns [key] (QA)
+	// ModeNormal returns the key as-is when a translation is missing (production default).
+	ModeNormal Mode = iota
+	// ModeStrict panics on a missing key — use in dev/CI to surface gaps loudly.
+	ModeStrict
+	// ModeCollect dispatches MissingKey events and returns "[key]" so QA can collect gaps.
+	ModeCollect
 )
 
 // String returns the human-readable name of the Mode value
@@ -54,9 +57,12 @@ func (m Mode) String() string {
 type Formality int
 
 const (
-	FormalityNeutral  Formality = iota // Context-appropriate (default)
-	FormalityInformal                  // du, tu, you
-	FormalityFormal                    // Sie, vous, usted
+	// FormalityNeutral picks the context-appropriate register (default).
+	FormalityNeutral Formality = iota
+	// FormalityInformal selects informal forms (du, tu, you).
+	FormalityInformal
+	// FormalityFormal selects formal forms (Sie, vous, usted).
+	FormalityFormal
 )
 
 // TextDirection represents text directionality.
@@ -65,8 +71,10 @@ const (
 type TextDirection int
 
 const (
-	DirLTR TextDirection = iota // Left-to-right
-	DirRTL                      // Right-to-left
+	// DirLTR indicates left-to-right text directionality.
+	DirLTR TextDirection = iota
+	// DirRTL indicates right-to-left text directionality (Arabic, Hebrew, Persian).
+	DirRTL
 )
 
 // PluralCategory represents CLDR plural categories.
@@ -75,12 +83,18 @@ const (
 type PluralCategory int
 
 const (
-	PluralOther PluralCategory = iota // Default/fallback
-	PluralZero                        // n=0 (Arabic, Latvian)
-	PluralOne                         // n=1 (most languages)
-	PluralTwo                         // n=2 (Arabic, Welsh)
-	PluralFew                         // Small numbers (Slavic: 2-4)
-	PluralMany                        // Larger numbers (Slavic: 5+)
+	// PluralOther is the default/fallback CLDR plural category.
+	PluralOther PluralCategory = iota
+	// PluralZero applies when n == 0 (Arabic, Latvian).
+	PluralZero
+	// PluralOne applies when n == 1 in most languages.
+	PluralOne
+	// PluralTwo applies when n == 2 (Arabic, Welsh).
+	PluralTwo
+	// PluralFew applies to small-number plurals (Slavic: 2-4).
+	PluralFew
+	// PluralMany applies to larger-number plurals (Slavic: 5+).
+	PluralMany
 )
 
 // GrammaticalGender represents grammatical gender for nouns.
@@ -89,10 +103,14 @@ const (
 type GrammaticalGender int
 
 const (
-	GenderNeuter    GrammaticalGender = iota // das, it
-	GenderMasculine                          // der, le
-	GenderFeminine                           // die, la
-	GenderCommon                             // Swedish, Dutch
+	// GenderNeuter is the neuter grammatical gender (das, it).
+	GenderNeuter GrammaticalGender = iota
+	// GenderMasculine is the masculine grammatical gender (der, le).
+	GenderMasculine
+	// GenderFeminine is the feminine grammatical gender (die, la).
+	GenderFeminine
+	// GenderCommon is the common gender used in Swedish and Dutch.
+	GenderCommon
 )
 
 // --- Message Types ---
