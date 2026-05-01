@@ -52,7 +52,8 @@ type DistanceMetrics struct {
 	Mahalanobis      float64 // 0.0+ (0.0 = identical)
 }
 
-// ClassifyResult holds the domain classification from imprint comparison.
+// ImprintClassification holds the domain classification produced by comparing
+// an imprint against the per-domain reference distributions.
 type ImprintClassification struct {
 	Domain     string  // best-matching domain
 	Confidence float64 // distance margin between best and second-best (0.0–1.0)

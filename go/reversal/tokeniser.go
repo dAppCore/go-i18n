@@ -45,12 +45,18 @@ type NounMatch struct {
 type TokenType int
 
 const (
-	TokenUnknown     TokenType = iota // Unrecognised word
-	TokenVerb                         // Matched verb (see VerbInfo)
-	TokenNoun                         // Matched noun (see NounInfo)
-	TokenArticle                      // Matched article ("a", "an", "the")
-	TokenWord                         // Matched word from grammar word map
-	TokenPunctuation                  // Punctuation ("...", "?")
+	// TokenUnknown is the default classification for an unrecognised word.
+	TokenUnknown TokenType = iota
+	// TokenVerb marks a token matched against the verb tables — see VerbInfo for details.
+	TokenVerb
+	// TokenNoun marks a token matched against the noun tables — see NounInfo for details.
+	TokenNoun
+	// TokenArticle marks an article token ("a", "an", "the").
+	TokenArticle
+	// TokenWord marks a token resolved through the grammar word map.
+	TokenWord
+	// TokenPunctuation marks a punctuation token ("...", "?").
+	TokenPunctuation
 )
 
 // Token represents a single classified token from a text string.
