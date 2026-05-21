@@ -45,6 +45,7 @@ var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu
 // Classification_Tokenise allocs after the normalize-tag cache landed,
 // and 82% after the *Lowered helpers landed.
 type tokeniseScratch struct {
+	fields     []string // splitFields output, reused across calls
 	lowerWords []string // one entry per part: core.Lower(splitTrailingPunct(part).word)
 	phraseBuf  []byte   // joined lowered phrase bytes — map-key lookup uses string(buf)
 	rawBuf     []byte   // joined raw phrase bytes — used for Token.Raw on a hit
@@ -61,6 +62,7 @@ func getTokeniseScratch() *tokeniseScratch {
 
 // putTokeniseScratch resets and returns a scratch to the pool.
 func putTokeniseScratch(s *tokeniseScratch) {
+	s.fields = s.fields[:0]
 	s.lowerWords = s.lowerWords[:0]
 	s.phraseBuf = s.phraseBuf[:0]
 	s.rawBuf = s.rawBuf[:0]
@@ -506,11 +508,14 @@ func isVowelByte(b byte) bool {
 // We generate candidates for each possible reverse rule. Round-trip
 // verification (in bestRoundTrip) ensures only correct candidates pass.
 func (t *Tokeniser) reverseRegularPast(word string) []string {
-	var candidates []string
-
 	if !core.HasSuffix(word, "ed") {
-		return candidates
+		// Empty-return path: nil with no allocation. Common case
+		// for natural English (most words aren't past-tense forms).
+		return nil
 	}
+	// Up to 4 candidates: ied (1) + doubled-consonant (1) + stem+e (1) + stem (1).
+	// Pre-size avoids 2-3 growth reallocations on the past-tense path.
+	candidates := make([]string, 0, 4)
 
 	// Rule: consonant + "ied" → consonant + "y" (e.g., "copied" → "copy")
 	if core.HasSuffix(word, "ied") && len(word) > 3 {
@@ -552,11 +557,13 @@ func (t *Tokeniser) reverseRegularPast(word string) []string {
 //   - doubled consonant     (e.g., "stopping" → "stop")
 //   - verb[:-2] + "ying"    (e.g., "dying" → "die")
 func (t *Tokeniser) reverseRegularGerund(word string) []string {
-	var candidates []string
-
 	if !core.HasSuffix(word, "ing") || len(word) < 4 {
-		return candidates
+		// Empty-return path: nil with no allocation. Common case
+		// for natural English (most words aren't gerund forms).
+		return nil
 	}
+	// Up to 4 candidates: ying (1) + doubled-consonant (1) + stem (1) + stem+e (1).
+	candidates := make([]string, 0, 4)
 
 	stem := word[:len(word)-3] // strip "ing"
 
@@ -1011,14 +1018,15 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		return nil
 	}
 
-	parts := splitFields(text)
+	scratch := getTokeniseScratch()
+	defer putTokeniseScratch(scratch)
+	scratch.fields = splitFieldsInto(text, scratch.fields)
+	parts := scratch.fields
 
 	// Pre-lower each part's word component ONCE. matchWordPhrase reuses
 	// these instead of re-running core.Lower(splitTrailingPunct(part).word)
 	// on every phrase-length attempt. For phraseLen=4 against an N-word
 	// input that saves (phraseLen-1)*N redundant lowercase allocations.
-	scratch := getTokeniseScratch()
-	defer putTokeniseScratch(scratch)
 	for _, p := range parts {
 		word, _ := splitTrailingPunct(p)
 		scratch.lowerWords = append(scratch.lowerWords, core.Lower(word))
@@ -1911,16 +1919,21 @@ func (t *Tokeniser) DisambiguationStats(tokens []Token) DisambiguationStats {
 //
 //	splitFields("  foo\tbar baz ") // ["foo", "bar", "baz"]
 func splitFields(s string) []string {
-	// Average English word length plus one space is ~6 chars. Sizing
-	// fields at len(s)/6 lands the first append in the right capacity
-	// for typical input without growth reallocations. Empty/short
-	// strings still work (make accepts 0 cap; the first append grows).
-	fields := make([]string, 0, len(s)/6)
+	return splitFieldsInto(s, make([]string, 0, len(s)/6))
+}
+
+// splitFieldsInto is the hot-path variant of splitFields — appends
+// space-separated runs of s into dst. Tokenise() passes its pooled
+// scratch.fields slice as dst so the backing array is reused across
+// calls and avoids the per-call make + growth allocations that the
+// plain splitFields incurs.
+func splitFieldsInto(s string, dst []string) []string {
+	dst = dst[:0]
 	start := -1
 	for i, r := range s {
 		if unicode.IsSpace(r) {
 			if start >= 0 {
-				fields = append(fields, s[start:i])
+				dst = append(dst, s[start:i])
 				start = -1
 			}
 			continue
@@ -1930,9 +1943,9 @@ func splitFields(s string) []string {
 		}
 	}
 	if start >= 0 {
-		fields = append(fields, s[start:])
+		dst = append(dst, s[start:])
 	}
-	return fields
+	return dst
 }
 
 // indexAny returns the index of the first rune in s that is in chars, or -1 if none.
