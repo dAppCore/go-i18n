@@ -35,12 +35,19 @@ var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu
 // reuses the same backing arrays and consumes the pre-lowered word
 // per position computed once at Tokenise entry.
 //
+// phraseBuf and rawBuf hold the joined-phrase bytes as we walk a
+// candidate phrase. Using a []byte (not []string + core.Join) lets the
+// dict lookup use Go's compiler optimisation that elides the string
+// allocation for `m[string(b)]` map lookups. Token construction on a
+// hit pays one string() copy per field; misses pay zero allocations.
+//
 // Per [[ax-11-benchmarks]] — phraseMatching accounted for ~70% of
-// Classification_Tokenise allocs after the normalize-tag cache landed.
+// Classification_Tokenise allocs after the normalize-tag cache landed,
+// and 82% after the *Lowered helpers landed.
 type tokeniseScratch struct {
-	lowerWords  []string // one entry per part: core.Lower(splitTrailingPunct(part).word)
-	phraseLower []string // matchWordPhrase phrase-build scratch
-	phraseRaw   []string // matchWordPhrase raw-build scratch
+	lowerWords []string // one entry per part: core.Lower(splitTrailingPunct(part).word)
+	phraseBuf  []byte   // joined lowered phrase bytes — map-key lookup uses string(buf)
+	rawBuf     []byte   // joined raw phrase bytes — used for Token.Raw on a hit
 }
 
 var tokeniseScratchPool = sync.Pool{
@@ -55,8 +62,8 @@ func getTokeniseScratch() *tokeniseScratch {
 // putTokeniseScratch resets and returns a scratch to the pool.
 func putTokeniseScratch(s *tokeniseScratch) {
 	s.lowerWords = s.lowerWords[:0]
-	s.phraseLower = s.phraseLower[:0]
-	s.phraseRaw = s.phraseRaw[:0]
+	s.phraseBuf = s.phraseBuf[:0]
+	s.rawBuf = s.rawBuf[:0]
 	tokeniseScratchPool.Put(s)
 }
 
@@ -1176,8 +1183,8 @@ func (t *Tokeniser) matchWordPhrase(parts []string, scratch *tokeniseScratch, st
 	}
 
 	for n := maxLen; n >= 2; n-- {
-		scratch.phraseLower = scratch.phraseLower[:0]
-		scratch.phraseRaw = scratch.phraseRaw[:0]
+		scratch.phraseBuf = scratch.phraseBuf[:0]
+		scratch.rawBuf = scratch.rawBuf[:0]
 		var punct string
 		valid := true
 
@@ -1198,8 +1205,13 @@ func (t *Tokeniser) matchWordPhrase(parts []string, scratch *tokeniseScratch, st
 				break
 			}
 
-			scratch.phraseRaw = append(scratch.phraseRaw, word)
-			scratch.phraseLower = append(scratch.phraseLower, scratch.lowerWords[start+j])
+			lower := scratch.lowerWords[start+j]
+			if j > 0 {
+				scratch.phraseBuf = append(scratch.phraseBuf, ' ')
+				scratch.rawBuf = append(scratch.rawBuf, ' ')
+			}
+			scratch.phraseBuf = append(scratch.phraseBuf, lower...)
+			scratch.rawBuf = append(scratch.rawBuf, word...)
 			if j == n-1 {
 				punct = partPunct
 			}
@@ -1209,15 +1221,18 @@ func (t *Tokeniser) matchWordPhrase(parts []string, scratch *tokeniseScratch, st
 			continue
 		}
 
-		phrase := core.Join(" ", scratch.phraseLower...)
-		cat, ok := t.words[phrase]
+		// Map-key lookup with string(scratch.phraseBuf) — the Go
+		// compiler elides the string allocation for this exact form.
+		// Only when the lookup hits do we materialise actual string
+		// values for the Token fields.
+		cat, ok := t.words[string(scratch.phraseBuf)]
 		if !ok {
 			continue
 		}
 
 		tok := Token{
-			Raw:        core.Join(" ", scratch.phraseRaw...),
-			Lower:      phrase,
+			Raw:        string(scratch.rawBuf),
+			Lower:      string(scratch.phraseBuf),
 			Type:       TokenWord,
 			WordCat:    cat,
 			Confidence: 1.0,
