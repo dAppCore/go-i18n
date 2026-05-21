@@ -296,7 +296,14 @@ func (t *Tokeniser) buildNounIndex() {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward function PluralForm().
 func (t *Tokeniser) MatchNoun(word string) (NounMatch, bool) {
-	word = core.Lower(core.Trim(word))
+	return t.matchNounLowered(core.Lower(core.Trim(word)))
+}
+
+// matchNounLowered is the internal hot-path entry point — expects
+// `word` to be already core.Lower'd and trimmed. Tokenise() and the
+// other hot loops use this to skip the redundant Lower allocation when
+// they already have a lowered word in hand via scratch.lowerWords.
+func (t *Tokeniser) matchNounLowered(word string) (NounMatch, bool) {
 	if word == "" {
 		return NounMatch{}, false
 	}
@@ -372,7 +379,12 @@ func (t *Tokeniser) reverseRegularPlural(word string) []string {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward functions PastTense() and Gerund().
 func (t *Tokeniser) MatchVerb(word string) (VerbMatch, bool) {
-	word = core.Lower(core.Trim(word))
+	return t.matchVerbLowered(core.Lower(core.Trim(word)))
+}
+
+// matchVerbLowered is the internal hot-path variant of MatchVerb — see
+// matchNounLowered for the contract.
+func (t *Tokeniser) matchVerbLowered(word string) (VerbMatch, bool) {
 	if word == "" {
 		return VerbMatch{}, false
 	}
@@ -718,7 +730,13 @@ func skipDeprecatedEnglishGrammarEntry(key string) bool {
 // MatchWord performs a case-insensitive lookup in the words map.
 // Returns the category key and true if found, or ("", false) otherwise.
 func (t *Tokeniser) MatchWord(word string) (string, bool) {
-	cat, ok := t.words[core.Lower(word)]
+	return t.matchWordLowered(core.Lower(word))
+}
+
+// matchWordLowered is the internal hot-path variant of MatchWord —
+// expects `word` to be already core.Lower'd.
+func (t *Tokeniser) matchWordLowered(word string) (string, bool) {
+	cat, ok := t.words[word]
 	return cat, ok
 }
 
@@ -728,15 +746,21 @@ func (t *Tokeniser) MatchWord(word string) (string, bool) {
 // Returns the article type ("indefinite" or "definite") and true if matched,
 // or ("", false) otherwise.
 func (t *Tokeniser) MatchArticle(word string) (string, bool) {
+	if base, _ := splitTrailingPunct(word); base != "" {
+		word = base
+	}
+	return t.matchArticleLowered(normaliseFrenchApostrophes(core.Lower(word)))
+}
+
+// matchArticleLowered is the internal hot-path variant of MatchArticle —
+// expects `lower` to be already core.Lower'd, punct-stripped, and
+// normaliseFrenchApostrophes-normalised. Tokenise() supplies this from
+// scratch.lowerWords after handling elision branches.
+func (t *Tokeniser) matchArticleLowered(lower string) (string, bool) {
 	data := t.grammarData()
 	if data == nil {
 		return "", false
 	}
-
-	if base, _ := splitTrailingPunct(word); base != "" {
-		word = base
-	}
-	lower := normaliseFrenchApostrophes(core.Lower(word))
 
 	if artType, ok := matchConfiguredArticleText(lower, data); ok {
 		return artType, true
@@ -1022,6 +1046,10 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		}
 
 		raw := parts[i]
+		// useCachedLower is true when raw still equals parts[i] (no
+		// elision rewrite). In that case scratch.lowerWords[i] holds the
+		// lowered word and we can skip a redundant core.Lower call below.
+		useCachedLower := true
 		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
@@ -1033,6 +1061,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 				})
 			}
 			raw = rest
+			useCachedLower = false
 			if raw == "" {
 				continue
 			}
@@ -1048,6 +1077,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 				})
 			}
 			raw = rest
+			useCachedLower = false
 			if raw == "" {
 				continue
 			}
@@ -1058,17 +1088,23 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 
 		// Classify the word portion (if any).
 		if word != "" {
-			tok := Token{Raw: raw, Lower: core.Lower(word)}
+			var lower string
+			if useCachedLower {
+				lower = scratch.lowerWords[i]
+			} else {
+				lower = core.Lower(word)
+			}
+			tok := Token{Raw: raw, Lower: lower}
 
-			if artType, ok := t.MatchArticle(word); ok {
+			if artType, ok := t.matchArticleLowered(normaliseFrenchApostrophes(lower)); ok {
 				// Articles are unambiguous.
 				tok.Type = TokenArticle
 				tok.ArtType = artType
 				tok.Confidence = 1.0
 			} else {
 				// For non-articles, check BOTH verb and noun.
-				vm, verbOK := t.MatchVerb(word)
-				nm, nounOK := t.MatchNoun(word)
+				vm, verbOK := t.matchVerbLowered(lower)
+				nm, nounOK := t.matchNounLowered(lower)
 
 				if verbOK && nounOK && t.dualClass[tok.Lower] {
 					// Dual-class word: check for self-resolving inflections.
@@ -1098,7 +1134,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 					tok.Type = TokenNoun
 					tok.NounInfo = nm
 					tok.Confidence = 1.0
-				} else if cat, ok := t.MatchWord(word); ok {
+				} else if cat, ok := t.matchWordLowered(lower); ok {
 					tok.Type = TokenWord
 					tok.WordCat = cat
 					tok.Confidence = 1.0
