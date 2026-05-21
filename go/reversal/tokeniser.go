@@ -18,6 +18,7 @@ package reversal
 import (
 	"maps"
 	"math"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -26,6 +27,38 @@ import (
 )
 
 var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu"}
+
+// tokeniseScratch is per-Tokenise() pooled state for the phrase-matching
+// hot loop. Without it, matchWordPhrase rebuilds two []string scratches
+// on every phrase-length attempt and re-calls core.Lower on the same
+// words up to (phraseLen-1) times per token. With it, every call
+// reuses the same backing arrays and consumes the pre-lowered word
+// per position computed once at Tokenise entry.
+//
+// Per [[ax-11-benchmarks]] — phraseMatching accounted for ~70% of
+// Classification_Tokenise allocs after the normalize-tag cache landed.
+type tokeniseScratch struct {
+	lowerWords  []string // one entry per part: core.Lower(splitTrailingPunct(part).word)
+	phraseLower []string // matchWordPhrase phrase-build scratch
+	phraseRaw   []string // matchWordPhrase raw-build scratch
+}
+
+var tokeniseScratchPool = sync.Pool{
+	New: func() any { return &tokeniseScratch{} },
+}
+
+// getTokeniseScratch acquires a reset scratch from the pool.
+func getTokeniseScratch() *tokeniseScratch {
+	return tokeniseScratchPool.Get().(*tokeniseScratch)
+}
+
+// putTokeniseScratch resets and returns a scratch to the pool.
+func putTokeniseScratch(s *tokeniseScratch) {
+	s.lowerWords = s.lowerWords[:0]
+	s.phraseLower = s.phraseLower[:0]
+	s.phraseRaw = s.phraseRaw[:0]
+	tokeniseScratchPool.Put(s)
+}
 
 // VerbMatch holds the result of a reverse verb lookup.
 type VerbMatch struct {
@@ -948,11 +981,23 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	}
 
 	parts := splitFields(text)
+
+	// Pre-lower each part's word component ONCE. matchWordPhrase reuses
+	// these instead of re-running core.Lower(splitTrailingPunct(part).word)
+	// on every phrase-length attempt. For phraseLen=4 against an N-word
+	// input that saves (phraseLen-1)*N redundant lowercase allocations.
+	scratch := getTokeniseScratch()
+	defer putTokeniseScratch(scratch)
+	for _, p := range parts {
+		word, _ := splitTrailingPunct(p)
+		scratch.lowerWords = append(scratch.lowerWords, core.Lower(word))
+	}
+
 	var tokens []Token
 
 	// --- Pass 1: Classify & Mark ---
 	for i := 0; i < len(parts); i++ {
-		if consumed, tok, punctTok := t.matchWordPhrase(parts, i); consumed > 0 {
+		if consumed, tok, punctTok := t.matchWordPhrase(parts, scratch, i); consumed > 0 {
 			tokens = append(tokens, tok)
 			if punctTok != nil {
 				tokens = append(tokens, *punctTok)
@@ -1080,7 +1125,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	return tokens
 }
 
-func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Token) {
+func (t *Tokeniser) matchWordPhrase(parts []string, scratch *tokeniseScratch, start int) (int, Token, *Token) {
 	if t.phraseLen < 2 || start >= len(parts) {
 		return 0, Token{}, nil
 	}
@@ -1091,8 +1136,8 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 	}
 
 	for n := maxLen; n >= 2; n-- {
-		phraseWords := make([]string, 0, n)
-		rawParts := make([]string, 0, n)
+		scratch.phraseLower = scratch.phraseLower[:0]
+		scratch.phraseRaw = scratch.phraseRaw[:0]
 		var punct string
 		valid := true
 
@@ -1113,8 +1158,8 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 				break
 			}
 
-			rawParts = append(rawParts, word)
-			phraseWords = append(phraseWords, core.Lower(word))
+			scratch.phraseRaw = append(scratch.phraseRaw, word)
+			scratch.phraseLower = append(scratch.phraseLower, scratch.lowerWords[start+j])
 			if j == n-1 {
 				punct = partPunct
 			}
@@ -1124,14 +1169,14 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 			continue
 		}
 
-		phrase := core.Join(" ", phraseWords...)
+		phrase := core.Join(" ", scratch.phraseLower...)
 		cat, ok := t.words[phrase]
 		if !ok {
 			continue
 		}
 
 		tok := Token{
-			Raw:        core.Join(" ", rawParts...),
+			Raw:        core.Join(" ", scratch.phraseRaw...),
 			Lower:      phrase,
 			Type:       TokenWord,
 			WordCat:    cat,
