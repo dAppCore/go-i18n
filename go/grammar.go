@@ -969,6 +969,22 @@ func grammarDataForLang(lang string) *GrammarData {
 }
 
 func languageFallbackOrder(langs []string) []string {
+	// Build cache key from input. len==1 is the dominant case — skip
+	// the Join allocation entirely there. len==0 maps to "" which
+	// caches the universal "en" fallback.
+	var key string
+	switch len(langs) {
+	case 0:
+		key = ""
+	case 1:
+		key = langs[0]
+	default:
+		key = core.Join("|", langs...)
+	}
+	if cached, ok := fallbackOrderCache.Load(key); ok {
+		return cached.([]string)
+	}
+
 	ordered := make([]string, 0, len(langs)*2)
 	seen := make(map[string]struct{}, len(langs)*2)
 	var add func(string)
@@ -992,6 +1008,7 @@ func languageFallbackOrder(langs []string) []string {
 	if len(ordered) == 0 {
 		ordered = append(ordered, "en")
 	}
+	fallbackOrderCache.Store(key, ordered)
 	return ordered
 }
 
