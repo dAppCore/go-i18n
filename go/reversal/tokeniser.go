@@ -1437,7 +1437,14 @@ func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
 // ambiguous token should be classified as verb or noun.
 func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, []SignalComponent) {
 	var verbScore, nounScore float64
+	// components is only filled when WithSignals() is enabled. Pre-size
+	// to 8 (one slot per signal type) on the with-signals path to avoid
+	// growth-via-append. Leave nil on the without-signals path — the
+	// `if t.withSignals` guards below skip the appends, so nil is correct.
 	var components []SignalComponent
+	if t.withSignals {
+		components = make([]SignalComponent, 0, 8)
+	}
 
 	// 1. noun_determiner: preceding token is a noun determiner
 	if w, ok := t.weights["noun_determiner"]; ok && idx > 0 {
