@@ -1027,6 +1027,13 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	// these instead of re-running core.Lower(splitTrailingPunct(part).word)
 	// on every phrase-length attempt. For phraseLen=4 against an N-word
 	// input that saves (phraseLen-1)*N redundant lowercase allocations.
+	// Grow lowerWords capacity to len(parts) up front — the pool's existing
+	// backing array may not be large enough after sync.Pool drops it under
+	// GC pressure, and growth-via-append inside the loop is the dominant
+	// remaining Tokenise-flat alloc source per memprofile.
+	if cap(scratch.lowerWords) < len(parts) {
+		scratch.lowerWords = make([]string, 0, len(parts))
+	}
 	for _, p := range parts {
 		word, _ := splitTrailingPunct(p)
 		scratch.lowerWords = append(scratch.lowerWords, core.Lower(word))
