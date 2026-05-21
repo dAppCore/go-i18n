@@ -293,6 +293,14 @@ func preserveCase(original, replacement string) string {
 		return replacement
 	}
 
+	// ASCII fast path. Multiplier variant generation passes English-text
+	// pairs that are almost always ASCII-only, so the []rune conversion
+	// + string(repRunes) round-trip in the slow path costs 3 unnecessary
+	// allocations per call when no byte change is actually needed.
+	if isASCIIOnly(original) && isASCIIOnly(replacement) {
+		return preserveCaseASCII(original, replacement)
+	}
+
 	origRunes := []rune(original)
 	repRunes := []rune(replacement)
 
@@ -310,6 +318,86 @@ func preserveCase(original, replacement string) string {
 	// Otherwise, ensure the replacement starts lowercase.
 	repRunes[0] = unicode.ToLower(repRunes[0])
 	return string(repRunes)
+}
+
+// isASCIIOnly returns true when every byte in s is a 7-bit ASCII value.
+// Used by preserveCase to gate the ASCII fast path.
+func isASCIIOnly(s string) bool {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 128 {
+			return false
+		}
+	}
+	return true
+}
+
+// preserveCaseASCII is the ASCII-only fast path of preserveCase. Avoids
+// the []rune round-trip for the common case where both strings are
+// ASCII-only English text.
+func preserveCaseASCII(original, replacement string) string {
+	o0 := original[0]
+	upperOrig := o0 >= 'A' && o0 <= 'Z'
+	lowerOrig := o0 >= 'a' && o0 <= 'z'
+
+	if upperOrig && isAllUpperASCII(original) && len(original) > 1 {
+		return upperASCII(replacement)
+	}
+
+	r0 := replacement[0]
+	switch {
+	case upperOrig:
+		if r0 >= 'A' && r0 <= 'Z' {
+			return replacement // already capitalised correctly
+		}
+		if r0 >= 'a' && r0 <= 'z' {
+			return string(r0-32) + replacement[1:]
+		}
+		return replacement
+	case lowerOrig:
+		if r0 >= 'a' && r0 <= 'z' {
+			return replacement // already lowercased correctly
+		}
+		if r0 >= 'A' && r0 <= 'Z' {
+			return string(r0+32) + replacement[1:]
+		}
+		return replacement
+	default:
+		// Original starts with a non-letter; preserve replacement as-is
+		// (matches the slow-path's "lowercase first rune" choice for
+		// non-letter first runes, which has no effect when the rune is
+		// already non-letter — i.e. essentially a no-op).
+		return replacement
+	}
+}
+
+// isAllUpperASCII is the ASCII-only fast path of isAllUpper.
+func isAllUpperASCII(s string) bool {
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c >= 'a' && c <= 'z' {
+			return false
+		}
+	}
+	return true
+}
+
+// upperASCII returns s with all ASCII a-z bytes uppercased. Allocates
+// only when at least one byte needs flipping.
+func upperASCII(s string) string {
+	for i := 0; i < len(s); i++ {
+		if s[i] >= 'a' && s[i] <= 'z' {
+			// Found a lowercase byte — allocate buffer + flip all.
+			buf := make([]byte, len(s))
+			copy(buf, s)
+			for j := i; j < len(buf); j++ {
+				if buf[j] >= 'a' && buf[j] <= 'z' {
+					buf[j] -= 32
+				}
+			}
+			return string(buf)
+		}
+	}
+	return s // already all-upper or no letters
 }
 
 // isAllUpper returns true if every letter in the string is uppercase.
