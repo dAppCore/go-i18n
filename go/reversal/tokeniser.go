@@ -993,7 +993,11 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		scratch.lowerWords = append(scratch.lowerWords, core.Lower(word))
 	}
 
-	var tokens []Token
+	// Every part produces at least one token (a word, an article, or
+	// a punctuation). Phrases consume multiple parts but still emit
+	// 1-2 tokens total. len(parts) is a tight lower bound that avoids
+	// the 3-5 growth reallocations a zero-cap slice would incur.
+	tokens := make([]Token, 0, len(parts))
 
 	// --- Pass 1: Classify & Mark ---
 	for i := 0; i < len(parts); i++ {
@@ -1856,7 +1860,11 @@ func (t *Tokeniser) DisambiguationStats(tokens []Token) DisambiguationStats {
 //
 //	splitFields("  foo\tbar baz ") // ["foo", "bar", "baz"]
 func splitFields(s string) []string {
-	var fields []string
+	// Average English word length plus one space is ~6 chars. Sizing
+	// fields at len(s)/6 lands the first append in the right capacity
+	// for typical input without growth reallocations. Empty/short
+	// strings still work (make accepts 0 cap; the first append grows).
+	fields := make([]string, 0, len(s)/6)
 	start := -1
 	for i, r := range s {
 		if unicode.IsSpace(r) {
