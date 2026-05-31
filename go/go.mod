@@ -5,7 +5,7 @@ go 1.26.0
 require golang.org/x/text v0.36.0
 
 require (
-	dappco.re/go v0.9.0
+	dappco.re/go v0.10.3
 	dappco.re/go/inference v0.9.0
 	dappco.re/go/log v0.9.0
 )
