@@ -2,6 +2,30 @@ package reversal
 
 import "testing"
 
+// TestGrammarDataLookupZeroAlloc is the hard guard for the property the
+// benchmarks below merely measure: the per-token grammar-data lookup must
+// allocate nothing. MatchArticle is the pure surface — it resolves grammar
+// data via t.grammarData() -> GetGrammarData -> normalizeLanguageTag and does
+// no morphology, so any allocation here means the BCP-47 tag is being
+// re-parsed per call (i.e. normalizedLangCache, commit 2f9be3c, was removed
+// or bypassed). Unlike a benchmark, this assertion runs under `go test ./...`
+// and fails the suite on regression.
+//
+// Asserted on MatchArticle only — MatchNoun's Tier-3 reverse morphology
+// allocates candidate slices unrelated to the grammar/tag cache.
+func TestGrammarDataLookupZeroAlloc(t *testing.T) {
+	setup(t)
+	tok := NewTokeniser()
+	avg := testing.AllocsPerRun(100, func() {
+		for _, w := range matchWords {
+			tok.MatchArticle(w)
+		}
+	})
+	if avg != 0 {
+		t.Fatalf("MatchArticle allocates %.1f/run; per-Tokeniser grammar lookup regressed (language-tag cache removed?)", avg)
+	}
+}
+
 // These benchmarks mimic the downstream scorer's per-token access pattern:
 // a single Tokeniser/language is reused while MatchArticle/MatchNoun/MatchVerb
 // (and full Tokenise scoring) are driven many times. The grammar data is
