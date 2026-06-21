@@ -116,12 +116,15 @@ func (rs *ReferenceSet) Compare(imprint GrammarImprint) map[string]DistanceMetri
 func (rs *ReferenceSet) Classify(imprint GrammarImprint) ImprintClassification {
 	distances := rs.Compare(imprint)
 
-	// Rank by cosine similarity (descending).
+	// Rank by cosine similarity (descending). Size the slice to the domain
+	// count up front: the loop appends exactly len(distances) entries, so this
+	// removes the nil-slice regrowth without altering append order or the
+	// subsequent sort (capacity is not observable in the result).
 	type scored struct {
 		domain string
 		sim    float64
 	}
-	var ranked []scored
+	ranked := make([]scored, 0, len(distances))
 	for d, m := range distances {
 		ranked = append(ranked, scored{d, m.CosineSimilarity})
 	}
