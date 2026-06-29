@@ -18,6 +18,7 @@ package reversal
 import (
 	"maps"
 	"math"
+	"sync"
 	"unicode"
 	"unicode/utf8"
 
@@ -26,6 +27,47 @@ import (
 )
 
 var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu"}
+
+// tokeniseScratch is per-Tokenise() pooled state for the phrase-matching
+// hot loop. Without it, matchWordPhrase rebuilds two []string scratches
+// on every phrase-length attempt and re-calls core.Lower on the same
+// words up to (phraseLen-1) times per token. With it, every call
+// reuses the same backing arrays and consumes the pre-lowered word
+// per position computed once at Tokenise entry.
+//
+// phraseBuf and rawBuf hold the joined-phrase bytes as we walk a
+// candidate phrase. Using a []byte (not []string + core.Join) lets the
+// dict lookup use Go's compiler optimisation that elides the string
+// allocation for `m[string(b)]` map lookups. Token construction on a
+// hit pays one string() copy per field; misses pay zero allocations.
+//
+// Per [[ax-11-benchmarks]] — phraseMatching accounted for ~70% of
+// Classification_Tokenise allocs after the normalize-tag cache landed,
+// and 82% after the *Lowered helpers landed.
+type tokeniseScratch struct {
+	fields     []string // splitFields output, reused across calls
+	lowerWords []string // one entry per part: core.Lower(splitTrailingPunct(part).word)
+	phraseBuf  []byte   // joined lowered phrase bytes — map-key lookup uses string(buf)
+	rawBuf     []byte   // joined raw phrase bytes — used for Token.Raw on a hit
+}
+
+var tokeniseScratchPool = sync.Pool{
+	New: func() any { return &tokeniseScratch{} },
+}
+
+// getTokeniseScratch acquires a reset scratch from the pool.
+func getTokeniseScratch() *tokeniseScratch {
+	return tokeniseScratchPool.Get().(*tokeniseScratch)
+}
+
+// putTokeniseScratch resets and returns a scratch to the pool.
+func putTokeniseScratch(s *tokeniseScratch) {
+	s.fields = s.fields[:0]
+	s.lowerWords = s.lowerWords[:0]
+	s.phraseBuf = s.phraseBuf[:0]
+	s.rawBuf = s.rawBuf[:0]
+	tokeniseScratchPool.Put(s)
+}
 
 // VerbMatch holds the result of a reverse verb lookup.
 type VerbMatch struct {
@@ -263,7 +305,14 @@ func (t *Tokeniser) buildNounIndex() {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward function PluralForm().
 func (t *Tokeniser) MatchNoun(word string) (NounMatch, bool) {
-	word = core.Lower(core.Trim(word))
+	return t.matchNounLowered(core.Lower(core.Trim(word)))
+}
+
+// matchNounLowered is the internal hot-path entry point — expects
+// `word` to be already core.Lower'd and trimmed. Tokenise() and the
+// other hot loops use this to skip the redundant Lower allocation when
+// they already have a lowered word in hand via scratch.lowerWords.
+func (t *Tokeniser) matchNounLowered(word string) (NounMatch, bool) {
 	if word == "" {
 		return NounMatch{}, false
 	}
@@ -339,7 +388,12 @@ func (t *Tokeniser) reverseRegularPlural(word string) []string {
 // Tier 3: Try reverse morphology rules and round-trip verify via
 // the forward functions PastTense() and Gerund().
 func (t *Tokeniser) MatchVerb(word string) (VerbMatch, bool) {
-	word = core.Lower(core.Trim(word))
+	return t.matchVerbLowered(core.Lower(core.Trim(word)))
+}
+
+// matchVerbLowered is the internal hot-path variant of MatchVerb — see
+// matchNounLowered for the contract.
+func (t *Tokeniser) matchVerbLowered(word string) (VerbMatch, bool) {
 	if word == "" {
 		return VerbMatch{}, false
 	}
@@ -454,11 +508,14 @@ func isVowelByte(b byte) bool {
 // We generate candidates for each possible reverse rule. Round-trip
 // verification (in bestRoundTrip) ensures only correct candidates pass.
 func (t *Tokeniser) reverseRegularPast(word string) []string {
-	var candidates []string
-
 	if !core.HasSuffix(word, "ed") {
-		return candidates
+		// Empty-return path: nil with no allocation. Common case
+		// for natural English (most words aren't past-tense forms).
+		return nil
 	}
+	// Up to 4 candidates: ied (1) + doubled-consonant (1) + stem+e (1) + stem (1).
+	// Pre-size avoids 2-3 growth reallocations on the past-tense path.
+	candidates := make([]string, 0, 4)
 
 	// Rule: consonant + "ied" → consonant + "y" (e.g., "copied" → "copy")
 	if core.HasSuffix(word, "ied") && len(word) > 3 {
@@ -500,11 +557,13 @@ func (t *Tokeniser) reverseRegularPast(word string) []string {
 //   - doubled consonant     (e.g., "stopping" → "stop")
 //   - verb[:-2] + "ying"    (e.g., "dying" → "die")
 func (t *Tokeniser) reverseRegularGerund(word string) []string {
-	var candidates []string
-
 	if !core.HasSuffix(word, "ing") || len(word) < 4 {
-		return candidates
+		// Empty-return path: nil with no allocation. Common case
+		// for natural English (most words aren't gerund forms).
+		return nil
 	}
+	// Up to 4 candidates: ying (1) + doubled-consonant (1) + stem (1) + stem+e (1).
+	candidates := make([]string, 0, 4)
 
 	stem := word[:len(word)-3] // strip "ing"
 
@@ -685,7 +744,13 @@ func skipDeprecatedEnglishGrammarEntry(key string) bool {
 // MatchWord performs a case-insensitive lookup in the words map.
 // Returns the category key and true if found, or ("", false) otherwise.
 func (t *Tokeniser) MatchWord(word string) (string, bool) {
-	cat, ok := t.words[core.Lower(word)]
+	return t.matchWordLowered(core.Lower(word))
+}
+
+// matchWordLowered is the internal hot-path variant of MatchWord —
+// expects `word` to be already core.Lower'd.
+func (t *Tokeniser) matchWordLowered(word string) (string, bool) {
+	cat, ok := t.words[word]
 	return cat, ok
 }
 
@@ -695,15 +760,21 @@ func (t *Tokeniser) MatchWord(word string) (string, bool) {
 // Returns the article type ("indefinite" or "definite") and true if matched,
 // or ("", false) otherwise.
 func (t *Tokeniser) MatchArticle(word string) (string, bool) {
+	if base, _ := splitTrailingPunct(word); base != "" {
+		word = base
+	}
+	return t.matchArticleLowered(normaliseFrenchApostrophes(core.Lower(word)))
+}
+
+// matchArticleLowered is the internal hot-path variant of MatchArticle —
+// expects `lower` to be already core.Lower'd, punct-stripped, and
+// normaliseFrenchApostrophes-normalised. Tokenise() supplies this from
+// scratch.lowerWords after handling elision branches.
+func (t *Tokeniser) matchArticleLowered(lower string) (string, bool) {
 	data := t.grammarData()
 	if data == nil {
 		return "", false
 	}
-
-	if base, _ := splitTrailingPunct(word); base != "" {
-		word = base
-	}
-	lower := normaliseFrenchApostrophes(core.Lower(word))
 
 	if artType, ok := matchConfiguredArticleText(lower, data); ok {
 		return artType, true
@@ -947,12 +1018,36 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		return nil
 	}
 
-	parts := splitFields(text)
-	var tokens []Token
+	scratch := getTokeniseScratch()
+	defer putTokeniseScratch(scratch)
+	scratch.fields = splitFieldsInto(text, scratch.fields)
+	parts := scratch.fields
+
+	// Pre-lower each part's word component ONCE. matchWordPhrase reuses
+	// these instead of re-running core.Lower(splitTrailingPunct(part).word)
+	// on every phrase-length attempt. For phraseLen=4 against an N-word
+	// input that saves (phraseLen-1)*N redundant lowercase allocations.
+	// Grow lowerWords capacity to len(parts) up front — the pool's existing
+	// backing array may not be large enough after sync.Pool drops it under
+	// GC pressure, and growth-via-append inside the loop is the dominant
+	// remaining Tokenise-flat alloc source per memprofile.
+	if cap(scratch.lowerWords) < len(parts) {
+		scratch.lowerWords = make([]string, 0, len(parts))
+	}
+	for _, p := range parts {
+		word, _ := splitTrailingPunct(p)
+		scratch.lowerWords = append(scratch.lowerWords, core.Lower(word))
+	}
+
+	// Every part produces at least one token (a word, an article, or
+	// a punctuation). Phrases consume multiple parts but still emit
+	// 1-2 tokens total. len(parts) is a tight lower bound that avoids
+	// the 3-5 growth reallocations a zero-cap slice would incur.
+	tokens := make([]Token, 0, len(parts))
 
 	// --- Pass 1: Classify & Mark ---
 	for i := 0; i < len(parts); i++ {
-		if consumed, tok, punctTok := t.matchWordPhrase(parts, i); consumed > 0 {
+		if consumed, tok, punctTok := t.matchWordPhrase(parts, scratch, i); consumed > 0 {
 			tokens = append(tokens, tok)
 			if punctTok != nil {
 				tokens = append(tokens, *punctTok)
@@ -973,6 +1068,10 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 		}
 
 		raw := parts[i]
+		// useCachedLower is true when raw still equals parts[i] (no
+		// elision rewrite). In that case scratch.lowerWords[i] holds the
+		// lowered word and we can skip a redundant core.Lower call below.
+		useCachedLower := true
 		if prefix, rest, ok := t.splitFrenchElision(raw); ok {
 			if artType, ok := t.MatchArticle(prefix); ok {
 				tokens = append(tokens, Token{
@@ -984,6 +1083,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 				})
 			}
 			raw = rest
+			useCachedLower = false
 			if raw == "" {
 				continue
 			}
@@ -999,6 +1099,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 				})
 			}
 			raw = rest
+			useCachedLower = false
 			if raw == "" {
 				continue
 			}
@@ -1009,17 +1110,23 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 
 		// Classify the word portion (if any).
 		if word != "" {
-			tok := Token{Raw: raw, Lower: core.Lower(word)}
+			var lower string
+			if useCachedLower {
+				lower = scratch.lowerWords[i]
+			} else {
+				lower = core.Lower(word)
+			}
+			tok := Token{Raw: raw, Lower: lower}
 
-			if artType, ok := t.MatchArticle(word); ok {
+			if artType, ok := t.matchArticleLowered(normaliseFrenchApostrophes(lower)); ok {
 				// Articles are unambiguous.
 				tok.Type = TokenArticle
 				tok.ArtType = artType
 				tok.Confidence = 1.0
 			} else {
 				// For non-articles, check BOTH verb and noun.
-				vm, verbOK := t.MatchVerb(word)
-				nm, nounOK := t.MatchNoun(word)
+				vm, verbOK := t.matchVerbLowered(lower)
+				nm, nounOK := t.matchNounLowered(lower)
 
 				if verbOK && nounOK && t.dualClass[tok.Lower] {
 					// Dual-class word: check for self-resolving inflections.
@@ -1049,7 +1156,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 					tok.Type = TokenNoun
 					tok.NounInfo = nm
 					tok.Confidence = 1.0
-				} else if cat, ok := t.MatchWord(word); ok {
+				} else if cat, ok := t.matchWordLowered(lower); ok {
 					tok.Type = TokenWord
 					tok.WordCat = cat
 					tok.Confidence = 1.0
@@ -1080,7 +1187,7 @@ func (t *Tokeniser) Tokenise(text string) []Token {
 	return tokens
 }
 
-func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Token) {
+func (t *Tokeniser) matchWordPhrase(parts []string, scratch *tokeniseScratch, start int) (int, Token, *Token) {
 	if t.phraseLen < 2 || start >= len(parts) {
 		return 0, Token{}, nil
 	}
@@ -1091,8 +1198,8 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 	}
 
 	for n := maxLen; n >= 2; n-- {
-		phraseWords := make([]string, 0, n)
-		rawParts := make([]string, 0, n)
+		scratch.phraseBuf = scratch.phraseBuf[:0]
+		scratch.rawBuf = scratch.rawBuf[:0]
 		var punct string
 		valid := true
 
@@ -1113,8 +1220,13 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 				break
 			}
 
-			rawParts = append(rawParts, word)
-			phraseWords = append(phraseWords, core.Lower(word))
+			lower := scratch.lowerWords[start+j]
+			if j > 0 {
+				scratch.phraseBuf = append(scratch.phraseBuf, ' ')
+				scratch.rawBuf = append(scratch.rawBuf, ' ')
+			}
+			scratch.phraseBuf = append(scratch.phraseBuf, lower...)
+			scratch.rawBuf = append(scratch.rawBuf, word...)
 			if j == n-1 {
 				punct = partPunct
 			}
@@ -1124,15 +1236,18 @@ func (t *Tokeniser) matchWordPhrase(parts []string, start int) (int, Token, *Tok
 			continue
 		}
 
-		phrase := core.Join(" ", phraseWords...)
-		cat, ok := t.words[phrase]
+		// Map-key lookup with string(scratch.phraseBuf) — the Go
+		// compiler elides the string allocation for this exact form.
+		// Only when the lookup hits do we materialise actual string
+		// values for the Token fields.
+		cat, ok := t.words[string(scratch.phraseBuf)]
 		if !ok {
 			continue
 		}
 
 		tok := Token{
-			Raw:        core.Join(" ", rawParts...),
-			Lower:      phrase,
+			Raw:        string(scratch.rawBuf),
+			Lower:      string(scratch.phraseBuf),
 			Type:       TokenWord,
 			WordCat:    cat,
 			Confidence: 1.0,
@@ -1322,7 +1437,14 @@ func (t *Tokeniser) resolveAmbiguous(tokens []Token) {
 // ambiguous token should be classified as verb or noun.
 func (t *Tokeniser) scoreAmbiguous(tokens []Token, idx int) (float64, float64, []SignalComponent) {
 	var verbScore, nounScore float64
+	// components is only filled when WithSignals() is enabled. Pre-size
+	// to 8 (one slot per signal type) on the with-signals path to avoid
+	// growth-via-append. Leave nil on the without-signals path — the
+	// `if t.withSignals` guards below skip the appends, so nil is correct.
 	var components []SignalComponent
+	if t.withSignals {
+		components = make([]SignalComponent, 0, 8)
+	}
 
 	// 1. noun_determiner: preceding token is a noun determiner
 	if w, ok := t.weights["noun_determiner"]; ok && idx > 0 {
@@ -1811,12 +1933,21 @@ func (t *Tokeniser) DisambiguationStats(tokens []Token) DisambiguationStats {
 //
 //	splitFields("  foo\tbar baz ") // ["foo", "bar", "baz"]
 func splitFields(s string) []string {
-	var fields []string
+	return splitFieldsInto(s, make([]string, 0, len(s)/6))
+}
+
+// splitFieldsInto is the hot-path variant of splitFields — appends
+// space-separated runs of s into dst. Tokenise() passes its pooled
+// scratch.fields slice as dst so the backing array is reused across
+// calls and avoids the per-call make + growth allocations that the
+// plain splitFields incurs.
+func splitFieldsInto(s string, dst []string) []string {
+	dst = dst[:0]
 	start := -1
 	for i, r := range s {
 		if unicode.IsSpace(r) {
 			if start >= 0 {
-				fields = append(fields, s[start:i])
+				dst = append(dst, s[start:i])
 				start = -1
 			}
 			continue
@@ -1826,9 +1957,9 @@ func splitFields(s string) []string {
 		}
 	}
 	if start >= 0 {
-		fields = append(fields, s[start:])
+		dst = append(dst, s[start:])
 	}
-	return fields
+	return dst
 }
 
 // indexAny returns the index of the first rune in s that is in chars, or -1 if none.

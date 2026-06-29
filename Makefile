@@ -1,4 +1,4 @@
-.PHONY: build vet test cover tidy clean
+.PHONY: build vet test cover benchcov tidy clean
 
 override GOCACHE := $(CURDIR)/.cache/go-build
 override GOPATH := $(CURDIR)/.cache/go
@@ -21,6 +21,10 @@ test:
 cover:
 	@mkdir -p $(GOCACHE) $(GOPATH)
 	@$(GO_ENV) $(GO) test -cover ./...
+
+# benchcov: report functions that have no benchmark (benchmark-side coverage).
+benchcov:
+	@python3 scripts/benchcov.py $(ARGS)
 
 tidy:
 	@mkdir -p $(GOCACHE) $(GOPATH)

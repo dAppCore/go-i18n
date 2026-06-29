@@ -1,9 +1,28 @@
 package i18n
 
 import (
+	"sync"
+
 	"dappco.re/go"
 	"golang.org/x/text/language"
 )
+
+// normalizedLangCache memoises normalizeLanguageTag results keyed by
+// the raw input string. golang.org/x/text/language.Parse is the elephant
+// alloc on every grammar/reversal hot path (~70% of allocs in
+// GetGrammarData, Tokenise, PastTense, etc.) — each call re-parses the
+// BCP-47 tag from scratch even though the input set is fixed and small
+// (typically just "en" plus a handful of locales).
+//
+// sync.Map matches the read-heavy / write-once shape: cache fills once
+// per distinct tag, then every subsequent call is a single map lookup.
+// Stores the raw input as key so both canonical ("en") and
+// non-canonical ("en_US", " EN ") inputs avoid re-parsing.
+//
+// Per [[ax-11-benchmarks]] — discovered via memprofile on PastTense and
+// Classification_Tokenise; both showed language.parseVariants +
+// makeScannerString dominating the alloc graph.
+var normalizedLangCache sync.Map // map[string]string
 
 // String returns the human-readable name of the Formality value
 // ("formal", "informal", "neutral").
@@ -247,13 +266,22 @@ func firstLocaleFromList(langList string) string {
 }
 
 func normalizeLanguageTag(lang string) string {
+	if cached, ok := normalizedLangCache.Load(lang); ok {
+		return cached.(string)
+	}
+	raw := lang
 	lang = core.Trim(lang)
 	if lang == "" {
+		normalizedLangCache.Store(raw, "")
 		return ""
 	}
 	lang = core.Replace(lang, "_", "-")
+	var result string
 	if tag, err := language.Parse(lang); err == nil {
-		return tag.String()
+		result = tag.String()
+	} else {
+		result = lang
 	}
-	return lang
+	normalizedLangCache.Store(raw, result)
+	return result
 }

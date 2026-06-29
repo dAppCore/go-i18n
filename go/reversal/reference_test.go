@@ -258,6 +258,72 @@ func TestComputeVariance_SingleSample(t *testing.T) {
 	}
 }
 
+// TestComputeCentroid_Empty covers the n == 0 early return: an empty imprint
+// slice yields the zero-value GrammarImprint (no map fields allocated).
+func TestComputeCentroid_Empty(t *testing.T) {
+	centroid := computeCentroid(nil)
+	if centroid.VerbDistribution != nil || centroid.DomainVocabulary != nil {
+		t.Errorf("empty-slice centroid should be zero-value, got %+v", centroid)
+	}
+	if centroid.TokenCount != 0 || centroid.PluralRatio != 0 {
+		t.Errorf("empty-slice centroid scalars should be zero, got %+v", centroid)
+	}
+}
+
+// TestComputeCentroid_DomainVocabulary covers the DomainVocabulary accumulation
+// branch. gram.word tokens (api, url, ssh) categorise as TokenWord with a
+// WordCat, which is the only path that populates DomainVocabulary; without such
+// a sample the centroid loop over imp.DomainVocabulary never executes.
+func TestComputeCentroid_DomainVocabulary(t *testing.T) {
+	tok := initI18n(t)
+	imp := NewImprint(tok.Tokenise("Push the api url to the ssh server"))
+	if len(imp.DomainVocabulary) == 0 {
+		t.Fatal("expected populated DomainVocabulary from gram.word tokens; centroid branch would be vacuous")
+	}
+
+	centroid := computeCentroid([]GrammarImprint{imp, imp})
+	// Two identical imprints: each vocab hit is summed across both samples.
+	for cat, count := range imp.DomainVocabulary {
+		if got := centroid.DomainVocabulary[cat]; got != count*2 {
+			t.Errorf("DomainVocabulary[%q] = %d, want %d", cat, got, count*2)
+		}
+	}
+}
+
+// TestReferenceSet_Classify_CosineTie covers the equal-similarity branch of the
+// ranking comparator (a.sim == b.sim -> return 0). Two domains trained on the
+// identical sample produce identical centroids, so any probe scores both
+// exactly equally and the comparator's tie path is taken.
+func TestReferenceSet_Classify_CosineTie(t *testing.T) {
+	tok := initI18n(t)
+	sameText := "Delete the configuration file"
+	samples := []ClassifiedText{
+		{Text: sameText, Domain: "alpha"},
+		{Text: sameText, Domain: "beta"},
+	}
+	rs, err := valueFromResult[*ReferenceSet](BuildReferences(tok, samples))
+	if err != nil {
+		t.Fatalf("BuildReferences: %v", err)
+	}
+
+	probe := NewImprint(tok.Tokenise("Build the project from source"))
+	a := rs.Domains["alpha"].Centroid
+	b := rs.Domains["beta"].Centroid
+	if probe.Similar(a) != probe.Similar(b) {
+		t.Fatalf("identical-text centroids must score equally for the tie branch; got %v vs %v",
+			probe.Similar(a), probe.Similar(b))
+	}
+
+	cls := rs.Classify(probe)
+	if cls.Domain == "" {
+		t.Error("empty classification domain")
+	}
+	// Equal top-two similarities collapse the confidence margin to zero.
+	if cls.Confidence != 0 {
+		t.Errorf("Confidence = %f, want 0 for tied domains", cls.Confidence)
+	}
+}
+
 // --- AX-7 canonical triplets ---
 
 func TestReference_BuildReferences_Good(t *testing.T) {

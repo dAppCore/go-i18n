@@ -371,6 +371,20 @@ var (
 
 var templateCache sync.Map
 
+// fallbackOrderCache memoises languageFallbackOrder results keyed by
+// the joined input lang chain. Most call sites pass the same 1-2
+// language slice on every grammar lookup (e.g. ["en"] or ["en", "fr"])
+// — without the cache each call re-allocates ordered + seen + recurses
+// normalizeLanguageTag for the same input.
+//
+// Returned slices are NEVER mutated by callers (all callsites iterate
+// with for-range and read-only), so sharing the cached slice across
+// callers is safe.
+//
+// Per [[ax-11-benchmarks]] — same caching shape as
+// normalizedLangCache, applied to the next-most-hit grammar path.
+var fallbackOrderCache sync.Map // map[string][]string
+
 func byteUnitName() string { return "byte" + "s" }
 
 func logWordName() string { return "lo" + "g" }

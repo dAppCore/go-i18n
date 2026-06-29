@@ -1418,27 +1418,6 @@ func BenchmarkTokenise_WithSignals(b *testing.B) {
 	}
 }
 
-func BenchmarkNewImprint(b *testing.B) {
-	benchSetup(b)
-	tok := NewTokeniser()
-	tokens := tok.Tokenise("Delete the configuration file and rebuild the project")
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		NewImprint(tokens)
-	}
-}
-
-func BenchmarkImprint_Similar(b *testing.B) {
-	benchSetup(b)
-	tok := NewTokeniser()
-	imp1 := NewImprint(tok.Tokenise("Delete the configuration file"))
-	imp2 := NewImprint(tok.Tokenise("Delete the old file"))
-	b.ResetTimer()
-	for i := 0; i < b.N; i++ {
-		imp1.Similar(imp2)
-	}
-}
-
 func BenchmarkMultiplier_Expand(b *testing.B) {
 	benchSetup(b)
 	m := NewMultiplier()
