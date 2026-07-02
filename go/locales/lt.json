@@ -1,0 +1,142 @@
+{
+	"_comment": "Lietuvių (Lithuanian). Composed done-shape is Subject + passive past participle with elided copula — the register a Lithuanian status line actually uses: 'Failas ištrintas', 'Užduotis ištrinta' (not 'Failas yra ištrintas'). Modern Lithuanian has TWO genders (m/f) — no neuter — and no articles (article.none). All 18 verbs end their masculine participle in -as, so feminine agreement is one mechanical rule from the masculine base — {strip: 's'} (ištrintas → ištrinta) — verified individually against every entry below; no per-verb past_f overrides needed. 'push' is deliberately DROPPED: the literal verb (stumti/pastumti, 'to shove') is a poor semantic fit for git-push, and its -imas verbal noun would need a root-ablaut (stum- → stūm-, as in kulti/kūlimas) I could not verify with confidence — a gap declared rather than guessed. The gerund slot is the verbal-noun progress register real Lithuanian software shows (Trynimas..., Kūrimas...); 'find' pairs the resultative rasti/rastas with the SEARCH verb's noun ieškojimas for progress, since perfective 'find' has no natural progressive — the same imperfective-partner move pl.json documents for wypychanie/znajdowanie. 'build' takes the established noun 'statyba' over the stricter derivation 'statymas'; 'start' takes 'pradžia' (a beginning) over the stiffer 'pradėjimas' — both the same plain-deverbative choice sl.json makes for začetek. 'commit' maps to patvirtinti ('confirm/approve'), a semantic stand-in for the git sense, the same adaptation Polish makes with zatwierdzić. 'message' uses pranešimas (formal notification/error-message register) over žinutė (personal text message). testuoti and įdiegti are standard dictionary IT terms, not slang. žmogus → žmonės is a genuine suppletive irregular plural. repozitorija (the -ija loanword class of versija/kategorija) is authored with slightly lower confidence — a reasonable calque, not a headword I have dictionary-verified. NOMINATIVE-only composition, declared deliberately: real Lithuanian puts a transitive infinitive's object in the ACCUSATIVE, and negation (as 'Nepavyko...' is) shifts it further to the GENITIVE of negation — neither is modelled, so the fail-sentence object and the counted noun both surface in plain nominative. Plural resolution is binary (one/other); Lithuanian's numeral-governed singular-after-21-type patterns are not modelled, the same simplification pl.json and sl.json declare for their own languages.",
+	"gram": {
+		"verb": {
+			"ištrinti": { "base": "ištrinti", "past": "ištrintas", "gerund": "trynimas" },
+			"sukurti": { "base": "sukurti", "past": "sukurtas", "gerund": "kūrimas" },
+			"pastatyti": { "base": "pastatyti", "past": "pastatytas", "gerund": "statyba" },
+			"išsiųsti": { "base": "išsiųsti", "past": "išsiųstas", "gerund": "siuntimas" },
+			"rasti": { "base": "rasti", "past": "rastas", "gerund": "ieškojimas" },
+			"parašyti": { "base": "parašyti", "past": "parašytas", "gerund": "rašymas" },
+			"perskaityti": { "base": "perskaityti", "past": "perskaitytas", "gerund": "skaitymas" },
+			"atnaujinti": { "base": "atnaujinti", "past": "atnaujintas", "gerund": "atnaujinimas" },
+			"testuoti": { "base": "testuoti", "past": "testuotas", "gerund": "testavimas" },
+			"patikrinti": { "base": "patikrinti", "past": "patikrintas", "gerund": "tikrinimas" },
+			"pataisyti": { "base": "pataisyti", "past": "pataisytas", "gerund": "taisymas" },
+			"paleisti": { "base": "paleisti", "past": "paleistas", "gerund": "paleidimas" },
+			"patvirtinti": { "base": "patvirtinti", "past": "patvirtintas", "gerund": "tvirtinimas" },
+			"sustabdyti": { "base": "sustabdyti", "past": "sustabdytas", "gerund": "stabdymas" },
+			"įdiegti": { "base": "įdiegti", "past": "įdiegtas", "gerund": "diegimas" },
+			"pradėti": { "base": "pradėti", "past": "pradėtas", "gerund": "pradžia" },
+			"sujungti": { "base": "sujungti", "past": "sujungtas", "gerund": "sujungimas" },
+			"atidaryti": { "base": "atidaryti", "past": "atidarytas", "gerund": "atidarymas" }
+		},
+		"noun": {
+			"failas": { "one": "failas", "other": "failai", "gender": "m" },
+			"užduotis": { "one": "užduotis", "other": "užduotys", "gender": "f" },
+			"klaida": { "one": "klaida", "other": "klaidos", "gender": "f" },
+			"pranešimas": { "one": "pranešimas", "other": "pranešimai", "gender": "m" },
+			"serveris": { "one": "serveris", "other": "serveriai", "gender": "m" },
+			"katalogas": { "one": "katalogas", "other": "katalogai", "gender": "m" },
+			"paketas": { "one": "paketas", "other": "paketai", "gender": "m" },
+			"žmogus": { "one": "žmogus", "other": "žmonės", "gender": "m" },
+			"vaikas": { "one": "vaikas", "other": "vaikai", "gender": "m" },
+			"šaka": { "one": "šaka", "other": "šakos", "gender": "f" },
+			"problema": { "one": "problema", "other": "problemos", "gender": "f" },
+			"pakeitimas": { "one": "pakeitimas", "other": "pakeitimai", "gender": "m" },
+			"versija": { "one": "versija", "other": "versijos", "gender": "f" },
+			"repozitorija": { "one": "repozitorija", "other": "repozitorijos", "gender": "f" },
+			"kategorija": { "one": "kategorija", "other": "kategorijos", "gender": "f" },
+			"priklausomybė": { "one": "priklausomybė", "other": "priklausomybės", "gender": "f" },
+			"pažeidžiamumas": { "one": "pažeidžiamumas", "other": "pažeidžiamumai", "gender": "m" },
+			"elementas": { "one": "elementas", "other": "elementai", "gender": "m" },
+
+			"file": { "one": "failas", "other": "failai", "gender": "m" },
+			"task": { "one": "užduotis", "other": "užduotys", "gender": "f" },
+			"error": { "one": "klaida", "other": "klaidos", "gender": "f" },
+			"message": { "one": "pranešimas", "other": "pranešimai", "gender": "m" },
+			"server": { "one": "serveris", "other": "serveriai", "gender": "m" },
+			"directory": { "one": "katalogas", "other": "katalogai", "gender": "m" },
+			"package": { "one": "paketas", "other": "paketai", "gender": "m" },
+			"person": { "one": "žmogus", "other": "žmonės", "gender": "m" },
+			"child": { "one": "vaikas", "other": "vaikai", "gender": "m" },
+			"branch": { "one": "šaka", "other": "šakos", "gender": "f" },
+			"issue": { "one": "problema", "other": "problemos", "gender": "f" },
+			"change": { "one": "pakeitimas", "other": "pakeitimai", "gender": "m" },
+			"version": { "one": "versija", "other": "versijos", "gender": "f" },
+			"repo": { "one": "repozitorija", "other": "repozitorijos", "gender": "f" },
+			"repository": { "one": "repozitorija", "other": "repozitorijos", "gender": "f" },
+			"category": { "one": "kategorija", "other": "kategorijos", "gender": "f" },
+			"dependency": { "one": "priklausomybė", "other": "priklausomybės", "gender": "f" },
+			"vulnerability": { "one": "pažeidžiamumas", "other": "pažeidžiamumai", "gender": "m" },
+			"item": { "one": "elementas", "other": "elementai", "gender": "m" }
+		},
+		"article": {
+			"none": true
+		},
+		"agreement": {
+			"participle": {
+				"f": { "strip": "s" }
+			}
+		},
+		"word": {
+			"failed_to": "Nepavyko",
+
+			"delete": "ištrinti",
+			"create": "sukurti",
+			"build": "pastatyti",
+			"send": "išsiųsti",
+			"find": "rasti",
+			"write": "parašyti",
+			"read": "perskaityti",
+			"update": "atnaujinti",
+			"test": "testuoti",
+			"check": "patikrinti",
+			"fix": "pataisyti",
+			"run": "paleisti",
+			"commit": "patvirtinti",
+			"stop": "sustabdyti",
+			"install": "įdiegti",
+			"start": "pradėti",
+			"merge": "sujungti",
+			"open": "atidaryti",
+
+			"file": "failas",
+			"task": "užduotis",
+			"error": "klaida",
+			"message": "pranešimas",
+			"server": "serveris",
+			"directory": "katalogas",
+			"package": "paketas",
+			"person": "žmogus",
+			"child": "vaikas",
+			"branch": "šaka",
+			"issue": "problema",
+			"change": "pakeitimas",
+			"version": "versija",
+			"repo": "repozitorija",
+			"repository": "repozitorija",
+			"category": "kategorija",
+			"dependency": "priklausomybė",
+			"vulnerability": "pažeidžiamumas",
+			"item": "elementas"
+		},
+		"punct": {
+			"label": ":",
+			"progress": "..."
+		},
+		"number": {
+			"thousands": " ",
+			"decimal": ","
+		}
+	},
+	"prompt": {
+		"yes": "taip",
+		"no": "ne",
+		"continue": "Tęsti?",
+		"proceed": "Ar tęsti?",
+		"confirm": "Ar tikrai?",
+		"overwrite": "Perrašyti?",
+		"discard": "Atmesti pakeitimus?"
+	},
+	"time": {
+		"just_now": "ką tik"
+	},
+	"lang": {
+		"lt": "Lietuvių",
+		"en": "Anglų",
+		"de": "Vokiečių",
+		"fr": "Prancūzų",
+		"es": "Ispanų"
+	}
+}

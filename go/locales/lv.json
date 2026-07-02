@@ -1,0 +1,142 @@
+{
+	"_comment": "Latviešu (Latvian). Composed done-shape is Subject + passive past participle with elided copula: 'Fails izdzēsts', 'Kļūda izlabota' (uzdevums/task is masculine, so 'Uzdevums izdzēsts' also agrees masculine — kļūda/error was chosen for the feminine row instead). Modern Latvian has TWO genders (m/f) — no neuter — and no articles (article.none). All 18 verbs end their masculine participle in -ts, so feminine agreement needs BOTH a strip and an add from the masculine base — {strip: 's', add: 'a'} (izdzēsts → izdzēst → izdzēsta) — because stripping the final -s alone leaves a bare consonant stem, unlike Lithuanian's -as/-a pair next door; verified individually against every entry below, no per-verb past_f overrides needed. 'push' is deliberately DROPPED: the literal verbs (stumt/pastumt, grūst, 'to shove') are consonant-stem verbs whose past-tense/participle ablaut grade (stumt → stūma) I could not verify with confidence — the same gap declared for Lithuanian's cognate stumti. The gerund slot is the -šana verbal-noun progress register real Latvian software shows (Dzēšana..., Veidošana...), consistently dropping the perfective prefix back to the bare imperfective stem (izdzēst → dzēšana, not izdzēšana). 'find' pairs the resultative atrast/atrasts with the SEARCH verb's noun meklēšana, mirroring the same move in the Lithuanian file. 'check' takes the shorter, more natural 'pārbaude' (a check/inspection) over the fully regular but less idiomatic 'pārbaudīšana'; 'start' takes 'sākums' (a beginning) over 'sākšana' — both the same plain-noun choice sl.json makes for začetek. 'commit' maps to apstiprināt ('confirm/approve'), a semantic stand-in for the git sense, not a literal term. testēt and instalēt are standard, productive IT loanword-adaptations (the -ēt verb class), not slang. repozitorijs (masculine -ijs loanword class) is authored with slightly lower confidence on the gender — a reasonable calque, not a dictionary-verified headword. NOMINATIVE-only composition, declared deliberately: real Latvian puts a transitive infinitive's object in the ACCUSATIVE; that case shift is not modelled, so the fail-sentence object and the counted noun both surface in plain nominative. Plural resolution is binary (one/other), the same simplification pl.json and sl.json declare for their own numeral systems.",
+	"gram": {
+		"verb": {
+			"izdzēst": { "base": "izdzēst", "past": "izdzēsts", "gerund": "dzēšana" },
+			"izveidot": { "base": "izveidot", "past": "izveidots", "gerund": "veidošana" },
+			"uzbūvēt": { "base": "uzbūvēt", "past": "uzbūvēts", "gerund": "būvēšana" },
+			"nosūtīt": { "base": "nosūtīt", "past": "nosūtīts", "gerund": "sūtīšana" },
+			"atrast": { "base": "atrast", "past": "atrasts", "gerund": "meklēšana" },
+			"uzrakstīt": { "base": "uzrakstīt", "past": "uzrakstīts", "gerund": "rakstīšana" },
+			"izlasīt": { "base": "izlasīt", "past": "izlasīts", "gerund": "lasīšana" },
+			"atjaunināt": { "base": "atjaunināt", "past": "atjaunināts", "gerund": "atjaunināšana" },
+			"testēt": { "base": "testēt", "past": "testēts", "gerund": "testēšana" },
+			"pārbaudīt": { "base": "pārbaudīt", "past": "pārbaudīts", "gerund": "pārbaude" },
+			"izlabot": { "base": "izlabot", "past": "izlabots", "gerund": "labošana" },
+			"palaist": { "base": "palaist", "past": "palaists", "gerund": "palaišana" },
+			"apstiprināt": { "base": "apstiprināt", "past": "apstiprināts", "gerund": "apstiprināšana" },
+			"apturēt": { "base": "apturēt", "past": "apturēts", "gerund": "apturēšana" },
+			"instalēt": { "base": "instalēt", "past": "instalēts", "gerund": "instalēšana" },
+			"sākt": { "base": "sākt", "past": "sākts", "gerund": "sākums" },
+			"apvienot": { "base": "apvienot", "past": "apvienots", "gerund": "apvienošana" },
+			"atvērt": { "base": "atvērt", "past": "atvērts", "gerund": "atvēršana" }
+		},
+		"noun": {
+			"fails": { "one": "fails", "other": "faili", "gender": "m" },
+			"uzdevums": { "one": "uzdevums", "other": "uzdevumi", "gender": "m" },
+			"kļūda": { "one": "kļūda", "other": "kļūdas", "gender": "f" },
+			"ziņojums": { "one": "ziņojums", "other": "ziņojumi", "gender": "m" },
+			"serveris": { "one": "serveris", "other": "serveri", "gender": "m" },
+			"mape": { "one": "mape", "other": "mapes", "gender": "f" },
+			"pakete": { "one": "pakete", "other": "paketes", "gender": "f" },
+			"cilvēks": { "one": "cilvēks", "other": "cilvēki", "gender": "m" },
+			"bērns": { "one": "bērns", "other": "bērni", "gender": "m" },
+			"zars": { "one": "zars", "other": "zari", "gender": "m" },
+			"problēma": { "one": "problēma", "other": "problēmas", "gender": "f" },
+			"izmaiņa": { "one": "izmaiņa", "other": "izmaiņas", "gender": "f" },
+			"versija": { "one": "versija", "other": "versijas", "gender": "f" },
+			"repozitorijs": { "one": "repozitorijs", "other": "repozitoriji", "gender": "m" },
+			"kategorija": { "one": "kategorija", "other": "kategorijas", "gender": "f" },
+			"atkarība": { "one": "atkarība", "other": "atkarības", "gender": "f" },
+			"ievainojamība": { "one": "ievainojamība", "other": "ievainojamības", "gender": "f" },
+			"vienums": { "one": "vienums", "other": "vienumi", "gender": "m" },
+
+			"file": { "one": "fails", "other": "faili", "gender": "m" },
+			"task": { "one": "uzdevums", "other": "uzdevumi", "gender": "m" },
+			"error": { "one": "kļūda", "other": "kļūdas", "gender": "f" },
+			"message": { "one": "ziņojums", "other": "ziņojumi", "gender": "m" },
+			"server": { "one": "serveris", "other": "serveri", "gender": "m" },
+			"directory": { "one": "mape", "other": "mapes", "gender": "f" },
+			"package": { "one": "pakete", "other": "paketes", "gender": "f" },
+			"person": { "one": "cilvēks", "other": "cilvēki", "gender": "m" },
+			"child": { "one": "bērns", "other": "bērni", "gender": "m" },
+			"branch": { "one": "zars", "other": "zari", "gender": "m" },
+			"issue": { "one": "problēma", "other": "problēmas", "gender": "f" },
+			"change": { "one": "izmaiņa", "other": "izmaiņas", "gender": "f" },
+			"version": { "one": "versija", "other": "versijas", "gender": "f" },
+			"repo": { "one": "repozitorijs", "other": "repozitoriji", "gender": "m" },
+			"repository": { "one": "repozitorijs", "other": "repozitoriji", "gender": "m" },
+			"category": { "one": "kategorija", "other": "kategorijas", "gender": "f" },
+			"dependency": { "one": "atkarība", "other": "atkarības", "gender": "f" },
+			"vulnerability": { "one": "ievainojamība", "other": "ievainojamības", "gender": "f" },
+			"item": { "one": "vienums", "other": "vienumi", "gender": "m" }
+		},
+		"article": {
+			"none": true
+		},
+		"agreement": {
+			"participle": {
+				"f": { "strip": "s", "add": "a" }
+			}
+		},
+		"word": {
+			"failed_to": "Neizdevās",
+
+			"delete": "izdzēst",
+			"create": "izveidot",
+			"build": "uzbūvēt",
+			"send": "nosūtīt",
+			"find": "atrast",
+			"write": "uzrakstīt",
+			"read": "izlasīt",
+			"update": "atjaunināt",
+			"test": "testēt",
+			"check": "pārbaudīt",
+			"fix": "izlabot",
+			"run": "palaist",
+			"commit": "apstiprināt",
+			"stop": "apturēt",
+			"install": "instalēt",
+			"start": "sākt",
+			"merge": "apvienot",
+			"open": "atvērt",
+
+			"file": "fails",
+			"task": "uzdevums",
+			"error": "kļūda",
+			"message": "ziņojums",
+			"server": "serveris",
+			"directory": "mape",
+			"package": "pakete",
+			"person": "cilvēks",
+			"child": "bērns",
+			"branch": "zars",
+			"issue": "problēma",
+			"change": "izmaiņa",
+			"version": "versija",
+			"repo": "repozitorijs",
+			"repository": "repozitorijs",
+			"category": "kategorija",
+			"dependency": "atkarība",
+			"vulnerability": "ievainojamība",
+			"item": "vienums"
+		},
+		"punct": {
+			"label": ":",
+			"progress": "..."
+		},
+		"number": {
+			"thousands": " ",
+			"decimal": ","
+		}
+	},
+	"prompt": {
+		"yes": "jā",
+		"no": "nē",
+		"continue": "Turpināt?",
+		"proceed": "Vai turpināt?",
+		"confirm": "Vai tiešām?",
+		"overwrite": "Pārrakstīt?",
+		"discard": "Atmest izmaiņas?"
+	},
+	"time": {
+		"just_now": "tikko"
+	},
+	"lang": {
+		"lv": "Latviešu",
+		"en": "Angļu",
+		"de": "Vācu",
+		"fr": "Franču",
+		"es": "Spāņu"
+	}
+}
