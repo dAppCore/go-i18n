@@ -125,6 +125,27 @@ func TestServiceHelpers_lookupSegment(t *testing.T) {
 	}
 }
 
+func TestServiceHelpers_lookupVariantsAllocationBudget(t *testing.T) {
+	extra := map[string]any{"tier": "gold"}
+	var variants []string
+
+	allocs := testing.AllocsPerRun(1000, func() {
+		variants = lookupVariants("app.context", "dashboard", "f", "eu", FormalityFormal, extra)
+	})
+	if len(variants) != 31 {
+		t.Fatalf("lookupVariants() returned %d variants; want 31", len(variants))
+	}
+	if variants[0] != "app.context._dashboard._f._eu._formal._tier._gold" {
+		t.Fatalf("lookupVariants()[0] = %q; want extra-specific first variant", variants[0])
+	}
+	if variants[len(variants)-1] != "app.context" {
+		t.Fatalf("lookupVariants() last = %q; want base key", variants[len(variants)-1])
+	}
+	if allocs > 40 {
+		t.Fatalf("lookupVariants() allocated %.0f times; want <= 40", allocs)
+	}
+}
+
 // TestServiceHelpers_runeHelpers covers firstRuneOf/lastRuneOf/trimRuneRun on
 // ASCII, multibyte and empty inputs, plus compareStrings ordering.
 func TestServiceHelpers_runeHelpers(t *testing.T) {

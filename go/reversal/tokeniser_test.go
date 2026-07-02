@@ -1368,6 +1368,309 @@ func TestTokeniser_LowInformationConfidenceFloor(t *testing.T) {
 	}
 }
 
+func withTokeniserGrammarData(t *testing.T, lang string, data *i18n.GrammarData) {
+	t.Helper()
+	prev := i18n.GetGrammarData(lang)
+	i18n.SetGrammarData(lang, data)
+	t.Cleanup(func() {
+		i18n.SetGrammarData(lang, prev)
+	})
+}
+
+func TestTokeniser_BestRoundTripTieBreaks(t *testing.T) {
+	t.Run("known base wins", func(t *testing.T) {
+		tok := &Tokeniser{baseVerbs: map[string]bool{"walke": true}}
+		forward := func(s string) string {
+			if s == "walke" || s == "walk" {
+				return "walked"
+			}
+			return ""
+		}
+		if got := tok.bestRoundTrip("walked", []string{"walk", "walke"}, forward); got != "walke" {
+			t.Fatalf("bestRoundTrip known base = %q, want walke", got)
+		}
+	})
+
+	t.Run("all e fallback returns first match", func(t *testing.T) {
+		tok := &Tokeniser{baseVerbs: map[string]bool{}}
+		forward := func(s string) string {
+			if s == "bbce" || s == "ddfe" {
+				return "matched"
+			}
+			return ""
+		}
+		if got := tok.bestRoundTrip("matched", []string{"bbce", "ddfe"}, forward); got != "bbce" {
+			t.Fatalf("bestRoundTrip fallback = %q, want bbce", got)
+		}
+	})
+}
+
+func TestTokeniser_BuildSignalIndexUsesConfiguredNegations(t *testing.T) {
+	const lang = "x-tokeniser-signals"
+	withTokeniserGrammarData(t, lang, &i18n.GrammarData{
+		Signals: i18n.SignalData{
+			VerbNegation: []string{"jamais"},
+		},
+	})
+
+	tok := NewTokeniserForLang(lang)
+	if !tok.verbNeg["jamais"] {
+		t.Fatal("configured verb negation was not indexed")
+	}
+	if !tok.nounDet["the"] {
+		t.Fatal("noun determiner fallback was not retained for partial signal data")
+	}
+	if !tok.verbAux["will"] {
+		t.Fatal("verb auxiliary fallback was not retained for partial signal data")
+	}
+	if !tok.verbInf["to"] {
+		t.Fatal("verb infinitive fallback was not retained for partial signal data")
+	}
+}
+
+func TestTokeniser_ArticleHelperBranches(t *testing.T) {
+	if artType, ok := (&Tokeniser{lang: "zz"}).matchArticleLowered("a"); ok || artType != "" {
+		t.Fatalf("matchArticleLowered without grammar = (%q, %v), want empty false", artType, ok)
+	}
+	if artType, ok := matchConfiguredArticleText("a", nil); ok || artType != "" {
+		t.Fatalf("matchConfiguredArticleText nil = (%q, %v), want empty false", artType, ok)
+	}
+
+	data := &i18n.GrammarData{
+		Articles: i18n.ArticleForms{
+			IndefiniteDefault: "a",
+			IndefiniteVowel:   "an",
+			Definite:          "the",
+			ByGender:          map[string]string{"m": "le"},
+		},
+	}
+	if artType, ok := matchConfiguredArticleText("le fichier", data); !ok || artType != "definite" {
+		t.Fatalf("matchConfiguredArticleText gendered prefix = (%q, %v), want definite true", artType, ok)
+	}
+	if artType, ok := matchConfiguredArticleCandidate("l'enfant", "l'", "definite"); !ok || artType != "definite" {
+		t.Fatalf("matchConfiguredArticleCandidate elision = (%q, %v), want definite true", artType, ok)
+	}
+	if artType, ok := matchConfiguredArticleCandidate("file", "", "definite"); ok || artType != "" {
+		t.Fatalf("matchConfiguredArticleCandidate empty article = (%q, %v), want empty false", artType, ok)
+	}
+
+	tests := []struct {
+		name     string
+		lower    string
+		wantType string
+		wantOK   bool
+	}{
+		{name: "empty fields", lower: "   "},
+		{name: "partitive", lower: "du", wantType: "indefinite", wantOK: true},
+		{name: "de du definite", lower: "de du", wantType: "definite", wantOK: true},
+		{name: "d apostrophe", lower: "d'", wantType: "indefinite", wantOK: true},
+		{name: "j apostrophe", lower: "j'", wantType: "definite", wantOK: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			artType, ok := matchFrenchArticleText(tt.lower)
+			if ok != tt.wantOK || artType != tt.wantType {
+				t.Fatalf("matchFrenchArticleText(%q) = (%q, %v), want (%q, %v)", tt.lower, artType, ok, tt.wantType, tt.wantOK)
+			}
+		})
+	}
+}
+
+func TestTokeniser_TokeniseDualClassSelfResolvingBranches(t *testing.T) {
+	tok := &Tokeniser{
+		pastToBase:   map[string]string{"made": "make"},
+		gerundToBase: map[string]string{},
+		baseVerbs:    map[string]bool{"files": true},
+		pluralToBase: map[string]string{"files": "file"},
+		baseNouns:    map[string]bool{"made": true},
+		words:        map[string]string{},
+		dualClass:    map[string]bool{"made": true, "files": true},
+		weights:      DefaultWeights(),
+	}
+
+	tokens := tok.Tokenise("made files")
+	if len(tokens) != 2 {
+		t.Fatalf("Tokenise returned %d tokens, want 2", len(tokens))
+	}
+	if tokens[0].Type != TokenVerb || tokens[0].VerbInfo.Tense != "past" {
+		t.Fatalf("made token = %#v, want self-resolved past verb", tokens[0])
+	}
+	if tokens[1].Type != TokenNoun || !tokens[1].NounInfo.Plural {
+		t.Fatalf("files token = %#v, want self-resolved plural noun", tokens[1])
+	}
+}
+
+func TestTokeniser_FrenchArticlePhraseBranches(t *testing.T) {
+	setup(t)
+	tok := NewTokeniserForLang("fr")
+
+	if consumed, _, _, _ := tok.matchFrenchArticlePhrase([]string{".", "ami"}, 0); consumed != 0 {
+		t.Fatalf("punctuation first token consumed %d, want 0", consumed)
+	}
+	if consumed, _, _, _ := tok.matchFrenchArticlePhrase([]string{"de", "."}, 0); consumed != 0 {
+		t.Fatalf("empty second token consumed %d, want 0", consumed)
+	}
+	if consumed, _, _, punct := tok.matchFrenchArticlePhrase(splitFields("de la."), 0); consumed != 2 || punct == nil || punct.PunctType != "sentence_end" {
+		t.Fatalf("de la. consumed=%d punct=%#v, want punctuation token", consumed, punct)
+	}
+	if consumed, _, extra, punct := tok.matchFrenchArticlePhrase(splitFields("de l'enfant."), 0); consumed != 2 || extra == nil || punct == nil {
+		t.Fatalf("de l'enfant. consumed=%d extra=%#v punct=%#v, want elided extra and punctuation", consumed, extra, punct)
+	}
+	if consumed, _, extra, punct := tok.matchFrenchArticlePhrase(splitFields("de l' enfant."), 0); consumed != 3 || extra == nil || punct == nil {
+		t.Fatalf("de l' enfant. consumed=%d extra=%#v punct=%#v, want spaced elision and punctuation", consumed, extra, punct)
+	}
+	if consumed, _, _, _ := tok.matchFrenchArticlePhrase(splitFields("de serveur"), 0); consumed != 0 {
+		t.Fatalf("de serveur consumed %d, want 0", consumed)
+	}
+}
+
+func TestTokeniser_ClassifyElidedFrenchWordBranches(t *testing.T) {
+	tok := &Tokeniser{
+		lang:         "fr",
+		pastToBase:   map[string]string{"made": "make"},
+		gerundToBase: map[string]string{},
+		baseVerbs:    map[string]bool{"files": true, "run": true},
+		pluralToBase: map[string]string{"files": "file"},
+		baseNouns:    map[string]bool{"made": true, "server": true},
+		words:        map[string]string{"api": "api"},
+		dualClass:    map[string]bool{"made": true, "files": true},
+		weights:      DefaultWeights(),
+	}
+
+	if tok := tok.classifyElidedFrenchWord("made"); tok.Type != TokenVerb || tok.VerbInfo.Tense != "past" {
+		t.Fatalf("made classified as %#v, want past verb", tok)
+	}
+	if tok := tok.classifyElidedFrenchWord("files"); tok.Type != TokenNoun || !tok.NounInfo.Plural {
+		t.Fatalf("files classified as %#v, want plural noun", tok)
+	}
+	if tok := tok.classifyElidedFrenchWord("api"); tok.Type != TokenWord || tok.WordCat != "api" {
+		t.Fatalf("api classified as %#v, want word api", tok)
+	}
+}
+
+func TestTokeniser_ScoreAmbiguousSignalBranches(t *testing.T) {
+	const lang = "x-tokeniser-priors"
+	withTokeniserGrammarData(t, lang, &i18n.GrammarData{
+		Signals: i18n.SignalData{
+			Priors: map[string]map[string]float64{
+				"commit": {"verb": 2, "noun": 1},
+			},
+		},
+	})
+	tok := NewTokeniserForLang(lang, WithSignals())
+
+	tokens := []Token{
+		{Lower: "the", Type: TokenArticle, Confidence: 1.0},
+		{
+			Lower: "commit", Type: tokenAmbiguous,
+			VerbInfo: VerbMatch{Base: "commit", Tense: "base"},
+			NounInfo: NounMatch{Base: "commit"},
+		},
+		{Lower: "build", Type: TokenVerb, Confidence: 1.0},
+		{Lower: "committed", Type: TokenVerb, VerbInfo: VerbMatch{Base: "commit", Tense: "past"}, Confidence: 1.0},
+		{Lower: "commits", Type: TokenNoun, NounInfo: NounMatch{Base: "commit", Plural: true}, Confidence: 1.0},
+	}
+
+	verbScore, nounScore, components := tok.scoreAmbiguous(tokens, 1)
+	if verbScore <= 0 || nounScore <= 0 {
+		t.Fatalf("scoreAmbiguous scores = verb %v noun %v, want both positive", verbScore, nounScore)
+	}
+	if len(components) == 0 {
+		t.Fatal("scoreAmbiguous with signals produced no components")
+	}
+
+	tokens[0] = Token{Lower: "should", Type: TokenUnknown}
+	verbScore, nounScore, components = tok.scoreAmbiguous(tokens, 1)
+	if verbScore <= 0 || nounScore <= 0 {
+		t.Fatalf("scoreAmbiguous auxiliary scores = verb %v noun %v, want both positive", verbScore, nounScore)
+	}
+	if len(components) == 0 {
+		t.Fatal("scoreAmbiguous auxiliary path produced no components")
+	}
+
+	first := []Token{{
+		Lower: "commit", Type: tokenAmbiguous,
+		VerbInfo: VerbMatch{Base: "commit", Tense: "base"},
+		NounInfo: NounMatch{Base: "commit"},
+	}}
+	verbScore, _, components = tok.scoreAmbiguous(first, 0)
+	if verbScore <= 0 || len(components) == 0 {
+		t.Fatalf("scoreAmbiguous sentence-initial = verb %v components %d, want positive component", verbScore, len(components))
+	}
+}
+
+func TestTokeniser_CorpusPriorFalseBranches(t *testing.T) {
+	const lang = "x-tokeniser-prior-false"
+	withTokeniserGrammarData(t, lang, &i18n.GrammarData{
+		Signals: i18n.SignalData{
+			Priors: map[string]map[string]float64{
+				"empty":   {},
+				"invalid": {"verb": -1, "noun": 1},
+				"zero":    {"verb": 0, "noun": 0},
+			},
+		},
+	})
+	tok := &Tokeniser{lang: lang}
+
+	for _, word := range []string{"missing", "empty", "invalid", "zero"} {
+		t.Run(word, func(t *testing.T) {
+			if verb, noun, ok := tok.corpusPrior(word); ok || verb != 0 || noun != 0 {
+				t.Fatalf("corpusPrior(%q) = (%v, %v, %v), want zero false", word, verb, noun, ok)
+			}
+		})
+	}
+}
+
+func TestTokeniser_CheckInflectionEchoAndLowNounBranch(t *testing.T) {
+	tok := NewTokeniser()
+	tokens := []Token{
+		{Type: TokenVerb, VerbInfo: VerbMatch{Base: "commit", Tense: "past"}},
+		{Type: tokenAmbiguous, VerbInfo: VerbMatch{Base: "commit"}, NounInfo: NounMatch{Base: "commit"}},
+		{Type: TokenNoun, NounInfo: NounMatch{Base: "commit", Plural: true}},
+	}
+	echoVerb, echoNoun := tok.checkInflectionEcho(tokens, 1)
+	if !echoVerb || !echoNoun {
+		t.Fatalf("checkInflectionEcho = (%v, %v), want both true", echoVerb, echoNoun)
+	}
+
+	typ, conf, alt, altConf := classifyAmbiguousToken(0.01, 0.02)
+	if typ != TokenNoun || conf != LowInformationNounConfidence || alt != TokenVerb || altConf != LowInformationVerbConfidence {
+		t.Fatalf("classifyAmbiguousToken low noun = (%v, %v, %v, %v)", typ, conf, alt, altConf)
+	}
+}
+
+func TestTokeniser_ElisionSplitFalseBranches(t *testing.T) {
+	fr := NewTokeniserForLang("fr")
+	for _, raw := range []string{"a", "qu", "la"} {
+		t.Run("french/"+raw, func(t *testing.T) {
+			if prefix, rest, ok := fr.splitFrenchElision(raw); ok || prefix != "" || rest != raw {
+				t.Fatalf("splitFrenchElision(%q) = (%q, %q, %v), want empty original false", raw, prefix, rest, ok)
+			}
+		})
+	}
+
+	if prefix, rest, ok := (&Tokeniser{lang: "zz"}).splitFrenchElision("l'enfant"); ok || prefix != "" || rest != "l'enfant" {
+		t.Fatalf("non-French splitFrenchElision = (%q, %q, %v), want empty original false", prefix, rest, ok)
+	}
+
+	const lang = "x-tokeniser-elision"
+	withTokeniserGrammarData(t, lang, &i18n.GrammarData{
+		Articles: i18n.ArticleForms{Definite: "l'"},
+	})
+	tok := &Tokeniser{lang: lang}
+	for _, raw := range []string{"", "foo", "l'"} {
+		t.Run("configured/"+raw, func(t *testing.T) {
+			if prefix, rest, ok := tok.splitConfiguredElision(raw); ok || prefix != "" || rest != raw {
+				t.Fatalf("splitConfiguredElision(%q) = (%q, %q, %v), want empty original false", raw, prefix, rest, ok)
+			}
+		})
+	}
+
+	if prefix, rest, ok := (&Tokeniser{lang: "missing-elision"}).splitConfiguredElision("l'enfant"); ok || prefix != "" || rest != "l'enfant" {
+		t.Fatalf("missing grammar splitConfiguredElision = (%q, %q, %v), want empty original false", prefix, rest, ok)
+	}
+}
+
 // --- Benchmarks ---
 
 func benchSetup(b *testing.B) {

@@ -1303,61 +1303,121 @@ func parseFormalityValue(value any) (Formality, bool) {
 }
 
 func lookupVariants(key, context, gender, location string, formality Formality, extra map[string]any) []string {
-	var variants []string
+	formalityText := ""
+	if formality != FormalityNeutral {
+		formalityText = formality.String()
+	}
+	baseCount := lookupVariantBaseCount(context, gender, location, formalityText)
+	extraSuffix := lookupExtraSuffix(extra)
+	total := baseCount + 1
+	if extraSuffix != "" {
+		total += baseCount
+	}
+	variants := make([]string, 0, total)
+	if extraSuffix != "" {
+		variants = appendLookupBaseVariants(variants, key, context, gender, location, formalityText, extraSuffix)
+	}
+	variants = appendLookupBaseVariants(variants, key, context, gender, location, formalityText, "")
+	variants = append(variants, key)
+	return variants
+}
+
+func lookupVariantBaseCount(context, gender, location, formality string) int {
+	count := 0
 	if context != "" {
-		if gender != "" && location != "" && formality != FormalityNeutral {
-			variants = append(variants, key+"._"+context+"._"+gender+"._"+location+"._"+formality.String())
+		if gender != "" && location != "" && formality != "" {
+			count++
 		}
 		if gender != "" && location != "" {
-			variants = append(variants, key+"._"+context+"._"+gender+"._"+location)
+			count++
 		}
-		if gender != "" && formality != FormalityNeutral {
-			variants = append(variants, key+"._"+context+"._"+gender+"._"+formality.String())
+		if gender != "" && formality != "" {
+			count++
 		}
 		if gender != "" {
-			variants = append(variants, key+"._"+context+"._"+gender)
+			count++
 		}
-		if location != "" && formality != FormalityNeutral {
-			variants = append(variants, key+"._"+context+"._"+location+"._"+formality.String())
+		if location != "" && formality != "" {
+			count++
 		}
 		if location != "" {
-			variants = append(variants, key+"._"+context+"._"+location)
+			count++
 		}
-		if formality != FormalityNeutral {
-			variants = append(variants, key+"._"+context+"._"+formality.String())
+		if formality != "" {
+			count++
 		}
-		variants = append(variants, key+"._"+context)
+		count++
 	}
-	if gender != "" && location != "" && formality != FormalityNeutral {
-		variants = append(variants, key+"._"+gender+"._"+location+"._"+formality.String())
+	if gender != "" && location != "" && formality != "" {
+		count++
 	}
 	if gender != "" && location != "" {
-		variants = append(variants, key+"._"+gender+"._"+location)
+		count++
 	}
-	if gender != "" && formality != FormalityNeutral {
-		variants = append(variants, key+"._"+gender+"._"+formality.String())
+	if gender != "" && formality != "" {
+		count++
 	}
 	if gender != "" {
-		variants = append(variants, key+"._"+gender)
+		count++
 	}
-	if location != "" && formality != FormalityNeutral {
-		variants = append(variants, key+"._"+location+"._"+formality.String())
+	if location != "" && formality != "" {
+		count++
 	}
 	if location != "" {
-		variants = append(variants, key+"._"+location)
+		count++
 	}
-	if formality != FormalityNeutral {
-		variants = append(variants, key+"._"+formality.String())
+	if formality != "" {
+		count++
 	}
-	if extraSuffix := lookupExtraSuffix(extra); extraSuffix != "" {
-		base := slices.Clone(variants)
-		var extraVariants []string
-		for _, variant := range base {
-			extraVariants = append(extraVariants, variant+extraSuffix)
+	return count
+}
+
+func appendLookupBaseVariants(variants []string, key, context, gender, location, formality, suffix string) []string {
+	if context != "" {
+		if gender != "" && location != "" && formality != "" {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+location+"._"+formality+suffix)
 		}
-		variants = append(extraVariants, variants...)
+		if gender != "" && location != "" {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+location+suffix)
+		}
+		if gender != "" && formality != "" {
+			variants = append(variants, key+"._"+context+"._"+gender+"._"+formality+suffix)
+		}
+		if gender != "" {
+			variants = append(variants, key+"._"+context+"._"+gender+suffix)
+		}
+		if location != "" && formality != "" {
+			variants = append(variants, key+"._"+context+"._"+location+"._"+formality+suffix)
+		}
+		if location != "" {
+			variants = append(variants, key+"._"+context+"._"+location+suffix)
+		}
+		if formality != "" {
+			variants = append(variants, key+"._"+context+"._"+formality+suffix)
+		}
+		variants = append(variants, key+"._"+context+suffix)
 	}
-	variants = append(variants, key)
+	if gender != "" && location != "" && formality != "" {
+		variants = append(variants, key+"._"+gender+"._"+location+"._"+formality+suffix)
+	}
+	if gender != "" && location != "" {
+		variants = append(variants, key+"._"+gender+"._"+location+suffix)
+	}
+	if gender != "" && formality != "" {
+		variants = append(variants, key+"._"+gender+"._"+formality+suffix)
+	}
+	if gender != "" {
+		variants = append(variants, key+"._"+gender+suffix)
+	}
+	if location != "" && formality != "" {
+		variants = append(variants, key+"._"+location+"._"+formality+suffix)
+	}
+	if location != "" {
+		variants = append(variants, key+"._"+location+suffix)
+	}
+	if formality != "" {
+		variants = append(variants, key+"._"+formality+suffix)
+	}
 	return variants
 }
 
@@ -1376,7 +1436,7 @@ func lookupExtraSuffix(extra map[string]any) string {
 		if name == "" {
 			continue
 		}
-		value := lookupSegment(core.Sprintf("%v", extra[key]))
+		value := lookupSegment(mapRawValueString(extra[key]))
 		if value == "" {
 			continue
 		}

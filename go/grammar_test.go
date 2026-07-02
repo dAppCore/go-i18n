@@ -653,6 +653,86 @@ func TestArticlePhraseFrenchLocale(t *testing.T) {
 	}
 }
 
+func TestArticleEnglishFallbackBranchesWithoutGrammarData(t *testing.T) {
+	prev := Default()
+	SetDefault(&Service{currentLang: "qaa-x-no-grammar"})
+	t.Cleanup(func() {
+		SetDefault(prev)
+	})
+
+	tests := []struct {
+		word string
+		want string
+	}{
+		{"FBI", "an"},
+		{"URL", "a"},
+		{"honest", "an"},
+		{"user", "a"},
+		{"apple", "an"},
+		{"banana", "a"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.word, func(t *testing.T) {
+			if got := Article(tt.word); got != tt.want {
+				t.Fatalf("Article(%q) = %q, want %q", tt.word, got, tt.want)
+			}
+		})
+	}
+}
+
+func TestArticleFromGrammarFormsBranches(t *testing.T) {
+	tests := []struct {
+		name string
+		data *GrammarData
+		word string
+		want string
+		ok   bool
+	}{
+		{"empty forms", &GrammarData{}, "apple", "", false},
+		{"vowel form", &GrammarData{Articles: ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}}, "apple", "an", true},
+		{"default form", &GrammarData{Articles: ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}}, "banana", "a", true},
+		{"vowel fallback", &GrammarData{Articles: ArticleForms{IndefiniteVowel: "an"}}, "banana", "an", true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, ok := articleFromGrammarForms(tt.data, tt.word)
+			if got != tt.want || ok != tt.ok {
+				t.Fatalf("articleFromGrammarForms() = %q, %v; want %q, %v", got, ok, tt.want, tt.ok)
+			}
+		})
+	}
+}
+
+func TestArticleHelperEdgeBranches(t *testing.T) {
+	if got := maybeElideArticle("que", "ami", "fr"); got != "qu'" {
+		t.Fatalf("maybeElideArticle(que, ami, fr) = %q, want qu'", got)
+	}
+	if got := maybeElideArticle("les", "amis", "fr"); got != "les" {
+		t.Fatalf("maybeElideArticle(les, amis, fr) = %q, want les", got)
+	}
+	if usesVowelSoundArticle(nil, "  ") {
+		t.Fatal("usesVowelSoundArticle(blank) = true, want false")
+	}
+	if looksLikeFrenchPlural("haricot") {
+		t.Fatal("looksLikeFrenchPlural(haricot) = true, want false for aspirated h")
+	}
+	if !looksLikeFrenchPlural("bateaux") {
+		t.Fatal("looksLikeFrenchPlural(bateaux) = false, want true")
+	}
+	if startsWithVowelSound("haricot") {
+		t.Fatal("startsWithVowelSound(haricot) = true, want false for aspirated h")
+	}
+	if isInitialism("A1") {
+		t.Fatal("isInitialism(A1) = true, want false for non-letter")
+	}
+	if preserveInitialCapitalization("", "word") != "word" {
+		t.Fatal("preserveInitialCapitalization empty original changed form")
+	}
+	if initialismUsesVowelSound("") {
+		t.Fatal("initialismUsesVowelSound(empty) = true, want false")
+	}
+}
+
 func TestDefiniteArticle(t *testing.T) {
 	tests := []struct {
 		word string

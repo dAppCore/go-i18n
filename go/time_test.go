@@ -274,6 +274,27 @@ func TestFormatAgo_Good_NoDefaultService(t *testing.T) {
 	}
 }
 
+func TestNormalizeAgoUnitAliases(t *testing.T) {
+	tests := []struct {
+		unit string
+		want string
+	}{
+		{" seconds ", "second"},
+		{"minutes", "minute"},
+		{"hours", "hour"},
+		{"days", "day"},
+		{"weeks", "week"},
+		{"months", "month"},
+		{"years", "year"},
+		{"fortnight", "fortnight"},
+	}
+	for _, tt := range tests {
+		if got := normalizeAgoUnit(tt.unit); got != tt.want {
+			t.Fatalf("normalizeAgoUnit(%q) = %q, want %q", tt.unit, got, tt.want)
+		}
+	}
+}
+
 func TestFormatAgo_Good_FrenchRelativeTime(t *testing.T) {
 	prev := Default()
 	svc, err := serviceFromResult(New())
