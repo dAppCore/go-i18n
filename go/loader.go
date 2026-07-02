@@ -556,9 +556,20 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 		if vowel, ok := indef["vowel"].(string); ok {
 			grammar.Articles.IndefiniteVowel = vowel
 		}
+		if bg, ok := indef["by_gender"].(map[string]any); ok {
+			grammar.Articles.IndefiniteByGender = make(map[string]string, len(bg))
+			for g, art := range bg {
+				if s, ok := art.(string); ok {
+					grammar.Articles.IndefiniteByGender[g] = s
+				}
+			}
+		}
 	}
 	if def, ok := v["definite"].(string); ok {
 		grammar.Articles.Definite = def
+	}
+	if plural, ok := v["definite_plural"].(string); ok {
+		grammar.Articles.DefinitePlural = plural
 	}
 	if bg, ok := v["by_gender"].(map[string]any); ok {
 		grammar.Articles.ByGender = make(map[string]string, len(bg))

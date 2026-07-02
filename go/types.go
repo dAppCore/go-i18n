@@ -275,7 +275,9 @@ type ArticleForms struct {
 	IndefiniteDefault   string            // "a"
 	IndefiniteVowel     string            // "an"
 	Definite            string            // "the"
-	ByGender            map[string]string // Gender-specific articles
+	DefinitePlural      string            // Definite article for known plurals: "les", "die"
+	ByGender            map[string]string // Gender-specific DEFINITE articles: le/la, der/die/das
+	IndefiniteByGender  map[string]string // Gender-specific INDEFINITE articles: un/une, ein/eine/ein
 	VowelSoundWords     []string          // Spelled consonant, spoken vowel — take IndefiniteVowel ("herb" in en-US)
 	ConsonantSoundWords []string          // Spelled vowel, spoken consonant — take IndefiniteDefault ("user", "unicorn")
 }

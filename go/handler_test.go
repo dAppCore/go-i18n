@@ -302,7 +302,8 @@ func TestCountHandler_UsesLocaleNumberFormat(t *testing.T) {
 
 	h := CountHandler{}
 	got := h.Handle("i18n.count.file", []any{1234}, nil)
-	want := "1 234 files"
+	// French number format AND the fr word bridge: file → fichier.
+	want := "1 234 fichiers"
 	if got != want {
 		t.Errorf("CountHandler.Handle(locale format) = %q, want %q", got, want)
 	}

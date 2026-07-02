@@ -85,6 +85,17 @@ As with verbs, only add entries for irregular plurals or cases where the engine 
 
 Maps to the `ArticleForms` struct. The `Article()` function uses phonetic rules (consonant/vowel sound maps) to choose between `default` and `vowel`.
 
+For gendered languages, `indefinite.by_gender` supplies the true indefinite articles (un/une, ein/eine/ein) and `definite_plural` the plural definite article (les, die). `Article()` is the **indefinite** article everywhere; `DefiniteArticle()` resolves the gendered definite forms from `by_gender` (le/la, der/die/das):
+
+```json
+"article": {
+  "indefinite": { "default": "ein", "vowel": "ein", "by_gender": { "m": "ein", "f": "eine", "n": "ein" } },
+  "definite": "die",
+  "definite_plural": "die",
+  "by_gender": { "m": "der", "f": "die", "n": "das" }
+}
+```
+
 A locale can extend the phonetic exception tables with `vowel_sound_words` and `consonant_sound_words` — lowercase word prefixes that outrank the built-in maps. This is how dialects re-hear a word without a code change: base `en` is the English of England ("a herb", sounded h), and `locales/en-US.json` declares the silent-h American reading:
 
 ```json
@@ -109,9 +120,15 @@ For gendered languages, add a `by_gender` map:
 }
 ```
 
-## gram.word -- Domain Vocabulary
+## gram.word -- Domain Vocabulary and the translation bridge
 
-Maps lowercase keys to display forms:
+`gram.word` plays two roles. First, display forms: lowercase keys map to canonical casing (`url` → `URL`, `go_mod` → `go.mod`) rendered verbatim. Second — the **translation bridge**: mapping ENGLISH keys to the locale's own words is what routes the `i18n.*` composition namespace into the locale's grammar tables. `T("i18n.done.delete", "file")` resolves `delete` → `supprimer`/`löschen` through this map, conjugates it in the locale's verb table, bridges `file` → `fichier`/`Datei`, and emits "Fichier supprimé" / "Datei gelöscht". A locale without bridge entries falls back to English composition.
+
+Verb/noun homographs among the English keys (`run`, `build`, `check`) take the VERB mapping in `gram.word`; add English-keyed alias entries in `gram.noun` (`"run": { "one": "exécution", ... }`) so counts and subject slots resolve the noun side — the noun table outranks the bridge in those positions.
+
+Store bridge values in the case the language wants mid-sentence: French lowercase (`fichier`), German nouns capitalised (`Datei`). Sentence-lead positions title-case noun-table results automatically.
+
+Display forms:
 
 ```json
 "word": {

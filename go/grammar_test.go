@@ -383,11 +383,16 @@ func TestArticleFrenchLocale(t *testing.T) {
 		word string
 		want string
 	}{
-		{"branche", "la"},
+		// Article() is the INDEFINITE article everywhere: un/une by gender
+		// (fr.json article.indefinite.by_gender). Definite forms le/la/l'
+		// live on DefiniteArticle. Known plurals keep the definite plural
+		// (les) and guessed plurals the partitive des — the house plural
+		// semantics.
+		{"branche", "une"},
 		{"branches", "les"},
 		{"amis", "des"},
-		{"enfant", "l'"},
-		{"fichier", "le"},
+		{"enfant", "un"},
+		{"fichier", "un"},
 		{"inconnu", "un"},
 	}
 
@@ -636,11 +641,13 @@ func TestArticlePhraseFrenchLocale(t *testing.T) {
 		word string
 		want string
 	}{
-		{"branche", "la branche"},
+		// Indefinite phrases; the definite equivalents (la branche,
+		// l'enfant, le fichier) are pinned by TestDefinitePhraseFrenchLocale.
+		{"branche", "une branche"},
 		{"branches", "les branches"},
 		{"amis", "des amis"},
-		{"enfant", "l'enfant"},
-		{"fichier", "le fichier"},
+		{"enfant", "un enfant"},
+		{"fichier", "un fichier"},
 	}
 
 	for _, tt := range tests {
