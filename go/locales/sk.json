@@ -1,0 +1,144 @@
+{
+	"_comment": "Slovenčina (Slovak). Composed shape is Subject + passive participle with elided copula (je/bol), exactly how a Slovak status label reads: 'Súbor zmazaný' not 'Súbor bol zmazaný'. No articles (article.none). Masculine passive participles are authored in the long -ný/-tý form (zmazaný, nájdený, začatý); agreement declares a SINGLE uniform rule from that base — strip 'ý', add 'á' (f) / 'é' (n) — verified against all 19 verbs including the -tý outliers (začatý → začatá/začaté), so no per-verb past_f overrides are needed. The 'gerund' slot carries the verbal-noun progress register real Slovak UIs show (mazanie, vytváranie, čítanie); three verbs (aktualizovať, skontrolovať, nainštalovať) take the Latinate/noun register (aktualizácia, kontrola, inštalácia) instead of the native -(ov)anie deverbative because that is genuinely the form Slovak software shows for those specific actions. 'push' and 'commit' have no inherited Slovak verb; pushnúť/commitnúť are the attested informal developer-register loanwords (same borrowing pattern as this codebase's own de.json 'committen'/'gepusht'), flagged here for honesty rather than presented as neutral standard usage. dieťa → deti is a genuine irregular plural (flagged, same treatment as German Kind → Kinder elsewhere in this repo). NOMINATIVE-only composition, accepted deliberately: real Slovak alternates case after numerals (nominative plural for 2-4, genitive plural for 0/5+) and after prepositions/verbs of the fail-sentence; this engine has no case slot, so 'other' is always the plain nominative plural and the fail-sentence object stays nominative rather than the accusative a native speaker would inflect to.",
+	"gram": {
+		"verb": {
+			"zmazať": { "base": "zmazať", "past": "zmazaný", "gerund": "mazanie" },
+			"vytvoriť": { "base": "vytvoriť", "past": "vytvorený", "gerund": "vytváranie" },
+			"vybudovať": { "base": "vybudovať", "past": "vybudovaný", "gerund": "budovanie" },
+			"odoslať": { "base": "odoslať", "past": "odoslaný", "gerund": "odosielanie" },
+			"nájsť": { "base": "nájsť", "past": "nájdený", "gerund": "hľadanie" },
+			"napísať": { "base": "napísať", "past": "napísaný", "gerund": "písanie" },
+			"prečítať": { "base": "prečítať", "past": "prečítaný", "gerund": "čítanie" },
+			"aktualizovať": { "base": "aktualizovať", "past": "aktualizovaný", "gerund": "aktualizácia" },
+			"pushnúť": { "base": "pushnúť", "past": "pushnutý", "gerund": "pushovanie" },
+			"otestovať": { "base": "otestovať", "past": "otestovaný", "gerund": "testovanie" },
+			"skontrolovať": { "base": "skontrolovať", "past": "skontrolovaný", "gerund": "kontrola" },
+			"opraviť": { "base": "opraviť", "past": "opravený", "gerund": "opravovanie" },
+			"spustiť": { "base": "spustiť", "past": "spustený", "gerund": "spúšťanie" },
+			"commitnúť": { "base": "commitnúť", "past": "commitnutý", "gerund": "commitovanie" },
+			"zastaviť": { "base": "zastaviť", "past": "zastavený", "gerund": "zastavovanie" },
+			"nainštalovať": { "base": "nainštalovať", "past": "nainštalovaný", "gerund": "inštalácia" },
+			"začať": { "base": "začať", "past": "začatý", "gerund": "začínanie" },
+			"zlúčiť": { "base": "zlúčiť", "past": "zlúčený", "gerund": "zlučovanie" },
+			"otvoriť": { "base": "otvoriť", "past": "otvorený", "gerund": "otváranie" }
+		},
+		"noun": {
+			"súbor": { "one": "súbor", "other": "súbory", "gender": "m" },
+			"úloha": { "one": "úloha", "other": "úlohy", "gender": "f" },
+			"chyba": { "one": "chyba", "other": "chyby", "gender": "f" },
+			"správa": { "one": "správa", "other": "správy", "gender": "f" },
+			"server": { "one": "server", "other": "servery", "gender": "m" },
+			"priečinok": { "one": "priečinok", "other": "priečinky", "gender": "m" },
+			"balík": { "one": "balík", "other": "balíky", "gender": "m" },
+			"osoba": { "one": "osoba", "other": "osoby", "gender": "f" },
+			"dieťa": { "one": "dieťa", "other": "deti", "gender": "n" },
+			"vetva": { "one": "vetva", "other": "vetvy", "gender": "f" },
+			"problém": { "one": "problém", "other": "problémy", "gender": "m" },
+			"zmena": { "one": "zmena", "other": "zmeny", "gender": "f" },
+			"verzia": { "one": "verzia", "other": "verzie", "gender": "f" },
+			"repozitár": { "one": "repozitár", "other": "repozitáre", "gender": "m" },
+			"kategória": { "one": "kategória", "other": "kategórie", "gender": "f" },
+			"závislosť": { "one": "závislosť", "other": "závislosti", "gender": "f" },
+			"zraniteľnosť": { "one": "zraniteľnosť", "other": "zraniteľnosti", "gender": "f" },
+			"položka": { "one": "položka", "other": "položky", "gender": "f" },
+
+			"file": { "one": "súbor", "other": "súbory", "gender": "m" },
+			"task": { "one": "úloha", "other": "úlohy", "gender": "f" },
+			"error": { "one": "chyba", "other": "chyby", "gender": "f" },
+			"message": { "one": "správa", "other": "správy", "gender": "f" },
+			"directory": { "one": "priečinok", "other": "priečinky", "gender": "m" },
+			"package": { "one": "balík", "other": "balíky", "gender": "m" },
+			"person": { "one": "osoba", "other": "osoby", "gender": "f" },
+			"child": { "one": "dieťa", "other": "deti", "gender": "n" },
+			"branch": { "one": "vetva", "other": "vetvy", "gender": "f" },
+			"issue": { "one": "problém", "other": "problémy", "gender": "m" },
+			"change": { "one": "zmena", "other": "zmeny", "gender": "f" },
+			"version": { "one": "verzia", "other": "verzie", "gender": "f" },
+			"repo": { "one": "repozitár", "other": "repozitáre", "gender": "m" },
+			"repository": { "one": "repozitár", "other": "repozitáre", "gender": "m" },
+			"category": { "one": "kategória", "other": "kategórie", "gender": "f" },
+			"dependency": { "one": "závislosť", "other": "závislosti", "gender": "f" },
+			"vulnerability": { "one": "zraniteľnosť", "other": "zraniteľnosti", "gender": "f" },
+			"item": { "one": "položka", "other": "položky", "gender": "f" }
+		},
+		"article": {
+			"none": true
+		},
+		"agreement": {
+			"participle": {
+				"f": { "strip": "ý", "add": "á" },
+				"n": { "strip": "ý", "add": "é" }
+			}
+		},
+		"word": {
+			"failed_to": "Nepodarilo sa",
+			"delete": "zmazať",
+			"create": "vytvoriť",
+			"build": "vybudovať",
+			"send": "odoslať",
+			"find": "nájsť",
+			"write": "napísať",
+			"read": "prečítať",
+			"update": "aktualizovať",
+			"push": "pushnúť",
+			"test": "otestovať",
+			"check": "skontrolovať",
+			"fix": "opraviť",
+			"run": "spustiť",
+			"commit": "commitnúť",
+			"stop": "zastaviť",
+			"install": "nainštalovať",
+			"start": "začať",
+			"merge": "zlúčiť",
+			"open": "otvoriť",
+
+			"file": "súbor",
+			"task": "úloha",
+			"error": "chyba",
+			"message": "správa",
+			"server": "server",
+			"directory": "priečinok",
+			"package": "balík",
+			"person": "osoba",
+			"child": "dieťa",
+			"branch": "vetva",
+			"issue": "problém",
+			"change": "zmena",
+			"version": "verzia",
+			"repo": "repozitár",
+			"repository": "repozitár",
+			"category": "kategória",
+			"dependency": "závislosť",
+			"vulnerability": "zraniteľnosť",
+			"item": "položka"
+		},
+		"punct": {
+			"label": ":",
+			"progress": "..."
+		},
+		"number": {
+			"thousands": " ",
+			"decimal": ",",
+			"percent": "%s %%"
+		}
+	},
+	"prompt": {
+		"yes": "áno",
+		"no": "nie",
+		"continue": "Pokračovať?",
+		"proceed": "Postupovať?",
+		"confirm": "Ste si istý?",
+		"overwrite": "Prepísať?",
+		"discard": "Zahodiť zmeny?"
+	},
+	"time": {
+		"just_now": "práve teraz"
+	},
+	"lang": {
+		"sk": "slovenčina",
+		"en": "angličtina",
+		"de": "nemčina",
+		"fr": "francúzština",
+		"es": "španielčina"
+	}
+}
