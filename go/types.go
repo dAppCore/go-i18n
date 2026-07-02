@@ -246,16 +246,26 @@ type GrammarData struct {
 	Agreement AgreementRules       // participle agreement declared by the locale
 }
 
-// AgreementRules declares how a locale derives agreed participle forms.
-// French: add "e" (créé → créée). Spanish: strip "o", add "a" (eliminado →
-// eliminada — the swap covers the irregulars too: resuelto → resuelta).
-// Languages without agreement (English, German, Klingon) declare nothing
-// and participles stay invariant.
+// AgreementRules declares how a locale derives agreed participle forms,
+// keyed by the gender that agrees. French: f adds "e" (créé → créée).
+// Spanish: f strips "o" adds "a" (eliminado → eliminada — the swap covers
+// the irregulars too: resuelto → resuelta). Latin declares both f and n
+// from the masculine base: deletus → deleta / deletum. The base gender
+// (usually m) declares no rule and stays invariant, as do whole languages
+// without agreement (English, German, Klingon).
 //
-//	rules := i18n.AgreementRules{ParticipleFeminineAdd: "e"}
+//	rules := i18n.AgreementRules{Participle: map[string]i18n.ParticipleAgreement{"f": {Add: "e"}}}
 type AgreementRules struct {
-	ParticipleFeminineStrip string // Suffix removed before agreeing: "o" (es)
-	ParticipleFeminineAdd   string // Suffix appended to agree: "a" (es), "e" (fr)
+	Participle map[string]ParticipleAgreement // gender → derivation rule
+}
+
+// ParticipleAgreement is one gender's derivation: strip a suffix from the
+// base participle, then append.
+//
+//	i18n.ParticipleAgreement{Strip: "us", Add: "um"} // deletus → deletum
+type ParticipleAgreement struct {
+	Strip string // Suffix removed before agreeing: "o" (es), "us" (la)
+	Add   string // Suffix appended to agree: "a", "e", "um"
 }
 
 // VerbForms holds verb conjugations.

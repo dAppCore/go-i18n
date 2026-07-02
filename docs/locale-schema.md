@@ -130,7 +130,18 @@ Locales whose participles agree with the subject declare the derivation rule; a 
 }
 ```
 
-French adds `e` (créé → créée); Spanish declares `{ "strip": "o", "add": "a" }` (eliminado → eliminada — the swap covers irregular participles too: resuelto → resuelta). Verbs the rule cannot derive carry an authored `past_f` on their `gram.verb` entry (dû → due, été invariant). Languages without agreement — English, German, Klingon — declare nothing and participles stay invariant, which is their grammar.
+Rules are keyed by gender (a flat `{strip, add}` object is accepted as feminine shorthand). French: `"f": { "add": "e" }` (créé → créée). Spanish: `"f": { "strip": "o", "add": "a" }` (eliminado → eliminada — the swap covers irregular participles too: resuelto → resuelta). Latin declares both agreeing genders from the masculine base:
+
+```json
+"agreement": {
+  "participle": {
+    "f": { "strip": "us", "add": "a" },
+    "n": { "strip": "us", "add": "um" }
+  }
+}
+```
+
+(deletus → Tabula deleta / Erratum inventum.) Verbs a rule cannot derive carry an authored `past_f` on their `gram.verb` entry (dû → due, été invariant). Genders without a rule — and whole languages without agreement: English, German, Klingon — stay on the base form, which is their grammar.
 
 ## gram.word -- Domain Vocabulary and the translation bridge
 

@@ -126,7 +126,7 @@
 			"by_gender": { "m": "le", "f": "la" }
 		},
 		"agreement": {
-			"participle": { "add": "e" }
+			"participle": { "f": { "add": "e" } }
 		},
 		"word": {
 			"url": "URL",

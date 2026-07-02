@@ -185,6 +185,47 @@ func TestSpanishArticleBridge(t *testing.T) {
 	}
 }
 
+// TestLatinComposition — the vocabulary comes home. Subject + perfect
+// passive participle with elided 'est' is lapidary Latin (TABVLA DELETA),
+// the Progress form is the GERUNDIVE in Cato's register (Delenda...), and
+// the per-gender agreement schema earns its keep: deletus → deleta (f) →
+// deletum (n) from one masculine base.
+//
+//	T("i18n.done.delete", "file") // "Tabula deleta"
+func TestLatinComposition(t *testing.T) {
+	setCompositionLanguage(t, "la")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"done.delete file f", T("i18n.done.delete", "file"), "Tabula deleta"},
+		{"done.find error n", T("i18n.done.find", "error"), "Erratum inventum"},
+		{"done.send message m", T("i18n.done.send", "message"), "Nuntius missus"},
+		{"done.do task n", T("i18n.done.do", "task"), "Opus factum"},
+		{"done.resolve... fix vulnerability n", T("i18n.done.fix", "vulnerability"), "Vulnus reparatum"},
+		{"progress.delete — Cato", T("i18n.progress.delete"), "Delenda..."},
+		{"progress.run — agenda", T("i18n.progress.run"), "Agenda..."},
+		{"progress.read — legenda", T("i18n.progress.read"), "Legenda..."},
+		{"count.error 3", T("i18n.count.error", 3), "3 errata"},
+		{"count.task 2", T("i18n.count.task", 2), "2 opera"},
+		{"count.directory 4", T("i18n.count.directory", 4), "4 indices"},
+		{"count.category 2", T("i18n.count.category", 2), "2 genera"},
+		{"fail.push branch", T("i18n.fail.push", "branch"), "Non potuit pellere ramus"},
+		{"prompt.yes", T("prompt.yes"), "sic"},
+		{"prompt.no", T("prompt.no"), "minime"},
+		{"bare article phrase", ArticlePhrase("file"), "tabula"}, // Latin has no articles
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q, want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
 // TestKlingonComposition proves two things at once: the article-less
 // language mechanism (article.none — phrases degrade to the bare noun,
 // which is how Japanese and Russian will work too), and that Klingon's

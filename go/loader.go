@@ -463,7 +463,10 @@ func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData
 }
 
 // loadGrammarAgreement reads the locale's participle agreement declaration.
+// Gender-keyed rules are canonical; a flat {strip, add} object is accepted
+// as shorthand for the feminine rule.
 //
+//	"agreement": { "participle": { "f": { "strip": "us", "add": "a" }, "n": { "strip": "us", "add": "um" } } }
 //	"agreement": { "participle": { "strip": "o", "add": "a" } }
 func loadGrammarAgreement(fullKey string, v map[string]any, grammar *GrammarData) bool {
 	if grammar == nil || fullKey != "gram.agreement" {
@@ -473,11 +476,34 @@ func loadGrammarAgreement(fullKey string, v map[string]any, grammar *GrammarData
 	if !ok {
 		return true
 	}
-	if strip, ok := participle["strip"].(string); ok {
-		grammar.Agreement.ParticipleFeminineStrip = strip
+	rules := make(map[string]ParticipleAgreement)
+	flat := ParticipleAgreement{}
+	for key, raw := range participle {
+		switch value := raw.(type) {
+		case string:
+			// Flat shorthand: {"strip": "o", "add": "a"} means feminine.
+			switch key {
+			case "strip":
+				flat.Strip = value
+			case "add":
+				flat.Add = value
+			}
+		case map[string]any:
+			rule := ParticipleAgreement{}
+			if strip, ok := value["strip"].(string); ok {
+				rule.Strip = strip
+			}
+			if add, ok := value["add"].(string); ok {
+				rule.Add = add
+			}
+			rules[key] = rule
+		}
 	}
-	if add, ok := participle["add"].(string); ok {
-		grammar.Agreement.ParticipleFeminineAdd = add
+	if flat != (ParticipleAgreement{}) {
+		rules["f"] = flat
+	}
+	if len(rules) > 0 {
+		grammar.Agreement.Participle = rules
 	}
 	return true
 }

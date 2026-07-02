@@ -10,7 +10,7 @@ Bundled locales: `en` (the English of England — bare `en` IS en-GB), `en-US` (
 
 The `phonetics` package gives the engine an ear: the vendored CMU Pronouncing Dictionary (134k words with stress markers) backs `Article()` and consonant doubling with actual phonemes ("an yttrium sample", commit → committed but visit → visited by stress, not by table), plus rhyme, alliteration, syllable and stress primitives, metre scanning (`ScanLine` → dominant foot + regularity), and whole-sentence transcription in ARPABET, IPA or readable phonetic respelling.
 
-Novelty locales double as architecture proofs: `en-x-pirate` (vocabulary-only dialect riding the `en` fallback chain — "Blimey! Couldn't heave plank") and `tlh` (Klingon: canonical Okrand vocabulary, aspect suffixes filling the past/gerund slots mechanically, and the `article.none` mechanism article-less languages like Japanese and Russian will reuse — "De' teqpu'").
+Novelty locales double as architecture proofs: `en-x-pirate` (vocabulary-only dialect riding the `en` fallback chain — "Blimey! Couldn't heave plank"), `tlh` (Klingon: canonical Okrand vocabulary, aspect suffixes filling the past/gerund slots mechanically, and the `article.none` mechanism article-less languages like Japanese and Russian will reuse — "De' teqpu'") and `la` (Latin: subject + perfect passive participle IS lapidary Latin — "Tabula deleta", "Erratum inventum" — the Progress form is the gerundive in Cato's register ("Delenda..."), three-gender participle agreement, and the noun table closes the loop on English's own irregular plurals: errata, data, opera, indices, genera).
 
 **Module**: `dappco.re/go/core/i18n`
 **Licence**: EUPL-1.2

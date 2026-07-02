@@ -78,11 +78,11 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	maps.Copy(existing.Nouns, data.Nouns)
 	maps.Copy(existing.Words, data.Words)
 	mergeArticleForms(&existing.Articles, data.Articles)
-	if data.Agreement.ParticipleFeminineStrip != "" {
-		existing.Agreement.ParticipleFeminineStrip = data.Agreement.ParticipleFeminineStrip
-	}
-	if data.Agreement.ParticipleFeminineAdd != "" {
-		existing.Agreement.ParticipleFeminineAdd = data.Agreement.ParticipleFeminineAdd
+	if len(data.Agreement.Participle) > 0 {
+		if existing.Agreement.Participle == nil {
+			existing.Agreement.Participle = make(map[string]ParticipleAgreement, len(data.Agreement.Participle))
+		}
+		maps.Copy(existing.Agreement.Participle, data.Agreement.Participle)
 	}
 	mergePunctuationRules(&existing.Punct, data.Punct)
 	mergeSignalData(&existing.Signals, data.Signals)
@@ -227,7 +227,7 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if len(data.Intents) > 0 {
 		return true
 	}
-	if data.Agreement != (AgreementRules{}) {
+	if len(data.Agreement.Participle) > 0 {
 		return true
 	}
 	return data.Number != (NumberFormat{})
@@ -255,8 +255,11 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 			VerbNegation:    append([]string(nil), data.Signals.VerbNegation...),
 			Priors:          make(map[string]map[string]float64, len(data.Signals.Priors)),
 		},
-		Number:    data.Number,
-		Agreement: data.Agreement,
+		Number: data.Number,
+	}
+	if len(data.Agreement.Participle) > 0 {
+		clone.Agreement.Participle = make(map[string]ParticipleAgreement, len(data.Agreement.Participle))
+		maps.Copy(clone.Agreement.Participle, data.Agreement.Participle)
 	}
 	if len(data.Verbs) > 0 {
 		clone.Verbs = make(map[string]VerbForms, len(data.Verbs))
@@ -1374,10 +1377,11 @@ func actionResultForLanguages(langs []string, verb, subject string) string {
 	if subject == "" {
 		return Title(p)
 	}
-	// Participle agreement: a feminine subject agrees the participle in
-	// locales that declare the rule — Branche créée, Tarea eliminada.
-	if subjectGenderForLanguages(langs, subject) == "f" {
-		p = feminineParticipleForLanguages(langs, verb, p)
+	// Participle agreement: the subject's gender agrees the participle in
+	// locales that declare a rule for it — Branche créée, Tarea eliminada,
+	// Erratum inventum. Genders without a rule stay on the base form.
+	if gender := subjectGenderForLanguages(langs, subject); gender != "" {
+		p = agreedParticipleForLanguages(langs, verb, p, gender)
 	}
 	return renderSubjectLeadForLanguages(langs, subject) + " " + p
 }
@@ -1398,35 +1402,39 @@ func subjectGenderForLanguages(langs []string, subject string) string {
 	return ""
 }
 
-// feminineParticipleForLanguages agrees a participle with a feminine
-// subject: an authored past_f override wins (dû → due), then the locale's
-// declared derivation rule (fr: +e; es: -o → -a, which covers the
-// irregulars free — resuelto → resuelta), else the participle stays
-// invariant, which IS the grammar of English, German and Klingon.
-func feminineParticipleForLanguages(langs []string, verb, participle string) string {
-	for _, lang := range languageFallbackOrder(langs) {
-		if form := getVerbForm(lang, verb, "past_f"); form != "" {
-			return form
+// agreedParticipleForLanguages agrees a participle with the subject's
+// gender: an authored per-verb override wins for the feminine (dû → due),
+// then the locale's declared derivation for that gender (fr f: +e; es f:
+// -o → -a, covering the irregulars free — resuelto → resuelta; la f/n:
+// -us → -a / -um). A gender with no rule keeps the base form, which is
+// both the masculine case and the whole grammar of English, German and
+// Klingon.
+func agreedParticipleForLanguages(langs []string, verb, participle, gender string) string {
+	if gender == "f" {
+		for _, lang := range languageFallbackOrder(langs) {
+			if form := getVerbForm(lang, verb, "past_f"); form != "" {
+				return form
+			}
 		}
 	}
 	for _, lang := range languageFallbackOrder(langs) {
 		data := grammarDataForLang(lang)
-		if data == nil {
+		if data == nil || len(data.Agreement.Participle) == 0 {
 			continue
 		}
-		rules := data.Agreement
-		if rules.ParticipleFeminineAdd == "" && rules.ParticipleFeminineStrip == "" {
-			continue
+		rule, ok := data.Agreement.Participle[gender]
+		if !ok {
+			return participle
 		}
 		agreed := participle
-		if rules.ParticipleFeminineStrip != "" {
-			if !core.HasSuffix(agreed, rules.ParticipleFeminineStrip) {
+		if rule.Strip != "" {
+			if !core.HasSuffix(agreed, rule.Strip) {
 				// The rule's shape does not fit this participle; leave it.
 				return participle
 			}
-			agreed = agreed[:len(agreed)-len(rules.ParticipleFeminineStrip)]
+			agreed = agreed[:len(agreed)-len(rule.Strip)]
 		}
-		return agreed + rules.ParticipleFeminineAdd
+		return agreed + rule.Add
 	}
 	return participle
 }
