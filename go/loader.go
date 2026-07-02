@@ -523,6 +523,9 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 	// Support both the canonical loader schema (`indefinite` / `definite`)
 	// and the RFC sample shape (`the` / `a`) so locale files can be shared
 	// across implementations without data loss.
+	if none, ok := v["none"].(bool); ok && none {
+		grammar.Articles.None = true
+	}
 	if def, ok := v["the"].(string); ok && def != "" {
 		grammar.Articles.Definite = def
 	}

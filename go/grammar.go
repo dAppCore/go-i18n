@@ -96,6 +96,9 @@ func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 	if dst == nil {
 		return
 	}
+	if src.None {
+		dst.None = true
+	}
 	if src.IndefiniteDefault != "" {
 		dst.IndefiniteDefault = src.IndefiniteDefault
 	}
@@ -193,7 +196,8 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if len(data.Verbs) > 0 || len(data.Nouns) > 0 || len(data.Words) > 0 {
 		return true
 	}
-	if data.Articles.IndefiniteDefault != "" ||
+	if data.Articles.None ||
+		data.Articles.IndefiniteDefault != "" ||
 		data.Articles.IndefiniteVowel != "" ||
 		data.Articles.Definite != "" ||
 		data.Articles.DefinitePlural != "" ||
@@ -226,6 +230,7 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 	}
 	clone := &GrammarData{
 		Articles: ArticleForms{
+			None:                data.Articles.None,
 			IndefiniteDefault:   data.Articles.IndefiniteDefault,
 			IndefiniteVowel:     data.Articles.IndefiniteVowel,
 			Definite:            data.Articles.Definite,
@@ -715,6 +720,11 @@ func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 		return "", false
 	}
 
+	// Article-less languages resolve to the empty token; ArticlePhrase
+	// and DefinitePhrase degrade to the bare noun.
+	if data.Articles.None {
+		return "", true
+	}
 	if article, ok := articleForPluralForm(data, lowerWord, lang); ok {
 		return article, true
 	}
@@ -1125,6 +1135,9 @@ func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, 
 	if data == nil {
 		return "", false
 	}
+	if data.Articles.None {
+		return "", true
+	}
 	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
 		return article, true
 	}
@@ -1289,8 +1302,13 @@ func Ago(count int, unit string) string {
 }
 
 func prefixWithArticle(article, word string) string {
-	if article == "" || word == "" {
+	if word == "" {
 		return ""
+	}
+	// An empty article is an article-less language speaking correctly:
+	// the phrase IS the bare noun.
+	if article == "" {
+		return word
 	}
 	if core.HasSuffix(article, "'") {
 		return article + word

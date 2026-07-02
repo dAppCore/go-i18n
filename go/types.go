@@ -272,6 +272,7 @@ type NounForms struct {
 //
 //	articles := i18n.ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}
 type ArticleForms struct {
+	None                   bool              // The language has NO articles (Japanese, Russian, Klingon) — phrases degrade to the bare noun
 	IndefiniteDefault      string            // "a"
 	IndefiniteVowel        string            // "an"
 	Definite               string            // "the"

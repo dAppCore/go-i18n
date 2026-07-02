@@ -383,6 +383,16 @@ func (s *Service) SetLanguage(lang string) core.Result {
 	if len(s.availableLangs) == 0 {
 		return failResult(golog.E("Service.SetLanguage", "no languages available", nil))
 	}
+	// An exact available tag wins outright. The x/text matcher ignores
+	// private-use subtags (en-x-pirate ≡ en to it), which would silently
+	// resolve a loaded dialect back to its parent.
+	for i := range s.availableLangs {
+		if normalizeLanguageTag(s.availableLangs[i].String()) == lang {
+			s.currentLang = s.availableLangs[i].String()
+			s.languageExplicit = true
+			return core.Ok(nil)
+		}
+	}
 	matcher := language.NewMatcher(s.availableLangs)
 	bestMatch, bestIndex, confidence := matcher.Match(requestedLang)
 	if confidence == language.No {
