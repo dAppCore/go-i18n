@@ -105,11 +105,26 @@ func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 	if src.None {
 		dst.None = true
 	}
+	if src.IndefiniteNone {
+		dst.IndefiniteNone = true
+	}
 	if src.IndefiniteDefault != "" {
 		dst.IndefiniteDefault = src.IndefiniteDefault
 	}
 	if src.IndefiniteVowel != "" {
 		dst.IndefiniteVowel = src.IndefiniteVowel
+	}
+	if src.DefiniteVowel != "" {
+		dst.DefiniteVowel = src.DefiniteVowel
+	}
+	if src.DefiniteSuffixPlural != (SuffixRule{}) {
+		dst.DefiniteSuffixPlural = src.DefiniteSuffixPlural
+	}
+	if len(src.DefiniteSuffixByGender) > 0 {
+		if dst.DefiniteSuffixByGender == nil {
+			dst.DefiniteSuffixByGender = make(map[string]SuffixRule, len(src.DefiniteSuffixByGender))
+		}
+		maps.Copy(dst.DefiniteSuffixByGender, src.DefiniteSuffixByGender)
 	}
 	if src.Definite != "" {
 		dst.Definite = src.Definite
@@ -203,13 +218,17 @@ func grammarDataHasContent(data *GrammarData) bool {
 		return true
 	}
 	if data.Articles.None ||
+		data.Articles.IndefiniteNone ||
 		data.Articles.IndefiniteDefault != "" ||
 		data.Articles.IndefiniteVowel != "" ||
 		data.Articles.Definite != "" ||
+		data.Articles.DefiniteVowel != "" ||
 		data.Articles.DefinitePlural != "" ||
+		data.Articles.DefiniteSuffixPlural != (SuffixRule{}) ||
 		len(data.Articles.DefinitePluralByGender) > 0 ||
 		len(data.Articles.ByGender) > 0 ||
 		len(data.Articles.IndefiniteByGender) > 0 ||
+		len(data.Articles.DefiniteSuffixByGender) > 0 ||
 		len(data.Articles.VowelSoundWords) > 0 ||
 		len(data.Articles.ConsonantSoundWords) > 0 {
 		return true
@@ -239,13 +258,16 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 	}
 	clone := &GrammarData{
 		Articles: ArticleForms{
-			None:                data.Articles.None,
-			IndefiniteDefault:   data.Articles.IndefiniteDefault,
-			IndefiniteVowel:     data.Articles.IndefiniteVowel,
-			Definite:            data.Articles.Definite,
-			DefinitePlural:      data.Articles.DefinitePlural,
-			VowelSoundWords:     append([]string(nil), data.Articles.VowelSoundWords...),
-			ConsonantSoundWords: append([]string(nil), data.Articles.ConsonantSoundWords...),
+			None:                 data.Articles.None,
+			IndefiniteNone:       data.Articles.IndefiniteNone,
+			IndefiniteDefault:    data.Articles.IndefiniteDefault,
+			IndefiniteVowel:      data.Articles.IndefiniteVowel,
+			Definite:             data.Articles.Definite,
+			DefiniteVowel:        data.Articles.DefiniteVowel,
+			DefinitePlural:       data.Articles.DefinitePlural,
+			DefiniteSuffixPlural: data.Articles.DefiniteSuffixPlural,
+			VowelSoundWords:      append([]string(nil), data.Articles.VowelSoundWords...),
+			ConsonantSoundWords:  append([]string(nil), data.Articles.ConsonantSoundWords...),
 		},
 		Punct: data.Punct,
 		Signals: SignalData{
@@ -284,6 +306,10 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 	if len(data.Articles.DefinitePluralByGender) > 0 {
 		clone.Articles.DefinitePluralByGender = make(map[string]string, len(data.Articles.DefinitePluralByGender))
 		maps.Copy(clone.Articles.DefinitePluralByGender, data.Articles.DefinitePluralByGender)
+	}
+	if len(data.Articles.DefiniteSuffixByGender) > 0 {
+		clone.Articles.DefiniteSuffixByGender = make(map[string]SuffixRule, len(data.Articles.DefiniteSuffixByGender))
+		maps.Copy(clone.Articles.DefiniteSuffixByGender, data.Articles.DefiniteSuffixByGender)
 	}
 	if len(data.Signals.Priors) > 0 {
 		for word, priors := range data.Signals.Priors {
@@ -736,8 +762,10 @@ func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 	}
 
 	// Article-less languages resolve to the empty token; ArticlePhrase
-	// and DefinitePhrase degrade to the bare noun.
-	if data.Articles.None {
+	// and DefinitePhrase degrade to the bare noun. IndefiniteNone does the
+	// same for the indefinite only (Bulgarian: no indefinite article, but
+	// suffixed definites are alive and well).
+	if data.Articles.None || data.Articles.IndefiniteNone {
 		return "", true
 	}
 	if article, ok := articleForPluralForm(data, lowerWord, lang); ok {
@@ -1132,7 +1160,9 @@ func DefiniteToken(word string) string {
 	return DefiniteArticle(word)
 }
 
-// DefinitePhrase prefixes a noun phrase with the correct definite article.
+// DefinitePhrase renders a noun phrase in the definite: prefixed articles
+// where the language fronts them (the file, le fichier), SUFFIXED where it
+// welds them on (filen, fișierul, файлът).
 func DefinitePhrase(word string) string {
 	word = core.Trim(word)
 	if word == "" {
@@ -1140,8 +1170,41 @@ func DefinitePhrase(word string) string {
 	}
 	lang := currentLangForGrammar()
 	word = renderWord(lang, word)
+	if suffixed, ok := definiteSuffixedPhrase(lang, word); ok {
+		return suffixed
+	}
 	article := DefiniteArticle(word)
 	return prefixWithArticle(article, word)
+}
+
+// definiteSuffixedPhrase welds the definite suffix onto the noun for
+// languages that declare definite_suffix rules: the gendered rule on a
+// singular (fil → filen, sarcină → sarcina), the plural rule on a known
+// plural form (filer → filerne).
+func definiteSuffixedPhrase(lang, word string) (string, bool) {
+	data := grammarDataForLang(lang)
+	if data == nil || len(data.Articles.DefiniteSuffixByGender) == 0 {
+		return "", false
+	}
+	lower := core.Lower(word)
+	if _, plural := pluralNounGender(data, lower); plural {
+		if suffixed, ok := data.Articles.DefiniteSuffixPlural.Apply(word); ok {
+			return suffixed, true
+		}
+		return "", false
+	}
+	forms, ok := data.Nouns[lower]
+	if !ok || forms.Gender == "" {
+		return "", false
+	}
+	rule, ok := data.Articles.DefiniteSuffixByGender[forms.Gender]
+	if !ok {
+		return "", false
+	}
+	if suffixed, ok := rule.Apply(word); ok {
+		return suffixed, true
+	}
+	return "", false
 }
 
 func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
@@ -1151,6 +1214,11 @@ func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, 
 		return "", false
 	}
 	if data.Articles.None {
+		return "", true
+	}
+	// Suffix-article languages have no standalone definite word; the
+	// suffixing itself happens in DefinitePhrase.
+	if len(data.Articles.DefiniteSuffixByGender) > 0 {
 		return "", true
 	}
 	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
@@ -1241,7 +1309,30 @@ func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord,
 		}
 		return maybeElideArticle(data.Articles.Definite, originalWord, lang), true
 	}
+	// Hungarian-style phonetic definite: az before a vowel-initial word,
+	// a otherwise. Orthography is phonetic there, so the letter test is
+	// the sound test.
+	if data.Articles.DefiniteVowel != "" && startsWithVowelLetter(originalWord) {
+		return data.Articles.DefiniteVowel, true
+	}
 	return data.Articles.Definite, true
+}
+
+// startsWithVowelLetter reports a vowel-initial word across the Latin
+// vowel letters and their common European accented forms (Hungarian
+// á é í ó ö ő ú ü ű included).
+func startsWithVowelLetter(word string) bool {
+	for _, r := range core.Lower(core.Trim(word)) {
+		switch r {
+		case 'a', 'e', 'i', 'o', 'u',
+			'á', 'à', 'â', 'ä', 'æ', 'é', 'è', 'ê', 'ë', 'í', 'î', 'ï',
+			'ó', 'ò', 'ô', 'ö', 'ő', 'ú', 'ù', 'û', 'ü', 'ű', 'œ', 'å', 'ø':
+			return true
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 // TemplateFuncs returns the template.FuncMap with all grammar functions.

@@ -579,6 +579,25 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 	if none, ok := v["none"].(bool); ok && none {
 		grammar.Articles.None = true
 	}
+	if none, ok := v["indefinite_none"].(bool); ok && none {
+		grammar.Articles.IndefiniteNone = true
+	}
+	if vowel, ok := v["definite_vowel"].(string); ok {
+		grammar.Articles.DefiniteVowel = vowel
+	}
+	if suffixes, ok := v["definite_suffix"].(map[string]any); ok {
+		grammar.Articles.DefiniteSuffixByGender = make(map[string]SuffixRule, len(suffixes))
+		for gender, raw := range suffixes {
+			if rule, ok := suffixRuleFromMap(raw); ok {
+				grammar.Articles.DefiniteSuffixByGender[gender] = rule
+			}
+		}
+	}
+	if raw, ok := v["definite_suffix_plural"]; ok {
+		if rule, ok := suffixRuleFromMap(raw); ok {
+			grammar.Articles.DefiniteSuffixPlural = rule
+		}
+	}
 	if def, ok := v["the"].(string); ok && def != "" {
 		grammar.Articles.Definite = def
 	}
@@ -654,6 +673,24 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 	loadArticleSoundWords(&grammar.Articles.VowelSoundWords, v["vowel_sound_words"])
 	loadArticleSoundWords(&grammar.Articles.ConsonantSoundWords, v["consonant_sound_words"])
 	return true
+}
+
+// suffixRuleFromMap reads a {strip, add} object into a SuffixRule.
+//
+//	suffixRuleFromMap(map[string]any{"add": "en"}) // SuffixRule{Add: "en"}, true
+func suffixRuleFromMap(raw any) (SuffixRule, bool) {
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return SuffixRule{}, false
+	}
+	rule := SuffixRule{}
+	if strip, ok := m["strip"].(string); ok {
+		rule.Strip = strip
+	}
+	if add, ok := m["add"].(string); ok {
+		rule.Add = add
+	}
+	return rule, rule != SuffixRule{}
 }
 
 // loadArticleSoundWords appends locale-declared phonetic exception prefixes

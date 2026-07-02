@@ -259,13 +259,34 @@ type AgreementRules struct {
 	Participle map[string]ParticipleAgreement // gender → derivation rule
 }
 
-// ParticipleAgreement is one gender's derivation: strip a suffix from the
-// base participle, then append.
+// SuffixRule is a small morphological derivation: strip a suffix, then
+// append one. It serves participle agreement (deletus → deleta) and the
+// suffixed definite articles of the north and east (fil → filen,
+// sarcină → sarcina).
 //
-//	i18n.ParticipleAgreement{Strip: "us", Add: "um"} // deletus → deletum
-type ParticipleAgreement struct {
-	Strip string // Suffix removed before agreeing: "o" (es), "us" (la)
-	Add   string // Suffix appended to agree: "a", "e", "um"
+//	i18n.SuffixRule{Strip: "us", Add: "um"} // deletus → deletum
+type SuffixRule struct {
+	Strip string // Suffix removed first: "o" (es), "us" (la), "ă" (ro)
+	Add   string // Suffix appended: "a", "um", "en", "ul"
+}
+
+// ParticipleAgreement is the historical name for SuffixRule.
+type ParticipleAgreement = SuffixRule
+
+// Apply derives the new form, refusing when the strip does not fit.
+//
+//	i18n.SuffixRule{Add: "en"}.Apply("fil") // "filen", true
+func (r SuffixRule) Apply(word string) (string, bool) {
+	if r.Strip == "" && r.Add == "" {
+		return word, false
+	}
+	if r.Strip != "" {
+		if len(word) < len(r.Strip) || word[len(word)-len(r.Strip):] != r.Strip {
+			return word, false
+		}
+		word = word[:len(word)-len(r.Strip)]
+	}
+	return word + r.Add, true
 }
 
 // VerbForms holds verb conjugations.
@@ -296,16 +317,20 @@ type NounForms struct {
 //
 //	articles := i18n.ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}
 type ArticleForms struct {
-	None                   bool              // The language has NO articles (Japanese, Russian, Klingon) — phrases degrade to the bare noun
-	IndefiniteDefault      string            // "a"
-	IndefiniteVowel        string            // "an"
-	Definite               string            // "the"
-	DefinitePlural         string            // Definite article for known plurals: "les", "die"
-	DefinitePluralByGender map[string]string // Gendered plural definites where one word won't do: los/las
-	ByGender               map[string]string // Gender-specific DEFINITE articles: le/la, der/die/das
-	IndefiniteByGender     map[string]string // Gender-specific INDEFINITE articles: un/une, ein/eine/ein
-	VowelSoundWords        []string          // Spelled consonant, spoken vowel — take IndefiniteVowel ("herb" in en-US)
-	ConsonantSoundWords    []string          // Spelled vowel, spoken consonant — take IndefiniteDefault ("user", "unicorn")
+	None                   bool                  // The language has NO articles (Japanese, Russian, Klingon) — phrases degrade to the bare noun
+	IndefiniteNone         bool                  // No INDEFINITE article only (Bulgarian): Article() empty, definites intact
+	IndefiniteDefault      string                // "a"
+	IndefiniteVowel        string                // "an"
+	Definite               string                // "the"
+	DefiniteVowel          string                // Definite before a vowel-initial word (Hungarian az; "a" stays in Definite)
+	DefinitePlural         string                // Definite article for known plurals: "les", "die"
+	DefinitePluralByGender map[string]string     // Gendered plural definites where one word won't do: los/las
+	ByGender               map[string]string     // Gender-specific DEFINITE articles: le/la, der/die/das
+	IndefiniteByGender     map[string]string     // Gender-specific INDEFINITE articles: un/une, ein/eine/ein
+	DefiniteSuffixByGender map[string]SuffixRule // SUFFIXED definites of the north and east: fil→filen (da c), fișier→fișierul (ro m)
+	DefiniteSuffixPlural   SuffixRule            // Suffixed definite applied to a plural form: filer→filerne, fișiere→fișierele
+	VowelSoundWords        []string              // Spelled consonant, spoken vowel — take IndefiniteVowel ("herb" in en-US)
+	ConsonantSoundWords    []string              // Spelled vowel, spoken consonant — take IndefiniteDefault ("user", "unicorn")
 }
 
 // PunctuationRules holds language-specific punctuation patterns.

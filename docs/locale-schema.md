@@ -108,6 +108,17 @@ A locale can extend the phonetic exception tables with `vowel_sound_words` and `
 
 `vowel_sound_words` entries take the `vowel` article ("an herb"); `consonant_sound_words` entries take the `default` article (the built-in tables already carry the /juː/ glide class: user, unicorn, ewe).
 
+**Suffixed definite articles** (Danish, Swedish, Romanian, Bulgarian) weld onto the noun instead of preceding it. Declare `definite_suffix` rules by gender ({strip, add} applied to the singular) and `definite_suffix_plural` (applied to a known plural form); `DefinitePhrase` then produces fil → filen, filer → filerne, fișier → fișierul, sarcină → sarcina. `DefiniteArticle()` returns the empty token for these languages (there is no standalone definite word):
+
+```json
+"article": {
+  "definite_suffix": { "c": { "add": "en" }, "n": { "add": "et" } },
+  "definite_suffix_plural": { "add": "ne" }
+}
+```
+
+`"indefinite_none": true` declares a language with definites but NO indefinite article (Bulgarian) — `Article()` empty, definites intact. `"definite_vowel"` declares a phonetic definite split (Hungarian: `"definite": "a", "definite_vowel": "az"` — az before vowel-initial words, tested on the letter including accented European vowels).
+
 For gendered languages, add a `by_gender` map:
 
 ```json
