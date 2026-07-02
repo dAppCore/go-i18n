@@ -115,6 +115,12 @@ func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 		}
 		maps.Copy(dst.IndefiniteByGender, src.IndefiniteByGender)
 	}
+	if len(src.DefinitePluralByGender) > 0 {
+		if dst.DefinitePluralByGender == nil {
+			dst.DefinitePluralByGender = make(map[string]string, len(src.DefinitePluralByGender))
+		}
+		maps.Copy(dst.DefinitePluralByGender, src.DefinitePluralByGender)
+	}
 	if len(src.ByGender) == 0 {
 		return
 	}
@@ -190,6 +196,7 @@ func grammarDataHasContent(data *GrammarData) bool {
 		data.Articles.IndefiniteVowel != "" ||
 		data.Articles.Definite != "" ||
 		data.Articles.DefinitePlural != "" ||
+		len(data.Articles.DefinitePluralByGender) > 0 ||
 		len(data.Articles.ByGender) > 0 ||
 		len(data.Articles.IndefiniteByGender) > 0 ||
 		len(data.Articles.VowelSoundWords) > 0 ||
@@ -254,6 +261,10 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 	if len(data.Articles.IndefiniteByGender) > 0 {
 		clone.Articles.IndefiniteByGender = make(map[string]string, len(data.Articles.IndefiniteByGender))
 		maps.Copy(clone.Articles.IndefiniteByGender, data.Articles.IndefiniteByGender)
+	}
+	if len(data.Articles.DefinitePluralByGender) > 0 {
+		clone.Articles.DefinitePluralByGender = make(map[string]string, len(data.Articles.DefinitePluralByGender))
+		maps.Copy(clone.Articles.DefinitePluralByGender, data.Articles.DefinitePluralByGender)
 	}
 	if len(data.Signals.Priors) > 0 {
 		for word, priors := range data.Signals.Priors {
@@ -745,11 +756,17 @@ func articleByGender(data *GrammarData, lowerWord, originalWord, lang string) (s
 }
 
 func articleForPluralForm(data *GrammarData, lowerWord, lang string) (string, bool) {
-	if !isKnownPluralNoun(data, lowerWord) {
+	gender, ok := pluralNounGender(data, lowerWord)
+	if !ok {
 		return "", false
 	}
-	// Known plurals take the locale's definite plural article (les, die).
-	// The French literal remains as a fallback for data without the field.
+	// Known plurals take the locale's definite plural article — gendered
+	// where the language demands it (los/las), a single form otherwise
+	// (les, die). The French literal remains as a fallback for data
+	// without either field.
+	if article, ok := data.Articles.DefinitePluralByGender[gender]; ok && article != "" {
+		return article, true
+	}
 	if data.Articles.DefinitePlural != "" {
 		return data.Articles.DefinitePlural, true
 	}
@@ -773,8 +790,16 @@ func articleForFrenchPluralGuess(data *GrammarData, lowerWord, originalWord, lan
 }
 
 func isKnownPluralNoun(data *GrammarData, lowerWord string) bool {
+	_, ok := pluralNounGender(data, lowerWord)
+	return ok
+}
+
+// pluralNounGender reports whether the word is a known plural form and, when
+// it is, the gender of the noun it pluralises — Spanish needs this because
+// the plural definite article is itself gendered (los archivos, las tareas).
+func pluralNounGender(data *GrammarData, lowerWord string) (string, bool) {
 	if data == nil || len(data.Nouns) == 0 {
-		return false
+		return "", false
 	}
 	for _, forms := range data.Nouns {
 		if forms.Other == "" || core.Lower(forms.Other) != lowerWord {
@@ -783,9 +808,9 @@ func isKnownPluralNoun(data *GrammarData, lowerWord string) bool {
 		if forms.One != "" && core.Lower(forms.One) == lowerWord {
 			continue
 		}
-		return true
+		return forms.Gender, true
 	}
-	return false
+	return "", false
 }
 
 func articleFromGrammarForms(data *GrammarData, word string) (string, bool) {
@@ -1151,8 +1176,13 @@ func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord,
 	if data == nil || data.Articles.Definite == "" {
 		return "", false
 	}
-	if data.Articles.DefinitePlural != "" && isKnownPluralNoun(data, lowerWord) {
-		return data.Articles.DefinitePlural, true
+	if gender, ok := pluralNounGender(data, lowerWord); ok {
+		if article, ok := data.Articles.DefinitePluralByGender[gender]; ok && article != "" {
+			return article, true
+		}
+		if data.Articles.DefinitePlural != "" {
+			return data.Articles.DefinitePlural, true
+		}
 	}
 	if isFrenchLanguage(lang) {
 		if isKnownPluralNoun(data, lowerWord) || looksLikeFrenchPlural(originalWord) {

@@ -6,7 +6,7 @@
 
 Grammar engine for Go. Provides forward composition primitives (PastTense, Gerund, Pluralize, Article, composite progress and label functions), a `T()` translation entry point with namespace key handlers, and a reversal engine that recovers base forms and grammatical roles from inflected text. The reversal package produces `GrammarImprint` feature vectors for semantic similarity scoring, builds reference domain distributions, performs anomaly detection, and includes a 1B model pre-sort pipeline for training data classification. Consumers bring their own translation keys; this library provides the grammatical machinery.
 
-Bundled locales: `en` (the English of England — bare `en` IS en-GB), `en-US` (dialect override), `fr` and `de` — the latter two compose full output from English keys through the `gram.word` bridge: `T("i18n.done.delete", "file")` → "File deleted" / "Fichier supprimé" / "Datei gelöscht".
+Bundled locales: `en` (the English of England — bare `en` IS en-GB), `en-US` (dialect override), `fr`, `de` and `es` — all composing full output from English keys through the `gram.word` bridge: `T("i18n.done.delete", "file")` → "File deleted" / "Fichier supprimé" / "Datei gelöscht" / "Archivo eliminado". The Spanish locale is pure data — no Spanish-specific code exists in the engine.
 
 **Module**: `dappco.re/go/core/i18n`
 **Licence**: EUPL-1.2

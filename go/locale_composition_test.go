@@ -115,6 +115,70 @@ func TestGermanComposition(t *testing.T) {
 	}
 }
 
+// TestSpanishComposition proves the Spanish theory: es.json is PURE DATA —
+// no Spanish-specific code exists anywhere in the engine. The gerundio is
+// exactly the Spanish UI progress convention (Eliminando...), and subject +
+// participle is native word order (Archivo eliminado).
+//
+//	T("i18n.done.delete", "file") // "Archivo eliminado"
+func TestSpanishComposition(t *testing.T) {
+	setCompositionLanguage(t, "es")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"done.delete file", T("i18n.done.delete", "file"), "Archivo eliminado"},
+		{"done.send package", T("i18n.done.send", "package"), "Paquete enviado"},
+		{"done.resolve issue", T("i18n.done.resolve", "issue"), "Problema resuelto"}, // irregular participle
+		{"progress.delete", T("i18n.progress.delete"), "Eliminando..."},
+		{"progress.build", T("i18n.progress.build"), "Construyendo..."},
+		{"count.file 5", T("i18n.count.file", 5), "5 archivos"},
+		{"count.run 3", T("i18n.count.run", 3), "3 ejecuciones"},
+		{"count.error 2", T("i18n.count.error", 2), "2 errores"}, // -or → -ores
+		{"fail.push branch", T("i18n.fail.push", "branch"), "No se pudo subir rama"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q, want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestSpanishArticleBridge pins el/la, un/una AND the gendered plural
+// definites los/las — the case that forced definite_plural_by_gender into
+// the schema. Includes the Greek -ma masculine trap: EL problema.
+//
+//	DefinitePhrase("issue") // "el problema"
+func TestSpanishArticleBridge(t *testing.T) {
+	setCompositionLanguage(t, "es")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"indefinite m", ArticlePhrase("file"), "un archivo"},
+		{"indefinite f", ArticlePhrase("branch"), "una rama"},
+		{"definite m", DefinitePhrase("file"), "el archivo"},
+		{"definite f", DefinitePhrase("task"), "la tarea"},
+		{"greek -ma masculine", DefinitePhrase("issue"), "el problema"},
+		{"plural definite m", DefinitePhrase("archivos"), "los archivos"},
+		{"plural definite f", DefinitePhrase("tareas"), "las tareas"},
+		{"plural indefinite→definite m", ArticlePhrase("archivos"), "los archivos"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q, want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
 // TestGermanArticleBridge pins der/die/das and ein/eine across genders,
 // resolved from English keys through the bridge, plus the definite plural.
 //

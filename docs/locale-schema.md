@@ -85,7 +85,7 @@ As with verbs, only add entries for irregular plurals or cases where the engine 
 
 Maps to the `ArticleForms` struct. The `Article()` function uses phonetic rules (consonant/vowel sound maps) to choose between `default` and `vowel`.
 
-For gendered languages, `indefinite.by_gender` supplies the true indefinite articles (un/une, ein/eine/ein) and `definite_plural` the plural definite article (les, die). `Article()` is the **indefinite** article everywhere; `DefiniteArticle()` resolves the gendered definite forms from `by_gender` (le/la, der/die/das):
+For gendered languages, `indefinite.by_gender` supplies the true indefinite articles (un/une, ein/eine/ein) and `definite_plural` the plural definite article (les, die). Where the plural definite is itself gendered, use `definite_plural_by_gender` instead — Spanish needs los/las, resolved from the gender of the noun the plural form belongs to. `Article()` is the **indefinite** article everywhere; `DefiniteArticle()` resolves the gendered definite forms from `by_gender` (le/la, der/die/das, el/la):
 
 ```json
 "article": {

@@ -571,6 +571,14 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 	if plural, ok := v["definite_plural"].(string); ok {
 		grammar.Articles.DefinitePlural = plural
 	}
+	if bg, ok := v["definite_plural_by_gender"].(map[string]any); ok {
+		grammar.Articles.DefinitePluralByGender = make(map[string]string, len(bg))
+		for g, art := range bg {
+			if s, ok := art.(string); ok {
+				grammar.Articles.DefinitePluralByGender[g] = s
+			}
+		}
+	}
 	if bg, ok := v["by_gender"].(map[string]any); ok {
 		grammar.Articles.ByGender = make(map[string]string, len(bg))
 		for g, art := range bg {

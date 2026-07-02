@@ -103,7 +103,21 @@
 			"file": { "one": "fichier", "other": "fichiers", "gender": "m" },
 			"branch": { "one": "branche", "other": "branches", "gender": "f" },
 			"task": { "one": "tâche", "other": "tâches", "gender": "f" },
-			"error": { "one": "erreur", "other": "erreurs", "gender": "f" }
+			"error": { "one": "erreur", "other": "erreurs", "gender": "f" },
+			"artifact": { "one": "artefact", "other": "artefacts", "gender": "m" },
+			"category": { "one": "catégorie", "other": "catégories", "gender": "f" },
+			"change": { "one": "changement", "other": "changements", "gender": "m" },
+			"child": { "one": "enfant", "other": "enfants", "gender": "m" },
+			"dependency": { "one": "dépendance", "other": "dépendances", "gender": "f" },
+			"directory": { "one": "répertoire", "other": "répertoires", "gender": "m" },
+			"issue": { "one": "problème", "other": "problèmes", "gender": "m" },
+			"package": { "one": "paquet", "other": "paquets", "gender": "m" },
+			"person": { "one": "personne", "other": "personnes", "gender": "f" },
+			"query": { "one": "requête", "other": "requêtes", "gender": "f" },
+			"repo": { "one": "dépôt", "other": "dépôts", "gender": "m" },
+			"repository": { "one": "dépôt", "other": "dépôts", "gender": "m" },
+			"server": { "one": "serveur", "other": "serveurs", "gender": "m" },
+			"vulnerability": { "one": "vulnérabilité", "other": "vulnérabilités", "gender": "f" }
 		},
 		"article": {
 			"indefinite": { "default": "un", "vowel": "un", "by_gender": { "m": "un", "f": "une" } },
