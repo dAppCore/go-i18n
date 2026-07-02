@@ -104,6 +104,8 @@ func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 	if src.Definite != "" {
 		dst.Definite = src.Definite
 	}
+	dst.VowelSoundWords = appendUniqueStrings(dst.VowelSoundWords, src.VowelSoundWords...)
+	dst.ConsonantSoundWords = appendUniqueStrings(dst.ConsonantSoundWords, src.ConsonantSoundWords...)
 	if len(src.ByGender) == 0 {
 		return
 	}
@@ -178,7 +180,9 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if data.Articles.IndefiniteDefault != "" ||
 		data.Articles.IndefiniteVowel != "" ||
 		data.Articles.Definite != "" ||
-		len(data.Articles.ByGender) > 0 {
+		len(data.Articles.ByGender) > 0 ||
+		len(data.Articles.VowelSoundWords) > 0 ||
+		len(data.Articles.ConsonantSoundWords) > 0 {
 		return true
 	}
 	if data.Punct.LabelSuffix != "" || data.Punct.ProgressSuffix != "" {
@@ -203,9 +207,11 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 	}
 	clone := &GrammarData{
 		Articles: ArticleForms{
-			IndefiniteDefault: data.Articles.IndefiniteDefault,
-			IndefiniteVowel:   data.Articles.IndefiniteVowel,
-			Definite:          data.Articles.Definite,
+			IndefiniteDefault:   data.Articles.IndefiniteDefault,
+			IndefiniteVowel:     data.Articles.IndefiniteVowel,
+			Definite:            data.Articles.Definite,
+			VowelSoundWords:     append([]string(nil), data.Articles.VowelSoundWords...),
+			ConsonantSoundWords: append([]string(nil), data.Articles.ConsonantSoundWords...),
 		},
 		Punct: data.Punct,
 		Signals: SignalData{
@@ -447,18 +453,40 @@ func shouldDoubleConsonant(verb string) bool {
 		return false
 	}
 	lastChar := rune(verb[len(verb)-1])
-	secondLast := rune(verb[len(verb)-2])
 	if isVowel(lastChar) || lastChar == 'w' || lastChar == 'x' || lastChar == 'y' {
 		return false
 	}
-	if !isVowel(secondLast) {
+	if !isVowelLetterAt(verb, len(verb)-2) {
 		return false
 	}
+	// en-GB doubles a final single -l after a single vowel regardless of
+	// stress: marshalled, signalled, totalled, equalled. en-US single-l
+	// forms override per-verb via locale data (locales/en-US.json).
+	if lastChar == 'l' && !isVowelLetterAt(verb, len(verb)-3) {
+		return true
+	}
 	if len(verb) <= 4 {
-		thirdLast := rune(verb[len(verb)-3])
-		return !isVowel(thirdLast)
+		return !isVowelLetterAt(verb, len(verb)-3)
 	}
 	return false
+}
+
+// isVowelLetterAt reports whether the byte at index i sounds as a vowel in
+// the CVC sense. A "u" straight after "q" is part of the /kw/ onset cluster,
+// not a vowel — that is why quiz doubles (quizzed) and equal doubles
+// (equalled) even though their spellings read vowel-vowel.
+func isVowelLetterAt(word string, i int) bool {
+	if i < 0 || i >= len(word) {
+		return false
+	}
+	r := rune(word[i])
+	if !isVowel(r) {
+		return false
+	}
+	if r == 'u' && i > 0 && word[i-1] == 'q' {
+		return false
+	}
+	return true
 }
 
 // Gerund returns the present participle (-ing form) of a verb.
@@ -538,6 +566,12 @@ func PluralForm(noun string) string {
 
 func applyRegularPlural(noun string) string {
 	lower := core.Lower(noun)
+	// A single final z after a vowel doubles before -es: quizzes, whizzes.
+	// After a consonant or an existing zz it takes plain -es: waltzes, buzzes.
+	if core.HasSuffix(lower, "z") && !core.HasSuffix(lower, "zz") &&
+		len(lower) > 1 && isVowel(rune(lower[len(lower)-2])) {
+		return noun + string(noun[len(noun)-1]) + "es"
+	}
 	if core.HasSuffix(lower, "s") ||
 		core.HasSuffix(lower, "ss") ||
 		core.HasSuffix(lower, "sh") ||
@@ -552,12 +586,9 @@ func applyRegularPlural(noun string) string {
 			return noun[:len(noun)-1] + "ies"
 		}
 	}
-	if core.HasSuffix(lower, "f") {
-		return noun[:len(noun)-1] + "ves"
-	}
-	if core.HasSuffix(lower, "fe") {
-		return noun[:len(noun)-2] + "ves"
-	}
+	// No f/fe → ves branch: that plural is a closed Old English class carried
+	// by irregularNouns (wolf, knife, elf...). Productive English takes -s
+	// (roofs, chiefs, safes, cliffs, chefs, beliefs).
 	if core.HasSuffix(lower, "o") && len(noun) > 1 {
 		prev := rune(lower[len(lower)-2])
 		if !isVowel(prev) {
@@ -590,6 +621,14 @@ func Article(word string) string {
 	}
 	if isInitialism(word) {
 		if initialismUsesVowelSound(word) {
+			return "an"
+		}
+		return "a"
+	}
+	// Locale sound-word lists still apply when the locale declares no
+	// indefinite forms of its own (a pure phonetic-delta file).
+	if vowel, ok := articleSoundOverride(grammarDataForLang(currentLangForGrammar()), lower); ok {
+		if vowel {
 			return "an"
 		}
 		return "a"
@@ -695,7 +734,7 @@ func articleFromGrammarForms(data *GrammarData, word string) (string, bool) {
 	if data.Articles.IndefiniteDefault == "" && data.Articles.IndefiniteVowel == "" {
 		return "", false
 	}
-	if usesVowelSoundArticle(word) && data.Articles.IndefiniteVowel != "" {
+	if usesVowelSoundArticle(data, word) && data.Articles.IndefiniteVowel != "" {
 		return data.Articles.IndefiniteVowel, true
 	}
 	if data.Articles.IndefiniteDefault != "" {
@@ -725,7 +764,7 @@ func maybeElideArticle(article, word, lang string) string {
 	return article
 }
 
-func usesVowelSoundArticle(word string) bool {
+func usesVowelSoundArticle(data *GrammarData, word string) bool {
 	trimmed := core.Trim(word)
 	if trimmed == "" {
 		return false
@@ -734,6 +773,12 @@ func usesVowelSoundArticle(word string) bool {
 		return initialismUsesVowelSound(trimmed)
 	}
 	lower := core.Lower(trimmed)
+	// Locale-declared phonetic exceptions outrank the built-in tables so a
+	// dialect file can re-hear a word: en-US declares "herb" vowel-sound
+	// (silent h) while base en keeps the British /h/.
+	if vowel, ok := articleSoundOverride(data, lower); ok {
+		return vowel
+	}
 	for key := range consonantSounds {
 		if core.HasPrefix(lower, key) {
 			return false
@@ -748,6 +793,28 @@ func usesVowelSoundArticle(word string) bool {
 		return isVowel(r)
 	}
 	return false
+}
+
+// articleSoundOverride matches a lowercased word against the locale's
+// declared sound-word prefixes. The second return reports whether any
+// locale entry decided the word.
+//
+//	articleSoundOverride(usData, "herb") // (true, true) under en-US
+func articleSoundOverride(data *GrammarData, lower string) (bool, bool) {
+	if data == nil {
+		return false, false
+	}
+	for _, key := range data.Articles.ConsonantSoundWords {
+		if core.HasPrefix(lower, key) {
+			return false, true
+		}
+	}
+	for _, key := range data.Articles.VowelSoundWords {
+		if core.HasPrefix(lower, key) {
+			return true, true
+		}
+	}
+	return false, false
 }
 
 func looksLikeFrenchPlural(word string) bool {

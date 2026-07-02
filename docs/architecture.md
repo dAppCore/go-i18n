@@ -41,11 +41,13 @@ Returns singular when `count == 1`, delegates to `PluralForm()` otherwise.
 
 **`PluralForm(noun string) string`**
 
-Three-tier noun plural lookup. Regular rules handle sibilant (`+es`), consonant+y → ies, f/fe → ves, and default (`+s`).
+Three-tier noun plural lookup. Regular rules handle sibilant (`+es`, with single-z doubling: quiz → quizzes), consonant+y → ies, and default (`+s`). The f/fe → ves plural is deliberately **not** a regular rule — it is a closed Old English class (wolf, knife, leaf, elf, hoof…) carried by the irregular-noun table; productive English takes `-s` (roofs, chiefs, safes, cliffs).
 
 **`Article(word string) string`**
 
-Returns `"a"` or `"an"` based on phonetic rules. Handles exceptions in both directions: consonant-sound words starting with a vowel letter (e.g. `user` → `"a"`) and vowel-sound words starting with a consonant letter (e.g. `hour` → `"an"`). Implemented as prefix lookup tables for the known exceptions, falling back to first-letter vowel test.
+Returns `"a"` or `"an"` based on phonetic rules. Handles exceptions in both directions: consonant-sound words starting with a vowel letter (the /juː/ glide class: `user`, `unicorn`, `ewe` → `"a"`) and vowel-sound words starting with a consonant letter (silent h: `hour` → `"an"`; letter-name hyphenations: `x-ray` → `"an"`). Implemented as prefix lookup tables for the known exceptions, falling back to first-letter vowel test. Locale data can extend the tables per language via `gram.article.vowel_sound_words` / `consonant_sound_words`.
+
+**Dialect policy: bare `en` is the English of England.** The built-in tables carry British pronunciation and morphology (a herb, ageing, travelled, totalled, marshalled; `qu` counts as the /kw/ onset it is, so quiz → quizzed and equal → equalled). American English is an override locale, `locales/en-US.json`, which re-hears "herb" as vowel-onset (silent h) and re-spells the single-l past/gerund forms; anything it does not override falls through the standard `en-US → en` fallback chain.
 
 **Composite functions**
 

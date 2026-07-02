@@ -576,7 +576,39 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 			}
 		}
 	}
+	loadArticleSoundWords(&grammar.Articles.VowelSoundWords, v["vowel_sound_words"])
+	loadArticleSoundWords(&grammar.Articles.ConsonantSoundWords, v["consonant_sound_words"])
 	return true
+}
+
+// loadArticleSoundWords appends locale-declared phonetic exception prefixes
+// (lowercased, deduplicated) onto an ArticleForms sound-word list.
+//
+//	loadArticleSoundWords(&grammar.Articles.VowelSoundWords, []any{"herb"})
+func loadArticleSoundWords(dst *[]string, raw any) {
+	entries, ok := raw.([]any)
+	if !ok {
+		return
+	}
+	seen := make(map[string]struct{}, len(*dst)+len(entries))
+	for _, existing := range *dst {
+		seen[existing] = struct{}{}
+	}
+	for _, entry := range entries {
+		s, ok := entry.(string)
+		if !ok {
+			continue
+		}
+		s = core.Lower(core.Trim(s))
+		if s == "" {
+			continue
+		}
+		if _, dup := seen[s]; dup {
+			continue
+		}
+		seen[s] = struct{}{}
+		*dst = append(*dst, s)
+	}
 }
 
 func firstNonEmptyString(values ...string) string {

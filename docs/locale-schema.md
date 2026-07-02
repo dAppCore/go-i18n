@@ -85,6 +85,18 @@ As with verbs, only add entries for irregular plurals or cases where the engine 
 
 Maps to the `ArticleForms` struct. The `Article()` function uses phonetic rules (consonant/vowel sound maps) to choose between `default` and `vowel`.
 
+A locale can extend the phonetic exception tables with `vowel_sound_words` and `consonant_sound_words` — lowercase word prefixes that outrank the built-in maps. This is how dialects re-hear a word without a code change: base `en` is the English of England ("a herb", sounded h), and `locales/en-US.json` declares the silent-h American reading:
+
+```json
+"article": {
+  "indefinite": { "default": "a", "vowel": "an" },
+  "definite": "the",
+  "vowel_sound_words": ["herb"]
+}
+```
+
+`vowel_sound_words` entries take the `vowel` article ("an herb"); `consonant_sound_words` entries take the `default` article (the built-in tables already carry the /juː/ glide class: user, unicorn, ewe).
+
 For gendered languages, add a `by_gender` map:
 
 ```json
