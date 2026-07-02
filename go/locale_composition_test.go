@@ -185,6 +185,118 @@ func TestSpanishArticleBridge(t *testing.T) {
 	}
 }
 
+// TestItalianComposition — Spanish's sibling rides identical machinery:
+// gerundio progress, -o → -a feminine agreement, gendered plural definites
+// i/le, and the Greek -ma masculine trap for the second Romance language.
+// Known v1 gap, deliberate: elision/allomorphs (l'errore, lo, gli) are not
+// attempted.
+//
+//	T("i18n.done.delete", "file") // "File eliminato" (file IS Italian)
+func TestItalianComposition(t *testing.T) {
+	setCompositionLanguage(t, "it")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"done.delete file", T("i18n.done.delete", "file"), "File eliminato"},
+		{"done.create branch m", T("i18n.done.create", "branch"), "Ramo creato"},
+		{"done.update task f", T("i18n.done.update", "change"), "Modifica aggiornata"},
+		{"done.resolve issue -ma trap", T("i18n.done.resolve", "issue"), "Problema risolto"},
+		{"done.split query f", T("i18n.done.split", "query"), "Richiesta divisa"},
+		{"progress.delete", T("i18n.progress.delete"), "Eliminando..."},
+		{"progress.build", T("i18n.progress.build"), "Costruendo..."},
+		{"count.file invariable loan", T("i18n.count.file", 3), "3 file"},
+		{"count.test 2", T("i18n.count.test", 2), "2 prove"},
+		{"fail.push branch", T("i18n.fail.push", "branch"), "Impossibile spingere ramo"},
+		{"indefinite f", ArticlePhrase("query"), "una richiesta"},
+		{"definite m", DefinitePhrase("branch"), "il ramo"},
+		{"definite plural m", DefinitePhrase("rami"), "i rami"},
+		{"definite plural f", DefinitePhrase("prove"), "le prove"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q, want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestPortugueseComposition — European Portuguese (ficheiro, pasta,
+// artefacto), third Romance language on the same rails: gerúndio progress,
+// -o → -a agreement covering the irregular pago → paga, os/as plural
+// definites, nasal plurals authored per noun (versões), and o problema.
+//
+//	T("i18n.done.delete", "file") // "Ficheiro eliminado"
+func TestPortugueseComposition(t *testing.T) {
+	setCompositionLanguage(t, "pt")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"done.delete file", T("i18n.done.delete", "file"), "Ficheiro eliminado"},
+		{"done.delete task f", T("i18n.done.delete", "task"), "Tarefa eliminada"},
+		{"done.make change f irregular", T("i18n.done.make", "change"), "Alteração feita"},
+		{"done.resolve issue -ma trap", T("i18n.done.resolve", "issue"), "Problema resolvido"},
+		{"progress.delete", T("i18n.progress.delete"), "Eliminando..."},
+		{"count.version nasal plural", T("i18n.count.version", 3), "3 versões"},
+		{"count.run 2", T("i18n.count.run", 2), "2 execuções"},
+		{"fail.push branch", T("i18n.fail.push", "branch"), "Não foi possível empurrar ramo"},
+		{"indefinite f", ArticlePhrase("task"), "uma tarefa"},
+		{"definite m", DefinitePhrase("file"), "o ficheiro"},
+		{"definite plural f", DefinitePhrase("tarefas"), "as tarefas"},
+		{"definite plural m", DefinitePhrase("ficheiros"), "os ficheiros"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q, want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
+// TestDutchComposition — the Germanic shape beside de.json: Bestand
+// verwijderd word order, infinitive progress forms, invariant participles,
+// de/het by common/neuter gender with de as the universal plural definite,
+// and dev-Dutch anglicisms (gepusht).
+//
+//	T("i18n.done.delete", "file") // "Bestand verwijderd"
+func TestDutchComposition(t *testing.T) {
+	setCompositionLanguage(t, "nl")
+
+	tests := []struct {
+		name string
+		got  string
+		want string
+	}{
+		{"done.delete file", T("i18n.done.delete", "file"), "Bestand verwijderd"},
+		{"done.send message", T("i18n.done.send", "message"), "Bericht verzonden"},
+		{"done.find error", T("i18n.done.find", "error"), "Fout gevonden"},
+		{"done.push branch dev-Dutch", T("i18n.done.push", "branch"), "Tak gepusht"},
+		{"progress.delete", T("i18n.progress.delete"), "Verwijderen..."},
+		{"progress.build", T("i18n.progress.build"), "Bouwen..."},
+		{"count.file 5", T("i18n.count.file", 5), "5 bestanden"},
+		{"count.child 2 irregular", T("i18n.count.child", 2), "2 kinderen"},
+		{"fail.push branch", T("i18n.fail.push", "branch"), "Mislukt: pushen tak"},
+		{"definite common", DefinitePhrase("task"), "de taak"},
+		{"definite neuter", DefinitePhrase("file"), "het bestand"},
+		{"indefinite", ArticlePhrase("file"), "een bestand"},
+		{"definite plural", DefinitePhrase("bestanden"), "de bestanden"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if tt.got != tt.want {
+				t.Errorf("got %q, want %q", tt.got, tt.want)
+			}
+		})
+	}
+}
+
 // TestLatinComposition — the vocabulary comes home. Subject + perfect
 // passive participle with elided 'est' is lapidary Latin (TABVLA DELETA),
 // the Progress form is the GERUNDIVE in Cato's register (Delenda...), and
