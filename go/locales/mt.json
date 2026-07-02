@@ -1,0 +1,118 @@
+{
+	"_comment": "Malti. The definite article ASSIMILATES to sun letters, Arabic-style — il- is the moon default, and ċ/d/n/r/s/t/x/ż/z pull it to iċ-/id-/is-/ix-... while vowel-initial nouns take l- (l-iżball is not modelled; iżball is authored consonant-initial as żball). No indefinite article (indefinite_none). Deliberately SMALL and conservative: only vocabulary and participle forms held with confidence; Semitic broken plurals are authored per noun, never guessed. Feminine participle agreement adds -a with authored overrides where the stem changes (imħassar → imħassra).",
+	"gram": {
+		"verb": {
+			"ħassar": { "base": "ħassar", "past": "imħassar", "gerund": "tħassir", "past_f": "imħassra" },
+			"ħoloq": { "base": "ħoloq", "past": "maħluq", "gerund": "ħolqien" },
+			"bagħat": { "base": "bagħat", "past": "mibgħut", "gerund": "bgħit" },
+			"bena": { "base": "bena", "past": "mibni", "gerund": "bini" },
+			"kiteb": { "base": "kiteb", "past": "miktub", "gerund": "kitba" },
+			"sab": { "base": "sab", "past": "misjub", "gerund": "sejbien" },
+			"qara": { "base": "qara", "past": "moqri", "gerund": "qari" },
+			"aġġorna": { "base": "aġġorna", "past": "aġġornat", "gerund": "aġġornament" },
+			"ittestja": { "base": "ittestja", "past": "ittestjat", "gerund": "ittestjar" },
+			"installa": { "base": "installa", "past": "installat", "gerund": "installazzjoni" },
+			"għażel": { "base": "għażel", "past": "magħżul", "gerund": "għażla" },
+			"xtara": { "base": "xtara", "past": "mixtri", "gerund": "xiri" },
+			"biegħ": { "base": "biegħ", "past": "mibjugħ", "gerund": "bejgħ" },
+			"ħallas": { "base": "ħallas", "past": "imħallas", "gerund": "ħlas" },
+			"qasam": { "base": "qasam", "past": "maqsum", "gerund": "qsim" },
+			"fetaħ": { "base": "fetaħ", "past": "miftuħ", "gerund": "ftuħ" },
+			"għalaq": { "base": "għalaq", "past": "magħluq", "gerund": "għeluq" },
+			"temm": { "base": "temm", "past": "mitmum", "gerund": "tmiem" }
+		},
+		"noun": {
+			"fajl": { "one": "fajl", "other": "fajls", "gender": "m" },
+			"żball": { "one": "żball", "other": "żbalji", "gender": "m" },
+			"messaġġ": { "one": "messaġġ", "other": "messaġġi", "gender": "m" },
+			"server": { "one": "server", "other": "servers", "gender": "m" },
+			"xogħol": { "one": "xogħol", "other": "xogħlijiet", "gender": "m" },
+			"fergħa": { "one": "fergħa", "other": "friegħi", "gender": "f" },
+			"persuna": { "one": "persuna", "other": "persuni", "gender": "f" },
+			"tifel": { "one": "tifel", "other": "tfal", "gender": "m" },
+			"pakkett": { "one": "pakkett", "other": "pakketti", "gender": "m" },
+			"direttorju": { "one": "direttorju", "other": "direttorji", "gender": "m" },
+			"problema": { "one": "problema", "other": "problemi", "gender": "f" },
+			"bidla": { "one": "bidla", "other": "bidliet", "gender": "f" },
+			"verżjoni": { "one": "verżjoni", "other": "verżjonijiet", "gender": "f" },
+			"kategorija": { "one": "kategorija", "other": "kategoriji", "gender": "f" },
+			"test": { "one": "test", "other": "testijiet", "gender": "m" },
+			"file": { "one": "fajl", "other": "fajls", "gender": "m" },
+			"error": { "one": "żball", "other": "żbalji", "gender": "m" },
+			"message": { "one": "messaġġ", "other": "messaġġi", "gender": "m" },
+			"task": { "one": "xogħol", "other": "xogħlijiet", "gender": "m" },
+			"branch": { "one": "fergħa", "other": "friegħi", "gender": "f" },
+			"person": { "one": "persuna", "other": "persuni", "gender": "f" },
+			"child": { "one": "tifel", "other": "tfal", "gender": "m" },
+			"package": { "one": "pakkett", "other": "pakketti", "gender": "m" },
+			"directory": { "one": "direttorju", "other": "direttorji", "gender": "m" },
+			"issue": { "one": "problema", "other": "problemi", "gender": "f" },
+			"change": { "one": "bidla", "other": "bidliet", "gender": "f" },
+			"version": { "one": "verżjoni", "other": "verżjonijiet", "gender": "f" }
+		},
+		"article": {
+			"indefinite_none": true,
+			"definite": "il-",
+			"definite_assimilation": {
+				"ċ": "iċ-", "d": "id-", "n": "in-", "r": "ir-", "s": "is-",
+				"t": "it-", "x": "ix-", "ż": "iż-", "z": "iz-",
+				"a": "l-", "e": "l-", "i": "l-", "o": "l-", "u": "l-"
+			}
+		},
+		"agreement": {
+			"participle": { "f": { "add": "a" } }
+		},
+		"word": {
+			"failed_to": "Ma rnexxiex",
+			"delete": "ħassar",
+			"create": "ħoloq",
+			"send": "bagħat",
+			"build": "bena",
+			"write": "kiteb",
+			"find": "sab",
+			"read": "qara",
+			"update": "aġġorna",
+			"test": "ittestja",
+			"install": "installa",
+			"choose": "għażel",
+			"buy": "xtara",
+			"sell": "biegħ",
+			"pay": "ħallas",
+			"split": "qasam",
+			"open": "fetaħ",
+			"shut": "għalaq",
+			"finish": "temm",
+
+			"file": "fajl",
+			"error": "żball",
+			"message": "messaġġ",
+			"task": "xogħol",
+			"branch": "fergħa",
+			"person": "persuna",
+			"child": "tifel",
+			"package": "pakkett",
+			"directory": "direttorju",
+			"issue": "problema",
+			"change": "bidla",
+			"version": "verżjoni",
+			"category": "kategorija"
+		},
+		"punct": {
+			"label": ":",
+			"progress": "..."
+		}
+	},
+	"prompt": {
+		"yes": "iva",
+		"no": "le",
+		"continue": "Tkompli?",
+		"confirm": "Żgur?"
+	},
+	"time": {
+		"just_now": "issa stess"
+	},
+	"lang": {
+		"mt": "Malti",
+		"en": "Ingliż"
+	}
+}

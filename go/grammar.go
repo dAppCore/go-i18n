@@ -126,6 +126,13 @@ func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 		}
 		maps.Copy(dst.DefiniteSuffixByGender, src.DefiniteSuffixByGender)
 	}
+	if len(src.DefiniteAssimilation) > 0 {
+		if dst.DefiniteAssimilation == nil {
+			dst.DefiniteAssimilation = make(map[string]string, len(src.DefiniteAssimilation))
+		}
+		maps.Copy(dst.DefiniteAssimilation, src.DefiniteAssimilation)
+	}
+	dst.DefiniteLenition = appendUniqueStrings(dst.DefiniteLenition, src.DefiniteLenition...)
 	if src.Definite != "" {
 		dst.Definite = src.Definite
 	}
@@ -229,6 +236,8 @@ func grammarDataHasContent(data *GrammarData) bool {
 		len(data.Articles.ByGender) > 0 ||
 		len(data.Articles.IndefiniteByGender) > 0 ||
 		len(data.Articles.DefiniteSuffixByGender) > 0 ||
+		len(data.Articles.DefiniteAssimilation) > 0 ||
+		len(data.Articles.DefiniteLenition) > 0 ||
 		len(data.Articles.VowelSoundWords) > 0 ||
 		len(data.Articles.ConsonantSoundWords) > 0 {
 		return true
@@ -311,6 +320,11 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 		clone.Articles.DefiniteSuffixByGender = make(map[string]SuffixRule, len(data.Articles.DefiniteSuffixByGender))
 		maps.Copy(clone.Articles.DefiniteSuffixByGender, data.Articles.DefiniteSuffixByGender)
 	}
+	if len(data.Articles.DefiniteAssimilation) > 0 {
+		clone.Articles.DefiniteAssimilation = make(map[string]string, len(data.Articles.DefiniteAssimilation))
+		maps.Copy(clone.Articles.DefiniteAssimilation, data.Articles.DefiniteAssimilation)
+	}
+	clone.Articles.DefiniteLenition = append([]string(nil), data.Articles.DefiniteLenition...)
 	if len(data.Signals.Priors) > 0 {
 		for word, priors := range data.Signals.Priors {
 			if len(priors) == 0 {
@@ -1123,16 +1137,29 @@ func Quote(s string) string {
 	return strconv.Quote(s)
 }
 
-// ArticlePhrase prefixes a noun phrase with the correct article.
+// ArticlePhrase prefixes a noun phrase with the correct article. A phrase
+// is a NOUN context, so the noun table (and its English-keyed aliases)
+// outranks the word bridge — "test" resolves to the noun, not the
+// verb-biased bridge entry.
 func ArticlePhrase(word string) string {
 	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
 	lang := currentLangForGrammar()
-	word = renderWord(lang, word)
+	word = renderNounForPhrase(lang, word)
 	article := Article(word)
 	return prefixWithArticle(article, word)
+}
+
+// renderNounForPhrase resolves a phrase noun: noun-table one-form first
+// (aliases carry the noun side of dual keys), then the word bridge, then
+// the word itself.
+func renderNounForPhrase(lang, word string) string {
+	if one := getNounForm(lang, core.Lower(word), "one"); one != "" {
+		return one
+	}
+	return renderWord(lang, word)
 }
 
 // DefiniteArticle returns the language-specific definite article token for a word.
@@ -1169,12 +1196,57 @@ func DefinitePhrase(word string) string {
 		return ""
 	}
 	lang := currentLangForGrammar()
-	word = renderWord(lang, word)
+	word = renderNounForPhrase(lang, word)
 	if suffixed, ok := definiteSuffixedPhrase(lang, word); ok {
 		return suffixed
 	}
 	article := DefiniteArticle(word)
+	// Irish-style lenition mutates the NOUN after the article: bileog →
+	// an bhileog. The article is resolved first (from the unmutated form),
+	// then the display word mutates.
+	if lenited, ok := definiteLenitedWord(lang, word); ok {
+		word = lenited
+	}
 	return prefixWithArticle(article, word)
+}
+
+// definiteLenitedWord lenites a noun whose gender the locale declares as
+// leniting after the definite article: an h slips in after the initial
+// consonant (bileog → bhileog, craobh → chraobh, fadhb → fhadhb).
+// Irish resists lenition of d, t and s after "an" (the homorganic DNTLS
+// rule), and vowel-initial nouns are untouched, so only b c f g m p
+// lenite here; s-initial t-prefixing is not modelled in v1.
+func definiteLenitedWord(lang, word string) (string, bool) {
+	data := grammarDataForLang(lang)
+	if data == nil || len(data.Articles.DefiniteLenition) == 0 {
+		return "", false
+	}
+	forms, ok := data.Nouns[core.Lower(word)]
+	if !ok || forms.Gender == "" {
+		return "", false
+	}
+	lenites := false
+	for _, gender := range data.Articles.DefiniteLenition {
+		if gender == forms.Gender {
+			lenites = true
+			break
+		}
+	}
+	if !lenites {
+		return "", false
+	}
+	runes := []rune(word)
+	if len(runes) < 2 {
+		return "", false
+	}
+	switch unicode.ToLower(runes[0]) {
+	case 'b', 'c', 'f', 'g', 'm', 'p':
+		if unicode.ToLower(runes[1]) == 'h' {
+			return "", false
+		}
+		return string(runes[0]) + "h" + string(runes[1:]), true
+	}
+	return "", false
 }
 
 // definiteSuffixedPhrase welds the definite suffix onto the noun for
@@ -1315,7 +1387,24 @@ func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord,
 	if data.Articles.DefiniteVowel != "" && startsWithVowelLetter(originalWord) {
 		return data.Articles.DefiniteVowel, true
 	}
+	// Maltese-style assimilation: the article agrees with the noun's first
+	// letter (sun letters — is-server, ix-xogħol); Definite carries the
+	// moon-letter default (il-).
+	if len(data.Articles.DefiniteAssimilation) > 0 {
+		if article, ok := data.Articles.DefiniteAssimilation[firstLetterOf(originalWord)]; ok && article != "" {
+			return article, true
+		}
+	}
 	return data.Articles.Definite, true
+}
+
+// firstLetterOf returns the lowercased first letter of a word, as a string,
+// for assimilation lookups.
+func firstLetterOf(word string) string {
+	for _, r := range core.Lower(core.Trim(word)) {
+		return string(r)
+	}
+	return ""
 }
 
 // startsWithVowelLetter reports a vowel-initial word across the Latin
@@ -1419,10 +1508,16 @@ func prefixWithArticle(article, word string) string {
 	if core.HasSuffix(article, "'") {
 		return article + word
 	}
+	// Hyphen-final articles weld on directly: Maltese il- + fajl = il-fajl.
+	if core.HasSuffix(article, "-") {
+		return article + word
+	}
 	return article + " " + word
 }
 
 // Progress returns a progress message: "Building..."
+// Multi-word progress forms take sentence case, not title case — Irish
+// "Ag scriosadh...", never "Ag Scriosadh...".
 func Progress(verb string) string {
 	lang := currentLangForGrammar()
 	word := renderWord(lang, verb)
@@ -1431,7 +1526,16 @@ func Progress(verb string) string {
 		return ""
 	}
 	suffix := getPunct(lang, "progress", "...")
-	return Title(g) + suffix
+	return sentenceCase(g) + suffix
+}
+
+// sentenceCase upper-cases the first letter only, leaving the rest of the
+// phrase exactly as authored.
+func sentenceCase(s string) string {
+	for i, r := range s {
+		return string(unicode.ToUpper(r)) + s[i+len(string(r)):]
+	}
+	return s
 }
 
 // ProgressSubject returns a progress message with subject: "Building project..."
@@ -1445,9 +1549,9 @@ func ProgressSubject(verb, subject string) string {
 	suffix := getPunct(lang, "progress", "...")
 	subject = core.Trim(subject)
 	if subject == "" {
-		return Title(g) + suffix
+		return sentenceCase(g) + suffix
 	}
-	return Title(g) + " " + renderWord(lang, subject) + suffix
+	return sentenceCase(g) + " " + renderWord(lang, subject) + suffix
 }
 
 // ActionResult returns a completion message: "File deleted"

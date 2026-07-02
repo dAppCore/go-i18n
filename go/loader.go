@@ -598,6 +598,21 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 			grammar.Articles.DefiniteSuffixPlural = rule
 		}
 	}
+	if assim, ok := v["definite_assimilation"].(map[string]any); ok {
+		grammar.Articles.DefiniteAssimilation = make(map[string]string, len(assim))
+		for letter, article := range assim {
+			if s, ok := article.(string); ok {
+				grammar.Articles.DefiniteAssimilation[letter] = s
+			}
+		}
+	}
+	if lenition, ok := v["definite_lenition"].([]any); ok {
+		for _, g := range lenition {
+			if s, ok := g.(string); ok && s != "" {
+				grammar.Articles.DefiniteLenition = append(grammar.Articles.DefiniteLenition, s)
+			}
+		}
+	}
 	if def, ok := v["the"].(string); ok && def != "" {
 		grammar.Articles.Definite = def
 	}

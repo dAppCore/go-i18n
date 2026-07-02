@@ -329,6 +329,8 @@ type ArticleForms struct {
 	IndefiniteByGender     map[string]string     // Gender-specific INDEFINITE articles: un/une, ein/eine/ein
 	DefiniteSuffixByGender map[string]SuffixRule // SUFFIXED definites of the north and east: fil→filen (da c), fișier→fișierul (ro m)
 	DefiniteSuffixPlural   SuffixRule            // Suffixed definite applied to a plural form: filer→filerne, fișiere→fișierele
+	DefiniteAssimilation   map[string]string     // Maltese sun letters: first letter → article (s→is-, x→ix-); Definite is the moon-letter default (il-)
+	DefiniteLenition       []string              // Irish: genders whose noun LENITES after the definite article (bileog → an bhileog)
 	VowelSoundWords        []string              // Spelled consonant, spoken vowel — take IndefiniteVowel ("herb" in en-US)
 	ConsonantSoundWords    []string              // Spelled vowel, spoken consonant — take IndefiniteDefault ("user", "unicorn")
 }
