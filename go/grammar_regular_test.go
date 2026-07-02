@@ -17,7 +17,9 @@ func TestGrammarRegular_applyRegularPastTense_Good(t *testing.T) {
 		{"delete", "deleted"},  // ends in e → +d
 		{"carry", "carried"},   // consonant + y → ied
 		{"play", "played"},     // vowel + y → +ed (no ied)
-		{"panic", "panicked"},  // ends in c → +ked
+		{"panic", "panicked"},  // vowel + c → +ked (protects the hard /k/)
+		{"sync", "synced"},     // consonant + c → plain +ed, never "syncked"
+		{"arc", "arced"},       // consonant + c → plain +ed
 		{"stop", "stopped"},    // CVC short word → double consonant
 		{"deleted", "deleted"}, // already past, consonant before -ed → unchanged
 	}
@@ -55,7 +57,8 @@ func TestGrammarRegular_applyRegularGerund_Good(t *testing.T) {
 		{"die", "dying"},       // -ie → ying
 		{"delete", "deleting"}, // -e (consonant before) → drop e + ing
 		{"see", "seeing"},      // -ee → keep e
-		{"panic", "panicking"}, // -c → +king
+		{"panic", "panicking"}, // vowel + c → +king
+		{"sync", "syncing"},    // consonant + c → plain +ing, never "syncking"
 		{"stop", "stopping"},   // CVC → double
 		{"walk", "walking"},    // default
 		{"echo", "echoing"},    // ends in vowel+o, no special rule
@@ -80,30 +83,57 @@ func TestGrammarRegular_applyRegularPlural_Good(t *testing.T) {
 		noun string
 		want string
 	}{
-		{"box", "boxes"},       // sibilant x → es
-		{"bus", "buses"},       // s → es
-		{"dish", "dishes"},     // sh → es
-		{"church", "churches"}, // ch → es
-		{"buzz", "buzzes"},     // zz → es (already doubled)
-		{"quiz", "quizzes"},    // single z after vowel → double + es
-		{"whiz", "whizzes"},    // single z after vowel → double + es
-		{"waltz", "waltzes"},   // z after consonant → plain es
-		{"city", "cities"},     // consonant + y → ies
-		{"key", "keys"},        // vowel + y → +s
-		{"leaf", "leafs"},      // f is REGULAR +s; leaves lives in irregularNouns
-		{"knife", "knifes"},    // fe is REGULAR +s; knives lives in irregularNouns
-		{"roof", "roofs"},      // modern f-final takes -s, never "rooves"
-		{"chief", "chiefs"},    // not "chieves"
-		{"safe", "safes"},      // not "saves"
-		{"cliff", "cliffs"},    // ff-final takes -s
-		{"hero", "heroes"},     // -o special case
-		{"potato", "potatoes"}, // -o special case
-		{"piano", "pianos"},    // -o NOT special → +s
-		{"server", "servers"},  // default → +s
+		{"box", "boxes"},         // sibilant x → es
+		{"bus", "buses"},         // s → es
+		{"dish", "dishes"},       // sh → es
+		{"church", "churches"},   // ch → es
+		{"buzz", "buzzes"},       // zz → es (already doubled)
+		{"quiz", "quizzes"},      // single z after vowel → double + es
+		{"whiz", "whizzes"},      // single z after vowel → double + es
+		{"waltz", "waltzes"},     // z after consonant → plain es
+		{"basis", "bases"},       // Greek -sis → -ses
+		{"synopsis", "synopses"}, // Greek -sis → -ses
+		{"emphasis", "emphases"}, // Greek -sis → -ses
+		{"iris", "irises"},       // -is but not -sis → regular es
+		{"city", "cities"},       // consonant + y → ies
+		{"key", "keys"},          // vowel + y → +s
+		{"leaf", "leafs"},        // f is REGULAR +s; leaves lives in irregularNouns
+		{"knife", "knifes"},      // fe is REGULAR +s; knives lives in irregularNouns
+		{"roof", "roofs"},        // modern f-final takes -s, never "rooves"
+		{"chief", "chiefs"},      // not "chieves"
+		{"safe", "safes"},        // not "saves"
+		{"cliff", "cliffs"},      // ff-final takes -s
+		{"hero", "heroes"},       // -o special case
+		{"potato", "potatoes"},   // -o special case
+		{"piano", "pianos"},      // -o NOT special → +s
+		{"server", "servers"},    // default → +s
 	}
 	for _, tt := range tests {
 		if got := applyRegularPlural(tt.noun); got != tt.want {
 			t.Errorf("applyRegularPlural(%q) = %q, want %q", tt.noun, got, tt.want)
+		}
+	}
+}
+
+// TestGrammarRegular_PluralFormLoanClasses pins the classical-loan plurals
+// that ride the irregular table and the -sis rule end to end.
+//
+//	PluralForm("axis")   // "axes"
+//	PluralForm("corpus") // "corpora"
+func TestGrammarRegular_PluralFormLoanClasses(t *testing.T) {
+	tests := []struct {
+		noun string
+		want string
+	}{
+		{"axis", "axes"},         // table: not -sis, so the rule cannot reach it
+		{"corpus", "corpora"},    // table: Latin -us → -ora
+		{"basis", "bases"},       // rule: -sis → -ses
+		{"analysis", "analyses"}, // table and rule agree
+		{"status", "statuses"},   // NOT a Latin loan in English usage → regular es
+	}
+	for _, tt := range tests {
+		if got := PluralForm(tt.noun); got != tt.want {
+			t.Errorf("PluralForm(%q) = %q, want %q", tt.noun, got, tt.want)
 		}
 	}
 }

@@ -436,7 +436,10 @@ func applyRegularPastTense(verb string) string {
 			return verb[:len(verb)-1] + "ied"
 		}
 	}
-	if core.HasSuffix(verb, "c") {
+	// The -c → -cked insertion protects a hard /k/ between vowels (panic →
+	// panicked, mimic → mimicked). After a consonant the c needs no
+	// protection: sync → synced, arc → arced.
+	if core.HasSuffix(verb, "c") && len(verb) > 1 && isVowel(rune(verb[len(verb)-2])) {
 		return verb + "ked"
 	}
 	if len(verb) >= 2 && shouldDoubleConsonant(verb) {
@@ -518,7 +521,8 @@ func applyRegularGerund(verb string) string {
 			return verb[:len(verb)-1] + "ing"
 		}
 	}
-	if core.HasSuffix(verb, "c") {
+	// Same vowel gate as the past tense: panicking but syncing.
+	if core.HasSuffix(verb, "c") && len(verb) > 1 && isVowel(rune(verb[len(verb)-2])) {
 		return verb + "king"
 	}
 	if shouldDoubleConsonant(verb) {
@@ -566,6 +570,13 @@ func PluralForm(noun string) string {
 
 func applyRegularPlural(noun string) string {
 	lower := core.Lower(noun)
+	// Greek -sis pluralises -ses across the whole class: basis → bases,
+	// synopsis → synopses, emphasis → emphases. Checked before the sibilant
+	// branch, which would otherwise produce "basises". (iris/bias end -is
+	// but not -sis, so they keep the regular -es path.)
+	if core.HasSuffix(lower, "sis") && len(noun) > 3 {
+		return noun[:len(noun)-2] + "es"
+	}
 	// A single final z after a vowel doubles before -es: quizzes, whizzes.
 	// After a consonant or an existing zz it takes plain -es: waltzes, buzzes.
 	if core.HasSuffix(lower, "z") && !core.HasSuffix(lower, "zz") &&

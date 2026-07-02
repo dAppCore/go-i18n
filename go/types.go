@@ -524,6 +524,9 @@ var irregularVerbs = map[string]VerbForms{
 	"unzip": {Past: "unzipped", Gerund: "unzipping"}, "remap": {Past: "remapped", Gerund: "remapping"},
 	"unpin": {Past: "unpinned", Gerund: "unpinning"}, "unwrap": {Past: "unwrapped", Gerund: "unwrapping"},
 	"equip": {Past: "equipped", Gerund: "equipping"},
+	// Both dialects double the m — final-syllable stress the length
+	// heuristic cannot see.
+	"program": {Past: "programmed", Gerund: "programming"},
 	// Soft-g gerunds keep the "e" so the /dʒ/ survives: singeing ≠ singing.
 	// The e-drop rule cannot learn this (cringe → cringing is regular), so the
 	// collision class is enumerated.
@@ -552,8 +555,9 @@ var irregularNouns = map[string]string{
 	"child": "children", "person": "people", "man": "men", "woman": "women",
 	"foot": "feet", "tooth": "teeth", "mouse": "mice", "goose": "geese",
 	"ox": "oxen", "index": "indices", "appendix": "appendices", "matrix": "matrices",
-	"vertex": "vertices", "crisis": "crises", "analysis": "analyses", "diagnosis": "diagnoses",
-	"thesis": "theses", "hypothesis": "hypotheses", "parenthesis": "parentheses",
+	"vertex": "vertices", "axis": "axes", "crisis": "crises", "analysis": "analyses",
+	"diagnosis": "diagnoses", "thesis": "theses", "hypothesis": "hypotheses",
+	"parenthesis": "parentheses", "corpus": "corpora",
 	"datum": "data", "medium": "media", "bacterium": "bacteria", "criterion": "criteria",
 	"phenomenon": "phenomena", "curriculum": "curricula", "alumnus": "alumni",
 	"cactus": "cacti", "focus": "foci", "fungus": "fungi", "nucleus": "nuclei",
