@@ -359,10 +359,15 @@ type SignalData struct {
 // NumberFormat defines locale-specific number formatting rules.
 //
 //	fmt := i18n.NumberFormat{ThousandsSep: ",", DecimalSep: ".", PercentFmt: "%s%%"}
+//
+// CountsUseSingular languages (Hungarian, Turkish) keep the noun SINGULAR
+// after a numeral: 5 fájl, never 5 fájlok. The plural form still serves the
+// definite plural (a fájlok). Declared as gram.number.counts_use_singular.
 type NumberFormat struct {
-	ThousandsSep string // "," for en, "." for de
-	DecimalSep   string // "." for en, "," for de
-	PercentFmt   string // "%s%%" for en, "%s %%" for de
+	CountsUseSingular bool   // numerals govern the singular: "5 fájl"
+	ThousandsSep      string // "," for en, "." for de
+	DecimalSep        string // "." for en, "," for de
+	PercentFmt        string // "%s%%" for en, "%s %%" for de
 }
 
 // --- Function Types ---

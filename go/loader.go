@@ -773,6 +773,9 @@ func loadGrammarNumber(fullKey string, v map[string]any, grammar *GrammarData) b
 	if percent, ok := v["percent"].(string); ok {
 		grammar.Number.PercentFmt = percent
 	}
+	if singular, ok := v["counts_use_singular"].(bool); ok && singular {
+		grammar.Number.CountsUseSingular = true
+	}
 	return true
 }
 

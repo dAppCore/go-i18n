@@ -96,6 +96,9 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	if data.Number.PercentFmt != "" {
 		existing.Number.PercentFmt = data.Number.PercentFmt
 	}
+	if data.Number.CountsUseSingular {
+		existing.Number.CountsUseSingular = true
+	}
 }
 
 func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
@@ -1372,6 +1375,11 @@ func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord,
 			return article, true
 		}
 		if data.Articles.DefinitePlural != "" {
+			// The phonetic definite split applies to plurals too:
+			// a fájlok but az adatok.
+			if data.Articles.DefiniteVowel != "" && startsWithVowelLetter(originalWord) {
+				return data.Articles.DefiniteVowel, true
+			}
 			return data.Articles.DefinitePlural, true
 		}
 	}
