@@ -188,6 +188,10 @@ func flattenWithGrammarAndIntents(prefix string, data map[string]any, out map[st
 				continue
 			}
 
+			if grammar != nil && loadGrammarAgreement(fullKey, v, grammar) {
+				continue
+			}
+
 			if grammar != nil && loadGrammarPunctuation(fullKey, v, grammar) {
 				continue
 			}
@@ -451,7 +455,30 @@ func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData
 	if gerund, ok := v["gerund"].(string); ok {
 		forms.Gerund = gerund
 	}
+	if pastF, ok := v["past_f"].(string); ok {
+		forms.PastFeminine = pastF
+	}
 	grammar.Verbs[core.Lower(verbName)] = forms
+	return true
+}
+
+// loadGrammarAgreement reads the locale's participle agreement declaration.
+//
+//	"agreement": { "participle": { "strip": "o", "add": "a" } }
+func loadGrammarAgreement(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || fullKey != "gram.agreement" {
+		return false
+	}
+	participle, ok := v["participle"].(map[string]any)
+	if !ok {
+		return true
+	}
+	if strip, ok := participle["strip"].(string); ok {
+		grammar.Agreement.ParticipleFeminineStrip = strip
+	}
+	if add, ok := participle["add"].(string); ok {
+		grammar.Agreement.ParticipleFeminineAdd = add
+	}
 	return true
 }
 

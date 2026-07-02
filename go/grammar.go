@@ -78,6 +78,12 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	maps.Copy(existing.Nouns, data.Nouns)
 	maps.Copy(existing.Words, data.Words)
 	mergeArticleForms(&existing.Articles, data.Articles)
+	if data.Agreement.ParticipleFeminineStrip != "" {
+		existing.Agreement.ParticipleFeminineStrip = data.Agreement.ParticipleFeminineStrip
+	}
+	if data.Agreement.ParticipleFeminineAdd != "" {
+		existing.Agreement.ParticipleFeminineAdd = data.Agreement.ParticipleFeminineAdd
+	}
 	mergePunctuationRules(&existing.Punct, data.Punct)
 	mergeSignalData(&existing.Signals, data.Signals)
 	existing.Intents = mergeIntentData(existing.Intents, data.Intents)
@@ -221,6 +227,9 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if len(data.Intents) > 0 {
 		return true
 	}
+	if data.Agreement != (AgreementRules{}) {
+		return true
+	}
 	return data.Number != (NumberFormat{})
 }
 
@@ -246,7 +255,8 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 			VerbNegation:    append([]string(nil), data.Signals.VerbNegation...),
 			Priors:          make(map[string]map[string]float64, len(data.Signals.Priors)),
 		},
-		Number: data.Number,
+		Number:    data.Number,
+		Agreement: data.Agreement,
 	}
 	if len(data.Verbs) > 0 {
 		clone.Verbs = make(map[string]VerbForms, len(data.Verbs))
@@ -370,6 +380,8 @@ func getVerbForm(lang, verb, form string) string {
 			return forms.Past
 		case "gerund":
 			return forms.Gerund
+		case "past_f":
+			return forms.PastFeminine
 		}
 	}
 	return ""
@@ -1362,7 +1374,61 @@ func actionResultForLanguages(langs []string, verb, subject string) string {
 	if subject == "" {
 		return Title(p)
 	}
+	// Participle agreement: a feminine subject agrees the participle in
+	// locales that declare the rule — Branche créée, Tarea eliminada.
+	if subjectGenderForLanguages(langs, subject) == "f" {
+		p = feminineParticipleForLanguages(langs, verb, p)
+	}
 	return renderSubjectLeadForLanguages(langs, subject) + " " + p
+}
+
+// subjectGenderForLanguages reads the subject's grammatical gender from the
+// first noun table that knows it — the en-keyed aliases carry gender too,
+// so "branch" resolves to f under fr.
+func subjectGenderForLanguages(langs []string, subject string) string {
+	lower := core.Lower(core.Trim(subject))
+	if lower == "" {
+		return ""
+	}
+	for _, lang := range languageFallbackOrder(langs) {
+		if gender := getNounForm(lang, lower, "gender"); gender != "" {
+			return gender
+		}
+	}
+	return ""
+}
+
+// feminineParticipleForLanguages agrees a participle with a feminine
+// subject: an authored past_f override wins (dû → due), then the locale's
+// declared derivation rule (fr: +e; es: -o → -a, which covers the
+// irregulars free — resuelto → resuelta), else the participle stays
+// invariant, which IS the grammar of English, German and Klingon.
+func feminineParticipleForLanguages(langs []string, verb, participle string) string {
+	for _, lang := range languageFallbackOrder(langs) {
+		if form := getVerbForm(lang, verb, "past_f"); form != "" {
+			return form
+		}
+	}
+	for _, lang := range languageFallbackOrder(langs) {
+		data := grammarDataForLang(lang)
+		if data == nil {
+			continue
+		}
+		rules := data.Agreement
+		if rules.ParticipleFeminineAdd == "" && rules.ParticipleFeminineStrip == "" {
+			continue
+		}
+		agreed := participle
+		if rules.ParticipleFeminineStrip != "" {
+			if !core.HasSuffix(agreed, rules.ParticipleFeminineStrip) {
+				// The rule's shape does not fit this participle; leave it.
+				return participle
+			}
+			agreed = agreed[:len(agreed)-len(rules.ParticipleFeminineStrip)]
+		}
+		return agreed + rules.ParticipleFeminineAdd
+	}
+	return participle
 }
 
 // renderSubjectLeadForLanguages resolves a sentence-leading subject. The

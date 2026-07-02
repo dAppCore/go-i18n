@@ -235,22 +235,36 @@ type templateData struct {
 //
 //	i18n.SetGrammarData("en", &i18n.GrammarData{Articles: i18n.ArticleForms{IndefiniteDefault: "a"}})
 type GrammarData struct {
-	Verbs    map[string]VerbForms // verb -> forms
-	Nouns    map[string]NounForms // noun -> forms
-	Articles ArticleForms         // article configuration
-	Words    map[string]string    // base word translations
-	Punct    PunctuationRules     // language-specific punctuation
-	Signals  SignalData           // disambiguation signal word lists
-	Intents  map[string]Intent    // semantic intent templates and metadata
-	Number   NumberFormat         // locale-specific number formatting
+	Verbs     map[string]VerbForms // verb -> forms
+	Nouns     map[string]NounForms // noun -> forms
+	Articles  ArticleForms         // article configuration
+	Words     map[string]string    // base word translations
+	Punct     PunctuationRules     // language-specific punctuation
+	Signals   SignalData           // disambiguation signal word lists
+	Intents   map[string]Intent    // semantic intent templates and metadata
+	Number    NumberFormat         // locale-specific number formatting
+	Agreement AgreementRules       // participle agreement declared by the locale
+}
+
+// AgreementRules declares how a locale derives agreed participle forms.
+// French: add "e" (créé → créée). Spanish: strip "o", add "a" (eliminado →
+// eliminada — the swap covers the irregulars too: resuelto → resuelta).
+// Languages without agreement (English, German, Klingon) declare nothing
+// and participles stay invariant.
+//
+//	rules := i18n.AgreementRules{ParticipleFeminineAdd: "e"}
+type AgreementRules struct {
+	ParticipleFeminineStrip string // Suffix removed before agreeing: "o" (es)
+	ParticipleFeminineAdd   string // Suffix appended to agree: "a" (es), "e" (fr)
 }
 
 // VerbForms holds verb conjugations.
 //
 //	forms := i18n.VerbForms{Past: "deleted", Gerund: "deleting"}
 type VerbForms struct {
-	Past   string // "deleted"
-	Gerund string // "deleting"
+	Past         string // "deleted"
+	Gerund       string // "deleting"
+	PastFeminine string // Feminine-agreed participle where the locale's rule cannot derive it: "due" (dû)
 }
 
 // NounForms holds plural and gender information for a noun.

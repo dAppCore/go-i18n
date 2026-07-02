@@ -120,6 +120,18 @@ For gendered languages, add a `by_gender` map:
 }
 ```
 
+## gram.agreement -- Participle agreement
+
+Locales whose participles agree with the subject declare the derivation rule; a feminine subject (gender from the noun table) then agrees the composed participle in `ActionResult`:
+
+```json
+"agreement": {
+  "participle": { "add": "e" }
+}
+```
+
+French adds `e` (créé → créée); Spanish declares `{ "strip": "o", "add": "a" }` (eliminado → eliminada — the swap covers irregular participles too: resuelto → resuelta). Verbs the rule cannot derive carry an authored `past_f` on their `gram.verb` entry (dû → due, été invariant). Languages without agreement — English, German, Klingon — declare nothing and participles stay invariant, which is their grammar.
+
 ## gram.word -- Domain Vocabulary and the translation bridge
 
 `gram.word` plays two roles. First, display forms: lowercase keys map to canonical casing (`url` → `URL`, `go_mod` → `go.mod`) rendered verbatim. Second — the **translation bridge**: mapping ENGLISH keys to the locale's own words is what routes the `i18n.*` composition namespace into the locale's grammar tables. `T("i18n.done.delete", "file")` resolves `delete` → `supprimer`/`löschen` through this map, conjugates it in the locale's verb table, bridges `file` → `fichier`/`Datei`, and emits "Fichier supprimé" / "Datei gelöscht". A locale without bridge entries falls back to English composition.

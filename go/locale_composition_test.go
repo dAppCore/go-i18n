@@ -36,10 +36,11 @@ func TestFrenchComposition(t *testing.T) {
 		want string
 	}{
 		{"done.delete file", T("i18n.done.delete", "file"), "Fichier supprimé"},
-		// v1 limitation, pinned deliberately: the participle does not yet
-		// agree with a feminine subject (proper French: "Branche créée").
-		// VerbForms carries one past form; agreement is the v2 line.
-		{"done.create branch", T("i18n.done.create", "branch"), "Branche créé"},
+		// Participle agreement: feminine subjects agree the participle via
+		// the locale's declared rule (agreement.participle add "e").
+		{"done.create branch", T("i18n.done.create", "branch"), "Branche créée"},
+		{"done.finish task", T("i18n.done.finish", "task"), "Tâche finie"},
+		{"done.lose branch", T("i18n.done.lose", "branch"), "Branche perdue"},
 		{"progress.build", T("i18n.progress.build"), "Construisant..."},
 		{"progress.delete", T("i18n.progress.delete"), "Supprimant..."},
 		{"count.file 5", T("i18n.count.file", 5), "5 fichiers"},
@@ -132,6 +133,11 @@ func TestSpanishComposition(t *testing.T) {
 		{"done.delete file", T("i18n.done.delete", "file"), "Archivo eliminado"},
 		{"done.send package", T("i18n.done.send", "package"), "Paquete enviado"},
 		{"done.resolve issue", T("i18n.done.resolve", "issue"), "Problema resuelto"}, // irregular participle
+		// Feminine agreement via the declared -o → -a swap — which covers
+		// the irregular participles free: resuelto → resuelta.
+		{"done.delete task", T("i18n.done.delete", "task"), "Tarea eliminada"},
+		{"done.push branch", T("i18n.done.push", "branch"), "Rama subida"},
+		{"done.resolve query", T("i18n.done.resolve", "query"), "Consulta resuelta"},
 		{"progress.delete", T("i18n.progress.delete"), "Eliminando..."},
 		{"progress.build", T("i18n.progress.build"), "Construyendo..."},
 		{"count.file 5", T("i18n.count.file", 5), "5 archivos"},

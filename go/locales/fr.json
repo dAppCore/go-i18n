@@ -1,7 +1,7 @@
 {
 	"gram": {
 		"verb": {
-			"être": { "base": "être", "past": "été", "gerund": "étant" },
+			"être": { "base": "être", "past": "été", "gerund": "étant", "past_f": "été" },
 			"avoir": { "base": "avoir", "past": "eu", "gerund": "ayant" },
 			"faire": { "base": "faire", "past": "fait", "gerund": "faisant" },
 			"aller": { "base": "aller", "past": "allé", "gerund": "allant" },
@@ -12,7 +12,7 @@
 			"savoir": { "base": "savoir", "past": "su", "gerund": "sachant" },
 			"pouvoir": { "base": "pouvoir", "past": "pu", "gerund": "pouvant" },
 			"vouloir": { "base": "vouloir", "past": "voulu", "gerund": "voulant" },
-			"devoir": { "base": "devoir", "past": "dû", "gerund": "devant" },
+			"devoir": { "base": "devoir", "past": "dû", "gerund": "devant", "past_f": "due" },
 			"venir": { "base": "venir", "past": "venu", "gerund": "venant" },
 			"tenir": { "base": "tenir", "past": "tenu", "gerund": "tenant" },
 			"écrire": { "base": "écrire", "past": "écrit", "gerund": "écrivant" },
@@ -124,6 +124,9 @@
 			"definite": "le",
 			"definite_plural": "les",
 			"by_gender": { "m": "le", "f": "la" }
+		},
+		"agreement": {
+			"participle": { "add": "e" }
 		},
 		"word": {
 			"url": "URL",

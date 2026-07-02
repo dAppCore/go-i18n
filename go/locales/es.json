@@ -108,6 +108,9 @@
 			"definite_plural_by_gender": { "m": "los", "f": "las" },
 			"by_gender": { "m": "el", "f": "la" }
 		},
+		"agreement": {
+			"participle": { "strip": "o", "add": "a" }
+		},
 		"word": {
 			"url": "URL",
 			"id": "ID",
