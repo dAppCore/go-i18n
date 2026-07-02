@@ -35,8 +35,13 @@ func TestArticleEnglishGBPhonetics(t *testing.T) {
 		{"U-turn", "a"},    // letter-name hyphenation, /juː/
 		{"unicode", "a"},   // /juː/
 		{"European", "a"},  // /jʊər/
-		{"one-off", "a"},   // /w/ onset
+		{"one-off", "a"},   // /w/ onset (dictionary knows one)
+		{"once", "a"},      // /w/ onset via the dictionary
+		{"onerous", "an"},  // true vowel onset the old "one" prefix table miscaptured
 		{"ouija", "a"},     // /w/ onset
+		{"yttrium", "an"},  // consonant LETTER, vowel PHONEME — dictionary only
+		{"xylophone", "a"}, // /z/ onset — the x- prefix rule correctly misses it
+		{"umami", "an"},    // /uː/ — dictionary long tail
 		{"user", "a"},      // /juː/
 		{"hour", "an"},     // silent h
 		{"honest", "an"},   // silent h

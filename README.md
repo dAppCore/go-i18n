@@ -8,6 +8,8 @@ Grammar engine for Go. Provides forward composition primitives (PastTense, Gerun
 
 Bundled locales: `en` (the English of England — bare `en` IS en-GB), `en-US` (dialect override), `fr`, `de` and `es` — all composing full output from English keys through the `gram.word` bridge: `T("i18n.done.delete", "file")` → "File deleted" / "Fichier supprimé" / "Datei gelöscht" / "Archivo eliminado". The Spanish locale is pure data — no Spanish-specific code exists in the engine.
 
+The `phonetics` package gives the engine an ear: the vendored CMU Pronouncing Dictionary (134k words with stress markers) backs `Article()` and consonant doubling with actual phonemes ("an yttrium sample", commit → committed but visit → visited by stress, not by table), plus rhyme, alliteration, syllable and stress primitives for scoring wordcraft.
+
 **Module**: `dappco.re/go/core/i18n`
 **Licence**: EUPL-1.2
 **Language**: Go 1.25

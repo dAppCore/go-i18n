@@ -644,10 +644,13 @@ var vowelSounds = map[string]bool{
 // (one, ouija), and the "u-" letter-name hyphenations (u-turn, u-boat) — so
 // they take "a". Closed-list curation is the reasonable best until a
 // pronouncing dictionary backs Article(); every entry is a phoneme fact.
+// "one"/"once" deliberately absent: as prefixes they would capture onerous
+// and oneiric (true vowel onsets) — the pronouncing dictionary decides all
+// four correctly instead.
 var consonantSounds = map[string]bool{
 	"user": true, "union": true, "unique": true, "unit": true, "universe": true,
 	"university": true, "uniform": true, "usage": true, "usual": true, "utility": true,
-	"utensil": true, "one": true, "once": true, "euro": true, "eulogy": true, "euphemism": true,
+	"utensil": true, "euro": true, "eulogy": true, "euphemism": true,
 	"unicorn": true, "unicycle": true, "unicode": true, "unify": true, "unilateral": true,
 	"unison": true, "unite": true, "united": true, "unity": true, "universal": true,
 	"unix": true, "unanimous": true, "ubiquit": true, "usurp": true, "utopia": true,

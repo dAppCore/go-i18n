@@ -154,8 +154,11 @@ func TestGrammarRegular_shouldDoubleConsonant(t *testing.T) {
 		{"fix", false},      // ends in x
 		{"flow", false},     // ends in w
 		{"hello", false},    // ends in vowel
-		{"commit", false},   // long-word path (the table carries committed)
-		{"visit", false},    // long word, no double
+		{"commit", true},    // dictionary stress: IH1 final → committed
+		{"visit", false},    // dictionary stress: IH0 final → visited
+		{"regret", true},    // dictionary stress — no table entry needed
+		{"kayak", false},    // dictionary stress: final syllable unstressed
+		{"reveal", false},   // vowel digraph gate outranks stress
 		{"marshal", true},   // en-GB -l doubling → marshalled
 		{"signal", true},    // en-GB -l doubling → signalled
 		{"total", true},     // en-GB -l doubling → totalled

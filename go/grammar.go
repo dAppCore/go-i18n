@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"dappco.re/go"
+	"dappco.re/go/i18n/phonetics"
 )
 
 // GetGrammarData returns the grammar data for the specified language.
@@ -495,10 +496,18 @@ func shouldDoubleConsonant(verb string) bool {
 	if lastChar == 'l' && !isVowelLetterAt(verb, len(verb)-3) {
 		return true
 	}
-	if len(verb) <= 4 {
-		return !isVowelLetterAt(verb, len(verb)-3)
+	// A vowel digraph before the final consonant never doubles (reveal →
+	// revealed, treat → treated) — stress cannot override spelling shape.
+	if isVowelLetterAt(verb, len(verb)-3) {
+		return false
 	}
-	return false
+	// Within the single-vowel shape the true condition is final-syllable
+	// stress: commit → committed, visit → visited. The dictionary knows;
+	// the length heuristic below only guesses for words it does not.
+	if stressed, known := phonetics.FinalSyllableStressed(verb); known {
+		return stressed
+	}
+	return len(verb) <= 4
 }
 
 // isVowelLetterAt reports whether the byte at index i sounds as a vowel in
@@ -680,6 +689,13 @@ func Article(word string) string {
 		if core.HasPrefix(lower, key) {
 			return "an"
 		}
+	}
+	// Beyond the curated tables, ask the pronouncing dictionary.
+	if vowel, known := phonetics.StartsWithVowelSound(lower); known {
+		if vowel {
+			return "an"
+		}
+		return "a"
 	}
 	if len(lower) > 0 && isVowel(rune(lower[0])) {
 		return "an"
@@ -871,6 +887,13 @@ func usesVowelSoundArticle(data *GrammarData, word string) bool {
 		if core.HasPrefix(lower, key) {
 			return true
 		}
+	}
+	// The pronouncing dictionary decides the long tail the curated tables
+	// never met: first phoneme vocalic → vowel article. Self-gating for
+	// gendered locales — where default and vowel forms are identical (un,
+	// ein) the answer changes nothing.
+	if vowel, known := phonetics.StartsWithVowelSound(lower); known {
+		return vowel
 	}
 	for _, r := range lower {
 		return isVowel(r)
