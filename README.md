@@ -19,7 +19,7 @@ Novelty locales double as architecture proofs: `en-x-pirate` (vocabulary-only di
 ## Quick Start
 
 ```go
-import "dappco.re/go/core/i18n"
+import "dappco.re/go/i18n"
 
 // Grammar primitives
 fmt.Println(i18n.PastTense("delete"))   // "deleted"
