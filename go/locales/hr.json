@@ -1,0 +1,145 @@
+{
+	"_comment": "Hrvatski (Croatian). Composed shape is Subject + passive participle with elided copula (je), exactly how a Croatian status label reads: 'Datoteka izbrisana' not 'Datoteka je izbrisana'. No articles (article.none). Masculine passive participles are authored bare (izbrisan, poslan, pokrenut — no vowel ending), so agreement is a pure suffix-add with no strip: 'a' (f) / 'o' (n) from the masculine base, verified against all 19 verbs including the -nuti class (pokrenuti → pokrenut → pokrenuta/pokrenuto). The 'gerund' slot carries the verbal-noun/progress-noun register real Croatian UIs show (brisanje, čitanje, provjera); 'start' uses the plain noun početak rather than an awkward deverbative. 'push' and 'commit' have no inherited Croatian verb; pushati/komitati are informal developer-register loanword coinages on the productive -ati class (flagged for honesty — attested dev-slang currency, not neutral standard usage; same borrowing pattern as this codebase's own de.json 'committen'). dijete → djeca is a genuine irregular/suppletive plural (flagged, same treatment as German Kind → Kinder elsewhere in this repo); dijete is NEUTER, matching the Slovak cognate (dieťa) rather than the Slovenian one (otrok, masculine, different root entirely) — a real cross-language split, not an authoring slip. Several nouns differ from Slovenian by only a letter (ovisnost not odvisnost, ranjivost not ranljivost) — genuine Croatian/Slovenian near-misses, deliberately NOT copied from the sl.json file. NOMINATIVE-only composition, accepted deliberately: real Croatian alternates the counted noun's case with the numeral (paucal case for 2-4, genitive plural for 0/5+) and after prepositions/verbs; this engine has no case slot, so 'other' is always the plain nominative plural and the fail-sentence object stays nominative rather than the case a native speaker would inflect to.",
+	"gram": {
+		"verb": {
+			"izbrisati": { "base": "izbrisati", "past": "izbrisan", "gerund": "brisanje" },
+			"stvoriti": { "base": "stvoriti", "past": "stvoren", "gerund": "stvaranje" },
+			"izgraditi": { "base": "izgraditi", "past": "izgrađen", "gerund": "izgradnja" },
+			"poslati": { "base": "poslati", "past": "poslan", "gerund": "slanje" },
+			"pronaći": { "base": "pronaći", "past": "pronađen", "gerund": "traženje" },
+			"napisati": { "base": "napisati", "past": "napisan", "gerund": "pisanje" },
+			"pročitati": { "base": "pročitati", "past": "pročitan", "gerund": "čitanje" },
+			"ažurirati": { "base": "ažurirati", "past": "ažuriran", "gerund": "ažuriranje" },
+			"pushati": { "base": "pushati", "past": "pushan", "gerund": "pushanje" },
+			"testirati": { "base": "testirati", "past": "testiran", "gerund": "testiranje" },
+			"provjeriti": { "base": "provjeriti", "past": "provjeren", "gerund": "provjera" },
+			"popraviti": { "base": "popraviti", "past": "popravljen", "gerund": "popravljanje" },
+			"pokrenuti": { "base": "pokrenuti", "past": "pokrenut", "gerund": "pokretanje" },
+			"komitati": { "base": "komitati", "past": "komitan", "gerund": "komitanje" },
+			"zaustaviti": { "base": "zaustaviti", "past": "zaustavljen", "gerund": "zaustavljanje" },
+			"instalirati": { "base": "instalirati", "past": "instaliran", "gerund": "instaliranje" },
+			"započeti": { "base": "započeti", "past": "započet", "gerund": "početak" },
+			"spojiti": { "base": "spojiti", "past": "spojen", "gerund": "spajanje" },
+			"otvoriti": { "base": "otvoriti", "past": "otvoren", "gerund": "otvaranje" }
+		},
+		"noun": {
+			"datoteka": { "one": "datoteka", "other": "datoteke", "gender": "f" },
+			"zadatak": { "one": "zadatak", "other": "zadaci", "gender": "m" },
+			"greška": { "one": "greška", "other": "greške", "gender": "f" },
+			"poruka": { "one": "poruka", "other": "poruke", "gender": "f" },
+			"poslužitelj": { "one": "poslužitelj", "other": "poslužitelji", "gender": "m" },
+			"mapa": { "one": "mapa", "other": "mape", "gender": "f" },
+			"paket": { "one": "paket", "other": "paketi", "gender": "m" },
+			"osoba": { "one": "osoba", "other": "osobe", "gender": "f" },
+			"dijete": { "one": "dijete", "other": "djeca", "gender": "n" },
+			"grana": { "one": "grana", "other": "grane", "gender": "f" },
+			"problem": { "one": "problem", "other": "problemi", "gender": "m" },
+			"promjena": { "one": "promjena", "other": "promjene", "gender": "f" },
+			"verzija": { "one": "verzija", "other": "verzije", "gender": "f" },
+			"repozitorij": { "one": "repozitorij", "other": "repozitoriji", "gender": "m" },
+			"kategorija": { "one": "kategorija", "other": "kategorije", "gender": "f" },
+			"ovisnost": { "one": "ovisnost", "other": "ovisnosti", "gender": "f" },
+			"ranjivost": { "one": "ranjivost", "other": "ranjivosti", "gender": "f" },
+			"stavka": { "one": "stavka", "other": "stavke", "gender": "f" },
+
+			"file": { "one": "datoteka", "other": "datoteke", "gender": "f" },
+			"task": { "one": "zadatak", "other": "zadaci", "gender": "m" },
+			"error": { "one": "greška", "other": "greške", "gender": "f" },
+			"message": { "one": "poruka", "other": "poruke", "gender": "f" },
+			"server": { "one": "poslužitelj", "other": "poslužitelji", "gender": "m" },
+			"directory": { "one": "mapa", "other": "mape", "gender": "f" },
+			"package": { "one": "paket", "other": "paketi", "gender": "m" },
+			"person": { "one": "osoba", "other": "osobe", "gender": "f" },
+			"child": { "one": "dijete", "other": "djeca", "gender": "n" },
+			"branch": { "one": "grana", "other": "grane", "gender": "f" },
+			"issue": { "one": "problem", "other": "problemi", "gender": "m" },
+			"change": { "one": "promjena", "other": "promjene", "gender": "f" },
+			"version": { "one": "verzija", "other": "verzije", "gender": "f" },
+			"repo": { "one": "repozitorij", "other": "repozitoriji", "gender": "m" },
+			"repository": { "one": "repozitorij", "other": "repozitoriji", "gender": "m" },
+			"category": { "one": "kategorija", "other": "kategorije", "gender": "f" },
+			"dependency": { "one": "ovisnost", "other": "ovisnosti", "gender": "f" },
+			"vulnerability": { "one": "ranjivost", "other": "ranjivosti", "gender": "f" },
+			"item": { "one": "stavka", "other": "stavke", "gender": "f" }
+		},
+		"article": {
+			"none": true
+		},
+		"agreement": {
+			"participle": {
+				"f": { "add": "a" },
+				"n": { "add": "o" }
+			}
+		},
+		"word": {
+			"failed_to": "Nije uspjelo",
+			"delete": "izbrisati",
+			"create": "stvoriti",
+			"build": "izgraditi",
+			"send": "poslati",
+			"find": "pronaći",
+			"write": "napisati",
+			"read": "pročitati",
+			"update": "ažurirati",
+			"push": "pushati",
+			"test": "testirati",
+			"check": "provjeriti",
+			"fix": "popraviti",
+			"run": "pokrenuti",
+			"commit": "komitati",
+			"stop": "zaustaviti",
+			"install": "instalirati",
+			"start": "započeti",
+			"merge": "spojiti",
+			"open": "otvoriti",
+
+			"file": "datoteka",
+			"task": "zadatak",
+			"error": "greška",
+			"message": "poruka",
+			"server": "poslužitelj",
+			"directory": "mapa",
+			"package": "paket",
+			"person": "osoba",
+			"child": "dijete",
+			"branch": "grana",
+			"issue": "problem",
+			"change": "promjena",
+			"version": "verzija",
+			"repo": "repozitorij",
+			"repository": "repozitorij",
+			"category": "kategorija",
+			"dependency": "ovisnost",
+			"vulnerability": "ranjivost",
+			"item": "stavka"
+		},
+		"punct": {
+			"label": ":",
+			"progress": "..."
+		},
+		"number": {
+			"thousands": ".",
+			"decimal": ",",
+			"percent": "%s %%"
+		}
+	},
+	"prompt": {
+		"yes": "da",
+		"no": "ne",
+		"continue": "Nastaviti?",
+		"proceed": "Želite li nastaviti?",
+		"confirm": "Jeste li sigurni?",
+		"overwrite": "Prepisati?",
+		"discard": "Odbaciti promjene?"
+	},
+	"time": {
+		"just_now": "upravo sada"
+	},
+	"lang": {
+		"hr": "hrvatski",
+		"en": "engleski",
+		"de": "njemački",
+		"fr": "francuski",
+		"es": "španjolski"
+	}
+}

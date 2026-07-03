@@ -405,7 +405,11 @@ func TestNewCoreService_LoadsRegisteredLocales(t *testing.T) {
 }
 
 func TestNewCoreService_InvalidLanguagePreservesSetLanguageError(t *testing.T) {
-	factory := NewCoreService(ServiceOptions{Language: "es"})
+	// "es" was the unsupported example until locales/es.json landed. The
+	// x/text matcher accepts some unbundled tags with High confidence
+	// (mi/sw speakers are assumed to accept en); "ja" matches nothing in
+	// the bundled set, so it exercises the error path.
+	factory := NewCoreService(ServiceOptions{Language: "ja"})
 
 	_, err := valueFromResult[any](factory(nil))
 	if err == nil {
@@ -413,8 +417,8 @@ func TestNewCoreService_InvalidLanguagePreservesSetLanguageError(t *testing.T) {
 	}
 
 	msg := err.Error()
-	if !core.Contains(msg, "unsupported language: es") {
-		t.Fatalf("expected %q to contain %q", msg, "unsupported language: es")
+	if !core.Contains(msg, "unsupported language: ja") {
+		t.Fatalf("expected %q to contain %q", msg, "unsupported language: ja")
 	}
 	if !core.Contains(msg, "available:") {
 		t.Fatalf("expected %q to contain %q", msg, "available:")

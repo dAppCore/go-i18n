@@ -222,6 +222,12 @@ func DefaultHandlers() []KeyHandler {
 }
 
 func countWordForm(lang, noun string, count int) string {
+	// Hungarian-style numeral government: the noun stays SINGULAR after a
+	// number (5 fájl, never 5 fájlok); the plural form still serves the
+	// definite plural elsewhere.
+	if data := GetGrammarData(lang); data != nil && data.Number.CountsUseSingular {
+		count = 1
+	}
 	if hasGrammarCountForms(lang, noun) {
 		return Pluralize(noun, count)
 	}

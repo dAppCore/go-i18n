@@ -85,6 +85,40 @@ As with verbs, only add entries for irregular plurals or cases where the engine 
 
 Maps to the `ArticleForms` struct. The `Article()` function uses phonetic rules (consonant/vowel sound maps) to choose between `default` and `vowel`.
 
+For gendered languages, `indefinite.by_gender` supplies the true indefinite articles (un/une, ein/eine/ein) and `definite_plural` the plural definite article (les, die). Where the plural definite is itself gendered, use `definite_plural_by_gender` instead — Spanish needs los/las, resolved from the gender of the noun the plural form belongs to. `Article()` is the **indefinite** article everywhere; `DefiniteArticle()` resolves the gendered definite forms from `by_gender` (le/la, der/die/das, el/la):
+
+```json
+"article": {
+  "indefinite": { "default": "ein", "vowel": "ein", "by_gender": { "m": "ein", "f": "eine", "n": "ein" } },
+  "definite": "die",
+  "definite_plural": "die",
+  "by_gender": { "m": "der", "f": "die", "n": "das" }
+}
+```
+
+A locale can extend the phonetic exception tables with `vowel_sound_words` and `consonant_sound_words` — lowercase word prefixes that outrank the built-in maps. This is how dialects re-hear a word without a code change: base `en` is the English of England ("a herb", sounded h), and `locales/en-US.json` declares the silent-h American reading:
+
+```json
+"article": {
+  "indefinite": { "default": "a", "vowel": "an" },
+  "definite": "the",
+  "vowel_sound_words": ["herb"]
+}
+```
+
+`vowel_sound_words` entries take the `vowel` article ("an herb"); `consonant_sound_words` entries take the `default` article (the built-in tables already carry the /juː/ glide class: user, unicorn, ewe).
+
+**Suffixed definite articles** (Danish, Swedish, Romanian, Bulgarian) weld onto the noun instead of preceding it. Declare `definite_suffix` rules by gender ({strip, add} applied to the singular) and `definite_suffix_plural` (applied to a known plural form); `DefinitePhrase` then produces fil → filen, filer → filerne, fișier → fișierul, sarcină → sarcina. `DefiniteArticle()` returns the empty token for these languages (there is no standalone definite word):
+
+```json
+"article": {
+  "definite_suffix": { "c": { "add": "en" }, "n": { "add": "et" } },
+  "definite_suffix_plural": { "add": "ne" }
+}
+```
+
+`"indefinite_none": true` declares a language with definites but NO indefinite article (Bulgarian) — `Article()` empty, definites intact. `"definite_vowel"` declares a phonetic definite split (Hungarian: `"definite": "a", "definite_vowel": "az"` — az before vowel-initial words, tested on the letter including accented European vowels).
+
 For gendered languages, add a `by_gender` map:
 
 ```json
@@ -97,9 +131,38 @@ For gendered languages, add a `by_gender` map:
 }
 ```
 
-## gram.word -- Domain Vocabulary
+## gram.agreement -- Participle agreement
 
-Maps lowercase keys to display forms:
+Locales whose participles agree with the subject declare the derivation rule; a feminine subject (gender from the noun table) then agrees the composed participle in `ActionResult`:
+
+```json
+"agreement": {
+  "participle": { "add": "e" }
+}
+```
+
+Rules are keyed by gender (a flat `{strip, add}` object is accepted as feminine shorthand). French: `"f": { "add": "e" }` (créé → créée). Spanish: `"f": { "strip": "o", "add": "a" }` (eliminado → eliminada — the swap covers irregular participles too: resuelto → resuelta). Latin declares both agreeing genders from the masculine base:
+
+```json
+"agreement": {
+  "participle": {
+    "f": { "strip": "us", "add": "a" },
+    "n": { "strip": "us", "add": "um" }
+  }
+}
+```
+
+(deletus → Tabula deleta / Erratum inventum.) Verbs a rule cannot derive carry an authored `past_f` on their `gram.verb` entry (dû → due, été invariant). Genders without a rule — and whole languages without agreement: English, German, Klingon — stay on the base form, which is their grammar.
+
+## gram.word -- Domain Vocabulary and the translation bridge
+
+`gram.word` plays two roles. First, display forms: lowercase keys map to canonical casing (`url` → `URL`, `go_mod` → `go.mod`) rendered verbatim. Second — the **translation bridge**: mapping ENGLISH keys to the locale's own words is what routes the `i18n.*` composition namespace into the locale's grammar tables. `T("i18n.done.delete", "file")` resolves `delete` → `supprimer`/`löschen` through this map, conjugates it in the locale's verb table, bridges `file` → `fichier`/`Datei`, and emits "Fichier supprimé" / "Datei gelöscht". A locale without bridge entries falls back to English composition.
+
+Verb/noun homographs among the English keys (`run`, `build`, `check`) take the VERB mapping in `gram.word`; add English-keyed alias entries in `gram.noun` (`"run": { "one": "exécution", ... }`) so counts and subject slots resolve the noun side — the noun table outranks the bridge in those positions.
+
+Store bridge values in the case the language wants mid-sentence: French lowercase (`fichier`), German nouns capitalised (`Datei`). Sentence-lead positions title-case noun-table results automatically.
+
+Display forms:
 
 ```json
 "word": {

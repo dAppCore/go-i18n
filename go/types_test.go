@@ -341,6 +341,38 @@ func TestTypes_Message_ForCategory_Ugly(t *testing.T) {
 	}
 }
 
+func TestMessageForCategory_AllExplicitCategories(t *testing.T) {
+	msg := Message{
+		Zero:  "zero",
+		One:   "one",
+		Two:   "two",
+		Few:   "few",
+		Many:  "many",
+		Other: "other",
+		Text:  "text",
+	}
+	tests := []struct {
+		cat  PluralCategory
+		want string
+	}{
+		{PluralZero, "zero"},
+		{PluralOne, "one"},
+		{PluralTwo, "two"},
+		{PluralFew, "few"},
+		{PluralMany, "many"},
+		{PluralOther, "other"},
+	}
+	for _, tt := range tests {
+		if got := msg.ForCategory(tt.cat); got != tt.want {
+			t.Fatalf("ForCategory(%v) = %q, want %q", tt.cat, got, tt.want)
+		}
+	}
+
+	if got := (Message{One: "one", Text: "text"}).ForCategory(PluralOther); got != "one" {
+		t.Fatalf("ForCategory fallback to One = %q, want one", got)
+	}
+}
+
 func TestTypes_Message_IsPlural_Good(t *testing.T) {
 	called := false
 	noPanicForAudit(t, func() {

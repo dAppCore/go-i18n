@@ -188,6 +188,10 @@ func flattenWithGrammarAndIntents(prefix string, data map[string]any, out map[st
 				continue
 			}
 
+			if grammar != nil && loadGrammarAgreement(fullKey, v, grammar) {
+				continue
+			}
+
 			if grammar != nil && loadGrammarPunctuation(fullKey, v, grammar) {
 				continue
 			}
@@ -451,7 +455,56 @@ func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData
 	if gerund, ok := v["gerund"].(string); ok {
 		forms.Gerund = gerund
 	}
+	if pastF, ok := v["past_f"].(string); ok {
+		forms.PastFeminine = pastF
+	}
 	grammar.Verbs[core.Lower(verbName)] = forms
+	return true
+}
+
+// loadGrammarAgreement reads the locale's participle agreement declaration.
+// Gender-keyed rules are canonical; a flat {strip, add} object is accepted
+// as shorthand for the feminine rule.
+//
+//	"agreement": { "participle": { "f": { "strip": "us", "add": "a" }, "n": { "strip": "us", "add": "um" } } }
+//	"agreement": { "participle": { "strip": "o", "add": "a" } }
+func loadGrammarAgreement(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	if grammar == nil || fullKey != "gram.agreement" {
+		return false
+	}
+	participle, ok := v["participle"].(map[string]any)
+	if !ok {
+		return true
+	}
+	rules := make(map[string]ParticipleAgreement)
+	flat := ParticipleAgreement{}
+	for key, raw := range participle {
+		switch value := raw.(type) {
+		case string:
+			// Flat shorthand: {"strip": "o", "add": "a"} means feminine.
+			switch key {
+			case "strip":
+				flat.Strip = value
+			case "add":
+				flat.Add = value
+			}
+		case map[string]any:
+			rule := ParticipleAgreement{}
+			if strip, ok := value["strip"].(string); ok {
+				rule.Strip = strip
+			}
+			if add, ok := value["add"].(string); ok {
+				rule.Add = add
+			}
+			rules[key] = rule
+		}
+	}
+	if flat != (ParticipleAgreement{}) {
+		rules["f"] = flat
+	}
+	if len(rules) > 0 {
+		grammar.Agreement.Participle = rules
+	}
 	return true
 }
 
@@ -523,6 +576,43 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 	// Support both the canonical loader schema (`indefinite` / `definite`)
 	// and the RFC sample shape (`the` / `a`) so locale files can be shared
 	// across implementations without data loss.
+	if none, ok := v["none"].(bool); ok && none {
+		grammar.Articles.None = true
+	}
+	if none, ok := v["indefinite_none"].(bool); ok && none {
+		grammar.Articles.IndefiniteNone = true
+	}
+	if vowel, ok := v["definite_vowel"].(string); ok {
+		grammar.Articles.DefiniteVowel = vowel
+	}
+	if suffixes, ok := v["definite_suffix"].(map[string]any); ok {
+		grammar.Articles.DefiniteSuffixByGender = make(map[string]SuffixRule, len(suffixes))
+		for gender, raw := range suffixes {
+			if rule, ok := suffixRuleFromMap(raw); ok {
+				grammar.Articles.DefiniteSuffixByGender[gender] = rule
+			}
+		}
+	}
+	if raw, ok := v["definite_suffix_plural"]; ok {
+		if rule, ok := suffixRuleFromMap(raw); ok {
+			grammar.Articles.DefiniteSuffixPlural = rule
+		}
+	}
+	if assim, ok := v["definite_assimilation"].(map[string]any); ok {
+		grammar.Articles.DefiniteAssimilation = make(map[string]string, len(assim))
+		for letter, article := range assim {
+			if s, ok := article.(string); ok {
+				grammar.Articles.DefiniteAssimilation[letter] = s
+			}
+		}
+	}
+	if lenition, ok := v["definite_lenition"].([]any); ok {
+		for _, g := range lenition {
+			if s, ok := g.(string); ok && s != "" {
+				grammar.Articles.DefiniteLenition = append(grammar.Articles.DefiniteLenition, s)
+			}
+		}
+	}
 	if def, ok := v["the"].(string); ok && def != "" {
 		grammar.Articles.Definite = def
 	}
@@ -556,9 +646,28 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 		if vowel, ok := indef["vowel"].(string); ok {
 			grammar.Articles.IndefiniteVowel = vowel
 		}
+		if bg, ok := indef["by_gender"].(map[string]any); ok {
+			grammar.Articles.IndefiniteByGender = make(map[string]string, len(bg))
+			for g, art := range bg {
+				if s, ok := art.(string); ok {
+					grammar.Articles.IndefiniteByGender[g] = s
+				}
+			}
+		}
 	}
 	if def, ok := v["definite"].(string); ok {
 		grammar.Articles.Definite = def
+	}
+	if plural, ok := v["definite_plural"].(string); ok {
+		grammar.Articles.DefinitePlural = plural
+	}
+	if bg, ok := v["definite_plural_by_gender"].(map[string]any); ok {
+		grammar.Articles.DefinitePluralByGender = make(map[string]string, len(bg))
+		for g, art := range bg {
+			if s, ok := art.(string); ok {
+				grammar.Articles.DefinitePluralByGender[g] = s
+			}
+		}
 	}
 	if bg, ok := v["by_gender"].(map[string]any); ok {
 		grammar.Articles.ByGender = make(map[string]string, len(bg))
@@ -576,7 +685,57 @@ func loadGrammarArticle(fullKey string, v map[string]any, grammar *GrammarData) 
 			}
 		}
 	}
+	loadArticleSoundWords(&grammar.Articles.VowelSoundWords, v["vowel_sound_words"])
+	loadArticleSoundWords(&grammar.Articles.ConsonantSoundWords, v["consonant_sound_words"])
 	return true
+}
+
+// suffixRuleFromMap reads a {strip, add} object into a SuffixRule.
+//
+//	suffixRuleFromMap(map[string]any{"add": "en"}) // SuffixRule{Add: "en"}, true
+func suffixRuleFromMap(raw any) (SuffixRule, bool) {
+	m, ok := raw.(map[string]any)
+	if !ok {
+		return SuffixRule{}, false
+	}
+	rule := SuffixRule{}
+	if strip, ok := m["strip"].(string); ok {
+		rule.Strip = strip
+	}
+	if add, ok := m["add"].(string); ok {
+		rule.Add = add
+	}
+	return rule, rule != SuffixRule{}
+}
+
+// loadArticleSoundWords appends locale-declared phonetic exception prefixes
+// (lowercased, deduplicated) onto an ArticleForms sound-word list.
+//
+//	loadArticleSoundWords(&grammar.Articles.VowelSoundWords, []any{"herb"})
+func loadArticleSoundWords(dst *[]string, raw any) {
+	entries, ok := raw.([]any)
+	if !ok {
+		return
+	}
+	seen := make(map[string]struct{}, len(*dst)+len(entries))
+	for _, existing := range *dst {
+		seen[existing] = struct{}{}
+	}
+	for _, entry := range entries {
+		s, ok := entry.(string)
+		if !ok {
+			continue
+		}
+		s = core.Lower(core.Trim(s))
+		if s == "" {
+			continue
+		}
+		if _, dup := seen[s]; dup {
+			continue
+		}
+		seen[s] = struct{}{}
+		*dst = append(*dst, s)
+	}
 }
 
 func firstNonEmptyString(values ...string) string {
@@ -613,6 +772,9 @@ func loadGrammarNumber(fullKey string, v map[string]any, grammar *GrammarData) b
 	}
 	if percent, ok := v["percent"].(string); ok {
 		grammar.Number.PercentFmt = percent
+	}
+	if singular, ok := v["counts_use_singular"].(bool); ok && singular {
+		grammar.Number.CountsUseSingular = true
 	}
 	return true
 }

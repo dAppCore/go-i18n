@@ -235,22 +235,67 @@ type templateData struct {
 //
 //	i18n.SetGrammarData("en", &i18n.GrammarData{Articles: i18n.ArticleForms{IndefiniteDefault: "a"}})
 type GrammarData struct {
-	Verbs    map[string]VerbForms // verb -> forms
-	Nouns    map[string]NounForms // noun -> forms
-	Articles ArticleForms         // article configuration
-	Words    map[string]string    // base word translations
-	Punct    PunctuationRules     // language-specific punctuation
-	Signals  SignalData           // disambiguation signal word lists
-	Intents  map[string]Intent    // semantic intent templates and metadata
-	Number   NumberFormat         // locale-specific number formatting
+	Verbs     map[string]VerbForms // verb -> forms
+	Nouns     map[string]NounForms // noun -> forms
+	Articles  ArticleForms         // article configuration
+	Words     map[string]string    // base word translations
+	Punct     PunctuationRules     // language-specific punctuation
+	Signals   SignalData           // disambiguation signal word lists
+	Intents   map[string]Intent    // semantic intent templates and metadata
+	Number    NumberFormat         // locale-specific number formatting
+	Agreement AgreementRules       // participle agreement declared by the locale
+}
+
+// AgreementRules declares how a locale derives agreed participle forms,
+// keyed by the gender that agrees. French: f adds "e" (créé → créée).
+// Spanish: f strips "o" adds "a" (eliminado → eliminada — the swap covers
+// the irregulars too: resuelto → resuelta). Latin declares both f and n
+// from the masculine base: deletus → deleta / deletum. The base gender
+// (usually m) declares no rule and stays invariant, as do whole languages
+// without agreement (English, German, Klingon).
+//
+//	rules := i18n.AgreementRules{Participle: map[string]i18n.ParticipleAgreement{"f": {Add: "e"}}}
+type AgreementRules struct {
+	Participle map[string]ParticipleAgreement // gender → derivation rule
+}
+
+// SuffixRule is a small morphological derivation: strip a suffix, then
+// append one. It serves participle agreement (deletus → deleta) and the
+// suffixed definite articles of the north and east (fil → filen,
+// sarcină → sarcina).
+//
+//	i18n.SuffixRule{Strip: "us", Add: "um"} // deletus → deletum
+type SuffixRule struct {
+	Strip string // Suffix removed first: "o" (es), "us" (la), "ă" (ro)
+	Add   string // Suffix appended: "a", "um", "en", "ul"
+}
+
+// ParticipleAgreement is the historical name for SuffixRule.
+type ParticipleAgreement = SuffixRule
+
+// Apply derives the new form, refusing when the strip does not fit.
+//
+//	i18n.SuffixRule{Add: "en"}.Apply("fil") // "filen", true
+func (r SuffixRule) Apply(word string) (string, bool) {
+	if r.Strip == "" && r.Add == "" {
+		return word, false
+	}
+	if r.Strip != "" {
+		if len(word) < len(r.Strip) || word[len(word)-len(r.Strip):] != r.Strip {
+			return word, false
+		}
+		word = word[:len(word)-len(r.Strip)]
+	}
+	return word + r.Add, true
 }
 
 // VerbForms holds verb conjugations.
 //
 //	forms := i18n.VerbForms{Past: "deleted", Gerund: "deleting"}
 type VerbForms struct {
-	Past   string // "deleted"
-	Gerund string // "deleting"
+	Past         string // "deleted"
+	Gerund       string // "deleting"
+	PastFeminine string // Feminine-agreed participle where the locale's rule cannot derive it: "due" (dû)
 }
 
 // NounForms holds plural and gender information for a noun.
@@ -264,12 +309,30 @@ type NounForms struct {
 
 // ArticleForms holds article configuration for a language.
 //
+// The two sound-word lists let locale data extend the built-in phonetic
+// exception tables without a code change: entries are lowercase word
+// prefixes, matched the same way as the Go tables. locales/en-US.json uses
+// VowelSoundWords for "herb" (silent h in American English → "an herb")
+// while base en keeps the British /h/ ("a herb").
+//
 //	articles := i18n.ArticleForms{IndefiniteDefault: "a", IndefiniteVowel: "an"}
 type ArticleForms struct {
-	IndefiniteDefault string            // "a"
-	IndefiniteVowel   string            // "an"
-	Definite          string            // "the"
-	ByGender          map[string]string // Gender-specific articles
+	None                   bool                  // The language has NO articles (Japanese, Russian, Klingon) — phrases degrade to the bare noun
+	IndefiniteNone         bool                  // No INDEFINITE article only (Bulgarian): Article() empty, definites intact
+	IndefiniteDefault      string                // "a"
+	IndefiniteVowel        string                // "an"
+	Definite               string                // "the"
+	DefiniteVowel          string                // Definite before a vowel-initial word (Hungarian az; "a" stays in Definite)
+	DefinitePlural         string                // Definite article for known plurals: "les", "die"
+	DefinitePluralByGender map[string]string     // Gendered plural definites where one word won't do: los/las
+	ByGender               map[string]string     // Gender-specific DEFINITE articles: le/la, der/die/das
+	IndefiniteByGender     map[string]string     // Gender-specific INDEFINITE articles: un/une, ein/eine/ein
+	DefiniteSuffixByGender map[string]SuffixRule // SUFFIXED definites of the north and east: fil→filen (da c), fișier→fișierul (ro m)
+	DefiniteSuffixPlural   SuffixRule            // Suffixed definite applied to a plural form: filer→filerne, fișiere→fișierele
+	DefiniteAssimilation   map[string]string     // Maltese sun letters: first letter → article (s→is-, x→ix-); Definite is the moon-letter default (il-)
+	DefiniteLenition       []string              // Irish: genders whose noun LENITES after the definite article (bileog → an bhileog)
+	VowelSoundWords        []string              // Spelled consonant, spoken vowel — take IndefiniteVowel ("herb" in en-US)
+	ConsonantSoundWords    []string              // Spelled vowel, spoken consonant — take IndefiniteDefault ("user", "unicorn")
 }
 
 // PunctuationRules holds language-specific punctuation patterns.
@@ -296,10 +359,15 @@ type SignalData struct {
 // NumberFormat defines locale-specific number formatting rules.
 //
 //	fmt := i18n.NumberFormat{ThousandsSep: ",", DecimalSep: ".", PercentFmt: "%s%%"}
+//
+// CountsUseSingular languages (Hungarian, Turkish) keep the noun SINGULAR
+// after a numeral: 5 fájl, never 5 fájlok. The plural form still serves the
+// definite plural (a fájlok). Declared as gram.number.counts_use_singular.
 type NumberFormat struct {
-	ThousandsSep string // "," for en, "." for de
-	DecimalSep   string // "." for en, "," for de
-	PercentFmt   string // "%s%%" for en, "%s %%" for de
+	CountsUseSingular bool   // numerals govern the singular: "5 fájl"
+	ThousandsSep      string // "," for en, "." for de
+	DecimalSep        string // "." for en, "," for de
+	PercentFmt        string // "%s%%" for en, "%s %%" for de
 }
 
 // --- Function Types ---
@@ -515,30 +583,55 @@ var irregularVerbs = map[string]VerbForms{
 	"debug": {Past: "debugged", Gerund: "debugging"}, "embed": {Past: "embedded", Gerund: "embedding"},
 	"unzip": {Past: "unzipped", Gerund: "unzipping"}, "remap": {Past: "remapped", Gerund: "remapping"},
 	"unpin": {Past: "unpinned", Gerund: "unpinning"}, "unwrap": {Past: "unwrapped", Gerund: "unwrapping"},
+	"equip": {Past: "equipped", Gerund: "equipping"},
+	// Both dialects double the m — final-syllable stress the length
+	// heuristic cannot see.
+	"program": {Past: "programmed", Gerund: "programming"},
+	// Soft-g gerunds keep the "e" so the /dʒ/ survives: singeing ≠ singing.
+	// The e-drop rule cannot learn this (cringe → cringing is regular), so the
+	// collision class is enumerated.
+	"singe": {Past: "singed", Gerund: "singeing"}, "whinge": {Past: "whinged", Gerund: "whingeing"},
+	"binge": {Past: "binged", Gerund: "bingeing"}, "tinge": {Past: "tinged", Gerund: "tingeing"},
+	// en-GB e-retention: "ageing" (en-US "aging" overrides via locale data).
+	"age": {Past: "aged", Gerund: "ageing"},
+	// en-GB -l doubling after a vowel digraph, which the CVC rule cannot see.
+	"dial": {Past: "dialled", Gerund: "dialling"}, "fuel": {Past: "fuelled", Gerund: "fuelling"},
+	"duel": {Past: "duelled", Gerund: "duelling"},
 }
 
+// noDoubleConsonant vetoes CVC doubling for unstressed final syllables the
+// length heuristic would otherwise double. "total" is NOT here: en-GB doubles
+// -l regardless of stress (totalled). "parallel" is: both dialects prefer
+// "paralleled" despite the -l rule's shape.
 var noDoubleConsonant = map[string]bool{
 	"open": true, "listen": true, "happen": true, "enter": true, "offer": true,
 	"suffer": true, "differ": true, "cover": true, "deliver": true, "develop": true,
 	"visit": true, "limit": true, "edit": true, "credit": true, "orbit": true,
-	"total": true, "target": true, "budget": true, "market": true, "benefit": true, "focus": true,
+	"target": true, "budget": true, "market": true, "benefit": true, "focus": true,
+	"parallel": true,
 }
 
 var irregularNouns = map[string]string{
 	"child": "children", "person": "people", "man": "men", "woman": "women",
 	"foot": "feet", "tooth": "teeth", "mouse": "mice", "goose": "geese",
 	"ox": "oxen", "index": "indices", "appendix": "appendices", "matrix": "matrices",
-	"vertex": "vertices", "crisis": "crises", "analysis": "analyses", "diagnosis": "diagnoses",
-	"thesis": "theses", "hypothesis": "hypotheses", "parenthesis": "parentheses",
+	"vertex": "vertices", "axis": "axes", "crisis": "crises", "analysis": "analyses",
+	"diagnosis": "diagnoses", "thesis": "theses", "hypothesis": "hypotheses",
+	"parenthesis": "parentheses", "corpus": "corpora",
 	"datum": "data", "medium": "media", "bacterium": "bacteria", "criterion": "criteria",
 	"phenomenon": "phenomena", "curriculum": "curricula", "alumnus": "alumni",
 	"cactus": "cacti", "focus": "foci", "fungus": "fungi", "nucleus": "nuclei",
 	"radius": "radii", "stimulus": "stimuli", "syllabus": "syllabi",
 	"fish": "fish", "sheep": "sheep", "deer": "deer", "species": "species",
 	"series": "series", "aircraft": "aircraft",
+	// The f→ves plural is a CLOSED class (Old English fricative voicing), not
+	// a productive rule — modern words take -s (roofs, chiefs, safes, chefs).
+	// The survivors are enumerated here; applyRegularPlural defaults to -s.
 	"life": "lives", "wife": "wives", "knife": "knives", "leaf": "leaves",
 	"half": "halves", "self": "selves", "shelf": "shelves", "wolf": "wolves",
 	"calf": "calves", "loaf": "loaves", "thief": "thieves",
+	"elf": "elves", "hoof": "hooves", "scarf": "scarves", "sheaf": "sheaves",
+	"wharf": "wharves",
 }
 
 // dualClassVerbs seeds additional regular verbs that are also common nouns in
@@ -592,12 +685,33 @@ var dualClassNouns = map[string]string{
 	"update":      "updates",
 }
 
+// vowelSounds lists word prefixes spelled with a consonant letter but spoken
+// with a vowel onset, so they take "an". Base English here is en-GB: "herb"
+// keeps its /h/ in British English ("a herb") and lives in locales/en-US.json
+// instead. "honor" stays as spelling tolerance — both dialects drop that h.
+// The "x-" prefix covers letter-name hyphenations (x-ray, x-axis: /ɛks/)
+// without catching xylophone (/z/).
 var vowelSounds = map[string]bool{
-	"hour": true, "honest": true, "honour": true, "honor": true, "heir": true, "herb": true,
+	"hour": true, "honest": true, "honour": true, "honor": true, "heir": true,
+	"x-": true, "xray": true, "xbox": true,
 }
 
+// consonantSounds lists word prefixes spelled with a vowel letter but spoken
+// with a consonant onset — the /juː/ glide class (user, unicorn, ewe), /w/
+// (one, ouija), and the "u-" letter-name hyphenations (u-turn, u-boat) — so
+// they take "a". Closed-list curation is the reasonable best until a
+// pronouncing dictionary backs Article(); every entry is a phoneme fact.
+// "one"/"once" deliberately absent: as prefixes they would capture onerous
+// and oneiric (true vowel onsets) — the pronouncing dictionary decides all
+// four correctly instead.
 var consonantSounds = map[string]bool{
 	"user": true, "union": true, "unique": true, "unit": true, "universe": true,
 	"university": true, "uniform": true, "usage": true, "usual": true, "utility": true,
-	"utensil": true, "one": true, "once": true, "euro": true, "eulogy": true, "euphemism": true,
+	"utensil": true, "euro": true, "eulogy": true, "euphemism": true,
+	"unicorn": true, "unicycle": true, "unicode": true, "unify": true, "unilateral": true,
+	"unison": true, "unite": true, "united": true, "unity": true, "universal": true,
+	"unix": true, "unanimous": true, "ubiquit": true, "usurp": true, "utopia": true,
+	"uterus": true, "uranium": true, "ukulele": true, "ewe": true, "ewer": true,
+	"eureka": true, "eucalyptus": true, "euphoria": true, "europe": true, "european": true,
+	"ouija": true, "u-": true,
 }

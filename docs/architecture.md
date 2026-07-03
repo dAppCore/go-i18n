@@ -41,11 +41,17 @@ Returns singular when `count == 1`, delegates to `PluralForm()` otherwise.
 
 **`PluralForm(noun string) string`**
 
-Three-tier noun plural lookup. Regular rules handle sibilant (`+es`), consonant+y → ies, f/fe → ves, and default (`+s`).
+Three-tier noun plural lookup. Regular rules handle sibilant (`+es`, with single-z doubling: quiz → quizzes), consonant+y → ies, and default (`+s`). The f/fe → ves plural is deliberately **not** a regular rule — it is a closed Old English class (wolf, knife, leaf, elf, hoof…) carried by the irregular-noun table; productive English takes `-s` (roofs, chiefs, safes, cliffs).
 
 **`Article(word string) string`**
 
-Returns `"a"` or `"an"` based on phonetic rules. Handles exceptions in both directions: consonant-sound words starting with a vowel letter (e.g. `user` → `"a"`) and vowel-sound words starting with a consonant letter (e.g. `hour` → `"an"`). Implemented as prefix lookup tables for the known exceptions, falling back to first-letter vowel test.
+Returns `"a"` or `"an"` based on phonetic rules. Handles exceptions in both directions: consonant-sound words starting with a vowel letter (the /juː/ glide class: `user`, `unicorn`, `ewe` → `"a"`) and vowel-sound words starting with a consonant letter (silent h: `hour` → `"an"`; letter-name hyphenations: `x-ray` → `"an"`). Implemented as prefix lookup tables for the known exceptions, falling back to first-letter vowel test. Locale data can extend the tables per language via `gram.article.vowel_sound_words` / `consonant_sound_words`.
+
+**Cross-language composition: the word bridge.** The `i18n.*` handlers translate through `gram.word` (English key → locale word) and then apply the locale's own grammar tables — so the same `T("i18n.done.delete", "file")` call emits "File deleted" (en), "Fichier supprimé" (fr) and "Datei gelöscht" (de). Composite functions map the verb through the bridge before conjugation (Progress, ActionResult, ActionFailed all do this); subject slots resolve the noun table before the bridge so verb-biased homograph keys still render as nouns. Gendered articles ride the same route: `ArticlePhrase("file")` is "a file", "un fichier", "eine Datei" — gender comes from the locale's noun table, articles from `gram.article`.
+
+**The phonetics package: the engine's ear.** `phonetics/` vendors the CMU Pronouncing Dictionary (~134k words, ARPABET phonemes with stress digits, BSD licence, gzip-embedded and lazily parsed in ~200ms on first use) and answers what spelling cannot: `StartsWithVowelSound` (ewe /juː/ → no; hour → yes; yttrium → yes despite the consonant letter), `FinalSyllableStressed` (commit IH1 → double; visit IH0 → don't), `SyllableCount`, `StressPattern`, `RhymeKey`/`Rhymes` (cache/stash yes; cough/bough is an eye-rhyme and refused), `Alliterate` (quiz/quick share the /kw/ onset). A tiny GB override table re-hears the words where the American source and the English of England part ways (herb → HH ER1 B); en-US re-hears them back through locale data, which outranks everything. Article() and the consonant-doubling rule consult the dictionary after the curated tables and before the letter heuristics — the tables are the fast path and the GB authority, the dictionary is the long tail, spelling is the last resort.
+
+**Dialect policy: bare `en` is the English of England.** The built-in tables carry British pronunciation and morphology (a herb, ageing, travelled, totalled, marshalled; `qu` counts as the /kw/ onset it is, so quiz → quizzed and equal → equalled). American English is an override locale, `locales/en-US.json`, which re-hears "herb" as vowel-onset (silent h) and re-spells the single-l past/gerund forms; anything it does not override falls through the standard `en-US → en` fallback chain.
 
 **Composite functions**
 

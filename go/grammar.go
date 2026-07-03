@@ -11,6 +11,7 @@ import (
 	"unicode"
 
 	"dappco.re/go"
+	"dappco.re/go/i18n/phonetics"
 )
 
 // GetGrammarData returns the grammar data for the specified language.
@@ -77,6 +78,12 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	maps.Copy(existing.Nouns, data.Nouns)
 	maps.Copy(existing.Words, data.Words)
 	mergeArticleForms(&existing.Articles, data.Articles)
+	if len(data.Agreement.Participle) > 0 {
+		if existing.Agreement.Participle == nil {
+			existing.Agreement.Participle = make(map[string]ParticipleAgreement, len(data.Agreement.Participle))
+		}
+		maps.Copy(existing.Agreement.Participle, data.Agreement.Participle)
+	}
 	mergePunctuationRules(&existing.Punct, data.Punct)
 	mergeSignalData(&existing.Signals, data.Signals)
 	existing.Intents = mergeIntentData(existing.Intents, data.Intents)
@@ -89,11 +96,20 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	if data.Number.PercentFmt != "" {
 		existing.Number.PercentFmt = data.Number.PercentFmt
 	}
+	if data.Number.CountsUseSingular {
+		existing.Number.CountsUseSingular = true
+	}
 }
 
 func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 	if dst == nil {
 		return
+	}
+	if src.None {
+		dst.None = true
+	}
+	if src.IndefiniteNone {
+		dst.IndefiniteNone = true
 	}
 	if src.IndefiniteDefault != "" {
 		dst.IndefiniteDefault = src.IndefiniteDefault
@@ -101,8 +117,44 @@ func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
 	if src.IndefiniteVowel != "" {
 		dst.IndefiniteVowel = src.IndefiniteVowel
 	}
+	if src.DefiniteVowel != "" {
+		dst.DefiniteVowel = src.DefiniteVowel
+	}
+	if src.DefiniteSuffixPlural != (SuffixRule{}) {
+		dst.DefiniteSuffixPlural = src.DefiniteSuffixPlural
+	}
+	if len(src.DefiniteSuffixByGender) > 0 {
+		if dst.DefiniteSuffixByGender == nil {
+			dst.DefiniteSuffixByGender = make(map[string]SuffixRule, len(src.DefiniteSuffixByGender))
+		}
+		maps.Copy(dst.DefiniteSuffixByGender, src.DefiniteSuffixByGender)
+	}
+	if len(src.DefiniteAssimilation) > 0 {
+		if dst.DefiniteAssimilation == nil {
+			dst.DefiniteAssimilation = make(map[string]string, len(src.DefiniteAssimilation))
+		}
+		maps.Copy(dst.DefiniteAssimilation, src.DefiniteAssimilation)
+	}
+	dst.DefiniteLenition = appendUniqueStrings(dst.DefiniteLenition, src.DefiniteLenition...)
 	if src.Definite != "" {
 		dst.Definite = src.Definite
+	}
+	if src.DefinitePlural != "" {
+		dst.DefinitePlural = src.DefinitePlural
+	}
+	dst.VowelSoundWords = appendUniqueStrings(dst.VowelSoundWords, src.VowelSoundWords...)
+	dst.ConsonantSoundWords = appendUniqueStrings(dst.ConsonantSoundWords, src.ConsonantSoundWords...)
+	if len(src.IndefiniteByGender) > 0 {
+		if dst.IndefiniteByGender == nil {
+			dst.IndefiniteByGender = make(map[string]string, len(src.IndefiniteByGender))
+		}
+		maps.Copy(dst.IndefiniteByGender, src.IndefiniteByGender)
+	}
+	if len(src.DefinitePluralByGender) > 0 {
+		if dst.DefinitePluralByGender == nil {
+			dst.DefinitePluralByGender = make(map[string]string, len(src.DefinitePluralByGender))
+		}
+		maps.Copy(dst.DefinitePluralByGender, src.DefinitePluralByGender)
 	}
 	if len(src.ByGender) == 0 {
 		return
@@ -175,10 +227,22 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if len(data.Verbs) > 0 || len(data.Nouns) > 0 || len(data.Words) > 0 {
 		return true
 	}
-	if data.Articles.IndefiniteDefault != "" ||
+	if data.Articles.None ||
+		data.Articles.IndefiniteNone ||
+		data.Articles.IndefiniteDefault != "" ||
 		data.Articles.IndefiniteVowel != "" ||
 		data.Articles.Definite != "" ||
-		len(data.Articles.ByGender) > 0 {
+		data.Articles.DefiniteVowel != "" ||
+		data.Articles.DefinitePlural != "" ||
+		data.Articles.DefiniteSuffixPlural != (SuffixRule{}) ||
+		len(data.Articles.DefinitePluralByGender) > 0 ||
+		len(data.Articles.ByGender) > 0 ||
+		len(data.Articles.IndefiniteByGender) > 0 ||
+		len(data.Articles.DefiniteSuffixByGender) > 0 ||
+		len(data.Articles.DefiniteAssimilation) > 0 ||
+		len(data.Articles.DefiniteLenition) > 0 ||
+		len(data.Articles.VowelSoundWords) > 0 ||
+		len(data.Articles.ConsonantSoundWords) > 0 {
 		return true
 	}
 	if data.Punct.LabelSuffix != "" || data.Punct.ProgressSuffix != "" {
@@ -194,6 +258,9 @@ func grammarDataHasContent(data *GrammarData) bool {
 	if len(data.Intents) > 0 {
 		return true
 	}
+	if len(data.Agreement.Participle) > 0 {
+		return true
+	}
 	return data.Number != (NumberFormat{})
 }
 
@@ -203,9 +270,16 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 	}
 	clone := &GrammarData{
 		Articles: ArticleForms{
-			IndefiniteDefault: data.Articles.IndefiniteDefault,
-			IndefiniteVowel:   data.Articles.IndefiniteVowel,
-			Definite:          data.Articles.Definite,
+			None:                 data.Articles.None,
+			IndefiniteNone:       data.Articles.IndefiniteNone,
+			IndefiniteDefault:    data.Articles.IndefiniteDefault,
+			IndefiniteVowel:      data.Articles.IndefiniteVowel,
+			Definite:             data.Articles.Definite,
+			DefiniteVowel:        data.Articles.DefiniteVowel,
+			DefinitePlural:       data.Articles.DefinitePlural,
+			DefiniteSuffixPlural: data.Articles.DefiniteSuffixPlural,
+			VowelSoundWords:      append([]string(nil), data.Articles.VowelSoundWords...),
+			ConsonantSoundWords:  append([]string(nil), data.Articles.ConsonantSoundWords...),
 		},
 		Punct: data.Punct,
 		Signals: SignalData{
@@ -216,6 +290,10 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 			Priors:          make(map[string]map[string]float64, len(data.Signals.Priors)),
 		},
 		Number: data.Number,
+	}
+	if len(data.Agreement.Participle) > 0 {
+		clone.Agreement.Participle = make(map[string]ParticipleAgreement, len(data.Agreement.Participle))
+		maps.Copy(clone.Agreement.Participle, data.Agreement.Participle)
 	}
 	if len(data.Verbs) > 0 {
 		clone.Verbs = make(map[string]VerbForms, len(data.Verbs))
@@ -233,6 +311,23 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 		clone.Articles.ByGender = make(map[string]string, len(data.Articles.ByGender))
 		maps.Copy(clone.Articles.ByGender, data.Articles.ByGender)
 	}
+	if len(data.Articles.IndefiniteByGender) > 0 {
+		clone.Articles.IndefiniteByGender = make(map[string]string, len(data.Articles.IndefiniteByGender))
+		maps.Copy(clone.Articles.IndefiniteByGender, data.Articles.IndefiniteByGender)
+	}
+	if len(data.Articles.DefinitePluralByGender) > 0 {
+		clone.Articles.DefinitePluralByGender = make(map[string]string, len(data.Articles.DefinitePluralByGender))
+		maps.Copy(clone.Articles.DefinitePluralByGender, data.Articles.DefinitePluralByGender)
+	}
+	if len(data.Articles.DefiniteSuffixByGender) > 0 {
+		clone.Articles.DefiniteSuffixByGender = make(map[string]SuffixRule, len(data.Articles.DefiniteSuffixByGender))
+		maps.Copy(clone.Articles.DefiniteSuffixByGender, data.Articles.DefiniteSuffixByGender)
+	}
+	if len(data.Articles.DefiniteAssimilation) > 0 {
+		clone.Articles.DefiniteAssimilation = make(map[string]string, len(data.Articles.DefiniteAssimilation))
+		maps.Copy(clone.Articles.DefiniteAssimilation, data.Articles.DefiniteAssimilation)
+	}
+	clone.Articles.DefiniteLenition = append([]string(nil), data.Articles.DefiniteLenition...)
 	if len(data.Signals.Priors) > 0 {
 		for word, priors := range data.Signals.Priors {
 			if len(priors) == 0 {
@@ -331,6 +426,8 @@ func getVerbForm(lang, verb, form string) string {
 			return forms.Past
 		case "gerund":
 			return forms.Gerund
+		case "past_f":
+			return forms.PastFeminine
 		}
 	}
 	return ""
@@ -430,7 +527,10 @@ func applyRegularPastTense(verb string) string {
 			return verb[:len(verb)-1] + "ied"
 		}
 	}
-	if core.HasSuffix(verb, "c") {
+	// The -c → -cked insertion protects a hard /k/ between vowels (panic →
+	// panicked, mimic → mimicked). After a consonant the c needs no
+	// protection: sync → synced, arc → arced.
+	if core.HasSuffix(verb, "c") && len(verb) > 1 && isVowel(rune(verb[len(verb)-2])) {
 		return verb + "ked"
 	}
 	if len(verb) >= 2 && shouldDoubleConsonant(verb) {
@@ -447,18 +547,48 @@ func shouldDoubleConsonant(verb string) bool {
 		return false
 	}
 	lastChar := rune(verb[len(verb)-1])
-	secondLast := rune(verb[len(verb)-2])
 	if isVowel(lastChar) || lastChar == 'w' || lastChar == 'x' || lastChar == 'y' {
 		return false
 	}
-	if !isVowel(secondLast) {
+	if !isVowelLetterAt(verb, len(verb)-2) {
 		return false
 	}
-	if len(verb) <= 4 {
-		thirdLast := rune(verb[len(verb)-3])
-		return !isVowel(thirdLast)
+	// en-GB doubles a final single -l after a single vowel regardless of
+	// stress: marshalled, signalled, totalled, equalled. en-US single-l
+	// forms override per-verb via locale data (locales/en-US.json).
+	if lastChar == 'l' && !isVowelLetterAt(verb, len(verb)-3) {
+		return true
 	}
-	return false
+	// A vowel digraph before the final consonant never doubles (reveal →
+	// revealed, treat → treated) — stress cannot override spelling shape.
+	if isVowelLetterAt(verb, len(verb)-3) {
+		return false
+	}
+	// Within the single-vowel shape the true condition is final-syllable
+	// stress: commit → committed, visit → visited. The dictionary knows;
+	// the length heuristic below only guesses for words it does not.
+	if stressed, known := phonetics.FinalSyllableStressed(verb); known {
+		return stressed
+	}
+	return len(verb) <= 4
+}
+
+// isVowelLetterAt reports whether the byte at index i sounds as a vowel in
+// the CVC sense. A "u" straight after "q" is part of the /kw/ onset cluster,
+// not a vowel — that is why quiz doubles (quizzed) and equal doubles
+// (equalled) even though their spellings read vowel-vowel.
+func isVowelLetterAt(word string, i int) bool {
+	if i < 0 || i >= len(word) {
+		return false
+	}
+	r := rune(word[i])
+	if !isVowel(r) {
+		return false
+	}
+	if r == 'u' && i > 0 && word[i-1] == 'q' {
+		return false
+	}
+	return true
 }
 
 // Gerund returns the present participle (-ing form) of a verb.
@@ -490,7 +620,8 @@ func applyRegularGerund(verb string) string {
 			return verb[:len(verb)-1] + "ing"
 		}
 	}
-	if core.HasSuffix(verb, "c") {
+	// Same vowel gate as the past tense: panicking but syncing.
+	if core.HasSuffix(verb, "c") && len(verb) > 1 && isVowel(rune(verb[len(verb)-2])) {
 		return verb + "king"
 	}
 	if shouldDoubleConsonant(verb) {
@@ -538,6 +669,19 @@ func PluralForm(noun string) string {
 
 func applyRegularPlural(noun string) string {
 	lower := core.Lower(noun)
+	// Greek -sis pluralises -ses across the whole class: basis → bases,
+	// synopsis → synopses, emphasis → emphases. Checked before the sibilant
+	// branch, which would otherwise produce "basises". (iris/bias end -is
+	// but not -sis, so they keep the regular -es path.)
+	if core.HasSuffix(lower, "sis") && len(noun) > 3 {
+		return noun[:len(noun)-2] + "es"
+	}
+	// A single final z after a vowel doubles before -es: quizzes, whizzes.
+	// After a consonant or an existing zz it takes plain -es: waltzes, buzzes.
+	if core.HasSuffix(lower, "z") && !core.HasSuffix(lower, "zz") &&
+		len(lower) > 1 && isVowel(rune(lower[len(lower)-2])) {
+		return noun + string(noun[len(noun)-1]) + "es"
+	}
 	if core.HasSuffix(lower, "s") ||
 		core.HasSuffix(lower, "ss") ||
 		core.HasSuffix(lower, "sh") ||
@@ -552,12 +696,9 @@ func applyRegularPlural(noun string) string {
 			return noun[:len(noun)-1] + "ies"
 		}
 	}
-	if core.HasSuffix(lower, "f") {
-		return noun[:len(noun)-1] + "ves"
-	}
-	if core.HasSuffix(lower, "fe") {
-		return noun[:len(noun)-2] + "ves"
-	}
+	// No f/fe → ves branch: that plural is a closed Old English class carried
+	// by irregularNouns (wolf, knife, elf...). Productive English takes -s
+	// (roofs, chiefs, safes, cliffs, chefs, beliefs).
 	if core.HasSuffix(lower, "o") && len(noun) > 1 {
 		prev := rune(lower[len(lower)-2])
 		if !isVowel(prev) {
@@ -594,6 +735,14 @@ func Article(word string) string {
 		}
 		return "a"
 	}
+	// Locale sound-word lists still apply when the locale declares no
+	// indefinite forms of its own (a pure phonetic-delta file).
+	if vowel, ok := articleSoundOverride(grammarDataForLang(currentLangForGrammar()), lower); ok {
+		if vowel {
+			return "an"
+		}
+		return "a"
+	}
 	for key := range consonantSounds {
 		if core.HasPrefix(lower, key) {
 			return "a"
@@ -603,6 +752,13 @@ func Article(word string) string {
 		if core.HasPrefix(lower, key) {
 			return "an"
 		}
+	}
+	// Beyond the curated tables, ask the pronouncing dictionary.
+	if vowel, known := phonetics.StartsWithVowelSound(lower); known {
+		if vowel {
+			return "an"
+		}
+		return "a"
 	}
 	if len(lower) > 0 && isVowel(rune(lower[0])) {
 		return "an"
@@ -622,10 +778,23 @@ func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 		return "", false
 	}
 
+	// Article-less languages resolve to the empty token; ArticlePhrase
+	// and DefinitePhrase degrade to the bare noun. IndefiniteNone does the
+	// same for the indefinite only (Bulgarian: no indefinite article, but
+	// suffixed definites are alive and well).
+	if data.Articles.None || data.Articles.IndefiniteNone {
+		return "", true
+	}
 	if article, ok := articleForPluralForm(data, lowerWord, lang); ok {
 		return article, true
 	}
 	if article, ok := articleForFrenchPluralGuess(data, lowerWord, originalWord, lang); ok {
+		return article, true
+	}
+	// True gendered indefinites (un/une, ein/eine) outrank the gendered
+	// definite fallback so Article() stays an indefinite everywhere once a
+	// locale declares them.
+	if article, ok := indefiniteArticleByGender(data, lowerWord); ok {
 		return article, true
 	}
 	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
@@ -635,6 +804,26 @@ func articleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
 		return article, true
 	}
 	return "", false
+}
+
+// indefiniteArticleByGender resolves the gendered indefinite article for a
+// known noun: un/une in French, ein/eine/ein in German. Indefinite articles
+// do not elide, so the word passes through untouched.
+//
+//	indefiniteArticleByGender(frData, "branche") // ("une", true)
+func indefiniteArticleByGender(data *GrammarData, lowerWord string) (string, bool) {
+	if len(data.Articles.IndefiniteByGender) == 0 {
+		return "", false
+	}
+	forms, ok := data.Nouns[lowerWord]
+	if !ok || forms.Gender == "" {
+		return "", false
+	}
+	article, ok := data.Articles.IndefiniteByGender[forms.Gender]
+	if !ok || article == "" {
+		return "", false
+	}
+	return article, true
 }
 
 func articleByGender(data *GrammarData, lowerWord, originalWord, lang string) (string, bool) {
@@ -653,13 +842,24 @@ func articleByGender(data *GrammarData, lowerWord, originalWord, lang string) (s
 }
 
 func articleForPluralForm(data *GrammarData, lowerWord, lang string) (string, bool) {
-	if !isFrenchLanguage(lang) {
+	gender, ok := pluralNounGender(data, lowerWord)
+	if !ok {
 		return "", false
 	}
-	if !isKnownPluralNoun(data, lowerWord) {
-		return "", false
+	// Known plurals take the locale's definite plural article — gendered
+	// where the language demands it (los/las), a single form otherwise
+	// (les, die). The French literal remains as a fallback for data
+	// without either field.
+	if article, ok := data.Articles.DefinitePluralByGender[gender]; ok && article != "" {
+		return article, true
 	}
-	return "les", true
+	if data.Articles.DefinitePlural != "" {
+		return data.Articles.DefinitePlural, true
+	}
+	if isFrenchLanguage(lang) {
+		return "les", true
+	}
+	return "", false
 }
 
 func articleForFrenchPluralGuess(data *GrammarData, lowerWord, originalWord, lang string) (string, bool) {
@@ -676,8 +876,16 @@ func articleForFrenchPluralGuess(data *GrammarData, lowerWord, originalWord, lan
 }
 
 func isKnownPluralNoun(data *GrammarData, lowerWord string) bool {
+	_, ok := pluralNounGender(data, lowerWord)
+	return ok
+}
+
+// pluralNounGender reports whether the word is a known plural form and, when
+// it is, the gender of the noun it pluralises — Spanish needs this because
+// the plural definite article is itself gendered (los archivos, las tareas).
+func pluralNounGender(data *GrammarData, lowerWord string) (string, bool) {
 	if data == nil || len(data.Nouns) == 0 {
-		return false
+		return "", false
 	}
 	for _, forms := range data.Nouns {
 		if forms.Other == "" || core.Lower(forms.Other) != lowerWord {
@@ -686,16 +894,16 @@ func isKnownPluralNoun(data *GrammarData, lowerWord string) bool {
 		if forms.One != "" && core.Lower(forms.One) == lowerWord {
 			continue
 		}
-		return true
+		return forms.Gender, true
 	}
-	return false
+	return "", false
 }
 
 func articleFromGrammarForms(data *GrammarData, word string) (string, bool) {
 	if data.Articles.IndefiniteDefault == "" && data.Articles.IndefiniteVowel == "" {
 		return "", false
 	}
-	if usesVowelSoundArticle(word) && data.Articles.IndefiniteVowel != "" {
+	if usesVowelSoundArticle(data, word) && data.Articles.IndefiniteVowel != "" {
 		return data.Articles.IndefiniteVowel, true
 	}
 	if data.Articles.IndefiniteDefault != "" {
@@ -725,7 +933,7 @@ func maybeElideArticle(article, word, lang string) string {
 	return article
 }
 
-func usesVowelSoundArticle(word string) bool {
+func usesVowelSoundArticle(data *GrammarData, word string) bool {
 	trimmed := core.Trim(word)
 	if trimmed == "" {
 		return false
@@ -734,6 +942,12 @@ func usesVowelSoundArticle(word string) bool {
 		return initialismUsesVowelSound(trimmed)
 	}
 	lower := core.Lower(trimmed)
+	// Locale-declared phonetic exceptions outrank the built-in tables so a
+	// dialect file can re-hear a word: en-US declares "herb" vowel-sound
+	// (silent h) while base en keeps the British /h/.
+	if vowel, ok := articleSoundOverride(data, lower); ok {
+		return vowel
+	}
 	for key := range consonantSounds {
 		if core.HasPrefix(lower, key) {
 			return false
@@ -744,10 +958,39 @@ func usesVowelSoundArticle(word string) bool {
 			return true
 		}
 	}
+	// The pronouncing dictionary decides the long tail the curated tables
+	// never met: first phoneme vocalic → vowel article. Self-gating for
+	// gendered locales — where default and vowel forms are identical (un,
+	// ein) the answer changes nothing.
+	if vowel, known := phonetics.StartsWithVowelSound(lower); known {
+		return vowel
+	}
 	for _, r := range lower {
 		return isVowel(r)
 	}
 	return false
+}
+
+// articleSoundOverride matches a lowercased word against the locale's
+// declared sound-word prefixes. The second return reports whether any
+// locale entry decided the word.
+//
+//	articleSoundOverride(usData, "herb") // (true, true) under en-US
+func articleSoundOverride(data *GrammarData, lower string) (bool, bool) {
+	if data == nil {
+		return false, false
+	}
+	for _, key := range data.Articles.ConsonantSoundWords {
+		if core.HasPrefix(lower, key) {
+			return false, true
+		}
+	}
+	for _, key := range data.Articles.VowelSoundWords {
+		if core.HasPrefix(lower, key) {
+			return true, true
+		}
+	}
+	return false, false
 }
 
 func looksLikeFrenchPlural(word string) bool {
@@ -882,6 +1125,9 @@ func renderWord(lang, word string) string {
 	return word
 }
 
+// renderWordOrTitle keeps a mapped word's AUTHORED case verbatim — the word
+// table carries display forms (go.mod, URL, pnpm) whose casing is the point.
+// Only unmapped words are title-cased.
 func renderWordOrTitle(lang, word string) string {
 	if translated := getWord(lang, word); translated != "" {
 		return translated
@@ -894,16 +1140,29 @@ func Quote(s string) string {
 	return strconv.Quote(s)
 }
 
-// ArticlePhrase prefixes a noun phrase with the correct article.
+// ArticlePhrase prefixes a noun phrase with the correct article. A phrase
+// is a NOUN context, so the noun table (and its English-keyed aliases)
+// outranks the word bridge — "test" resolves to the noun, not the
+// verb-biased bridge entry.
 func ArticlePhrase(word string) string {
 	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
 	lang := currentLangForGrammar()
-	word = renderWord(lang, word)
+	word = renderNounForPhrase(lang, word)
 	article := Article(word)
 	return prefixWithArticle(article, word)
+}
+
+// renderNounForPhrase resolves a phrase noun: noun-table one-form first
+// (aliases carry the noun side of dual keys), then the word bridge, then
+// the word itself.
+func renderNounForPhrase(lang, word string) string {
+	if one := getNounForm(lang, core.Lower(word), "one"); one != "" {
+		return one
+	}
+	return renderWord(lang, word)
 }
 
 // DefiniteArticle returns the language-specific definite article token for a word.
@@ -931,16 +1190,96 @@ func DefiniteToken(word string) string {
 	return DefiniteArticle(word)
 }
 
-// DefinitePhrase prefixes a noun phrase with the correct definite article.
+// DefinitePhrase renders a noun phrase in the definite: prefixed articles
+// where the language fronts them (the file, le fichier), SUFFIXED where it
+// welds them on (filen, fișierul, файлът).
 func DefinitePhrase(word string) string {
 	word = core.Trim(word)
 	if word == "" {
 		return ""
 	}
 	lang := currentLangForGrammar()
-	word = renderWord(lang, word)
+	word = renderNounForPhrase(lang, word)
+	if suffixed, ok := definiteSuffixedPhrase(lang, word); ok {
+		return suffixed
+	}
 	article := DefiniteArticle(word)
+	// Irish-style lenition mutates the NOUN after the article: bileog →
+	// an bhileog. The article is resolved first (from the unmutated form),
+	// then the display word mutates.
+	if lenited, ok := definiteLenitedWord(lang, word); ok {
+		word = lenited
+	}
 	return prefixWithArticle(article, word)
+}
+
+// definiteLenitedWord lenites a noun whose gender the locale declares as
+// leniting after the definite article: an h slips in after the initial
+// consonant (bileog → bhileog, craobh → chraobh, fadhb → fhadhb).
+// Irish resists lenition of d, t and s after "an" (the homorganic DNTLS
+// rule), and vowel-initial nouns are untouched, so only b c f g m p
+// lenite here; s-initial t-prefixing is not modelled in v1.
+func definiteLenitedWord(lang, word string) (string, bool) {
+	data := grammarDataForLang(lang)
+	if data == nil || len(data.Articles.DefiniteLenition) == 0 {
+		return "", false
+	}
+	forms, ok := data.Nouns[core.Lower(word)]
+	if !ok || forms.Gender == "" {
+		return "", false
+	}
+	lenites := false
+	for _, gender := range data.Articles.DefiniteLenition {
+		if gender == forms.Gender {
+			lenites = true
+			break
+		}
+	}
+	if !lenites {
+		return "", false
+	}
+	runes := []rune(word)
+	if len(runes) < 2 {
+		return "", false
+	}
+	switch unicode.ToLower(runes[0]) {
+	case 'b', 'c', 'f', 'g', 'm', 'p':
+		if unicode.ToLower(runes[1]) == 'h' {
+			return "", false
+		}
+		return string(runes[0]) + "h" + string(runes[1:]), true
+	}
+	return "", false
+}
+
+// definiteSuffixedPhrase welds the definite suffix onto the noun for
+// languages that declare definite_suffix rules: the gendered rule on a
+// singular (fil → filen, sarcină → sarcina), the plural rule on a known
+// plural form (filer → filerne).
+func definiteSuffixedPhrase(lang, word string) (string, bool) {
+	data := grammarDataForLang(lang)
+	if data == nil || len(data.Articles.DefiniteSuffixByGender) == 0 {
+		return "", false
+	}
+	lower := core.Lower(word)
+	if _, plural := pluralNounGender(data, lower); plural {
+		if suffixed, ok := data.Articles.DefiniteSuffixPlural.Apply(word); ok {
+			return suffixed, true
+		}
+		return "", false
+	}
+	forms, ok := data.Nouns[lower]
+	if !ok || forms.Gender == "" {
+		return "", false
+	}
+	rule, ok := data.Articles.DefiniteSuffixByGender[forms.Gender]
+	if !ok {
+		return "", false
+	}
+	if suffixed, ok := rule.Apply(word); ok {
+		return suffixed, true
+	}
+	return "", false
 }
 
 func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, bool) {
@@ -948,6 +1287,14 @@ func definiteArticleForCurrentLanguage(lowerWord, originalWord string) (string, 
 	data := grammarDataForLang(lang)
 	if data == nil {
 		return "", false
+	}
+	if data.Articles.None {
+		return "", true
+	}
+	// Suffix-article languages have no standalone definite word; the
+	// suffixing itself happens in DefinitePhrase.
+	if len(data.Articles.DefiniteSuffixByGender) > 0 {
+		return "", true
 	}
 	if article, ok := articleByGender(data, lowerWord, originalWord, lang); ok {
 		return article, true
@@ -1023,13 +1370,66 @@ func definiteArticleFromGrammarForms(data *GrammarData, lowerWord, originalWord,
 	if data == nil || data.Articles.Definite == "" {
 		return "", false
 	}
+	if gender, ok := pluralNounGender(data, lowerWord); ok {
+		if article, ok := data.Articles.DefinitePluralByGender[gender]; ok && article != "" {
+			return article, true
+		}
+		if data.Articles.DefinitePlural != "" {
+			// The phonetic definite split applies to plurals too:
+			// a fájlok but az adatok.
+			if data.Articles.DefiniteVowel != "" && startsWithVowelLetter(originalWord) {
+				return data.Articles.DefiniteVowel, true
+			}
+			return data.Articles.DefinitePlural, true
+		}
+	}
 	if isFrenchLanguage(lang) {
 		if isKnownPluralNoun(data, lowerWord) || looksLikeFrenchPlural(originalWord) {
 			return "les", true
 		}
 		return maybeElideArticle(data.Articles.Definite, originalWord, lang), true
 	}
+	// Hungarian-style phonetic definite: az before a vowel-initial word,
+	// a otherwise. Orthography is phonetic there, so the letter test is
+	// the sound test.
+	if data.Articles.DefiniteVowel != "" && startsWithVowelLetter(originalWord) {
+		return data.Articles.DefiniteVowel, true
+	}
+	// Maltese-style assimilation: the article agrees with the noun's first
+	// letter (sun letters — is-server, ix-xogħol); Definite carries the
+	// moon-letter default (il-).
+	if len(data.Articles.DefiniteAssimilation) > 0 {
+		if article, ok := data.Articles.DefiniteAssimilation[firstLetterOf(originalWord)]; ok && article != "" {
+			return article, true
+		}
+	}
 	return data.Articles.Definite, true
+}
+
+// firstLetterOf returns the lowercased first letter of a word, as a string,
+// for assimilation lookups.
+func firstLetterOf(word string) string {
+	for _, r := range core.Lower(core.Trim(word)) {
+		return string(r)
+	}
+	return ""
+}
+
+// startsWithVowelLetter reports a vowel-initial word across the Latin
+// vowel letters and their common European accented forms (Hungarian
+// á é í ó ö ő ú ü ű included).
+func startsWithVowelLetter(word string) bool {
+	for _, r := range core.Lower(core.Trim(word)) {
+		switch r {
+		case 'a', 'e', 'i', 'o', 'u',
+			'á', 'à', 'â', 'ä', 'æ', 'é', 'è', 'ê', 'ë', 'í', 'î', 'ï',
+			'ó', 'ò', 'ô', 'ö', 'ő', 'ú', 'ù', 'û', 'ü', 'ű', 'œ', 'å', 'ø':
+			return true
+		default:
+			return false
+		}
+	}
+	return false
 }
 
 // TemplateFuncs returns the template.FuncMap with all grammar functions.
@@ -1105,16 +1505,27 @@ func Ago(count int, unit string) string {
 }
 
 func prefixWithArticle(article, word string) string {
-	if article == "" || word == "" {
+	if word == "" {
 		return ""
 	}
+	// An empty article is an article-less language speaking correctly:
+	// the phrase IS the bare noun.
+	if article == "" {
+		return word
+	}
 	if core.HasSuffix(article, "'") {
+		return article + word
+	}
+	// Hyphen-final articles weld on directly: Maltese il- + fajl = il-fajl.
+	if core.HasSuffix(article, "-") {
 		return article + word
 	}
 	return article + " " + word
 }
 
 // Progress returns a progress message: "Building..."
+// Multi-word progress forms take sentence case, not title case — Irish
+// "Ag scriosadh...", never "Ag Scriosadh...".
 func Progress(verb string) string {
 	lang := currentLangForGrammar()
 	word := renderWord(lang, verb)
@@ -1123,7 +1534,16 @@ func Progress(verb string) string {
 		return ""
 	}
 	suffix := getPunct(lang, "progress", "...")
-	return Title(g) + suffix
+	return sentenceCase(g) + suffix
+}
+
+// sentenceCase upper-cases the first letter only, leaving the rest of the
+// phrase exactly as authored.
+func sentenceCase(s string) string {
+	for i, r := range s {
+		return string(unicode.ToUpper(r)) + s[i+len(string(r)):]
+	}
+	return s
 }
 
 // ProgressSubject returns a progress message with subject: "Building project..."
@@ -1137,9 +1557,9 @@ func ProgressSubject(verb, subject string) string {
 	suffix := getPunct(lang, "progress", "...")
 	subject = core.Trim(subject)
 	if subject == "" {
-		return Title(g) + suffix
+		return sentenceCase(g) + suffix
 	}
-	return Title(g) + " " + renderWord(lang, subject) + suffix
+	return sentenceCase(g) + " " + renderWord(lang, subject) + suffix
 }
 
 // ActionResult returns a completion message: "File deleted"
@@ -1148,6 +1568,10 @@ func ActionResult(verb, subject string) string {
 }
 
 func actionResultForLanguages(langs []string, verb, subject string) string {
+	// Map the verb through the gram.word bridge first, exactly as Progress
+	// and ActionFailed do — "delete" resolves to the locale's own verb
+	// (supprimer, löschen) and is then conjugated in that locale's table.
+	verb = renderWordForLanguages(langs, core.Lower(core.Trim(verb)))
 	p := pastTenseForLanguages(langs, verb)
 	if p == "" {
 		return ""
@@ -1156,7 +1580,101 @@ func actionResultForLanguages(langs []string, verb, subject string) string {
 	if subject == "" {
 		return Title(p)
 	}
-	return renderWordOrTitleForLanguages(langs, subject) + " " + p
+	// Participle agreement: the subject's gender agrees the participle in
+	// locales that declare a rule for it — Branche créée, Tarea eliminada,
+	// Erratum inventum. Genders without a rule stay on the base form.
+	if gender := subjectGenderForLanguages(langs, subject); gender != "" {
+		p = agreedParticipleForLanguages(langs, verb, p, gender)
+	}
+	return renderSubjectLeadForLanguages(langs, subject) + " " + p
+}
+
+// subjectGenderForLanguages reads the subject's grammatical gender from the
+// first noun table that knows it — the en-keyed aliases carry gender too,
+// so "branch" resolves to f under fr.
+func subjectGenderForLanguages(langs []string, subject string) string {
+	lower := core.Lower(core.Trim(subject))
+	if lower == "" {
+		return ""
+	}
+	for _, lang := range languageFallbackOrder(langs) {
+		if gender := getNounForm(lang, lower, "gender"); gender != "" {
+			return gender
+		}
+	}
+	return ""
+}
+
+// agreedParticipleForLanguages agrees a participle with the subject's
+// gender: an authored per-verb override wins for the feminine (dû → due),
+// then the locale's declared derivation for that gender (fr f: +e; es f:
+// -o → -a, covering the irregulars free — resuelto → resuelta; la f/n:
+// -us → -a / -um). A gender with no rule keeps the base form, which is
+// both the masculine case and the whole grammar of English, German and
+// Klingon.
+func agreedParticipleForLanguages(langs []string, verb, participle, gender string) string {
+	if gender == "f" {
+		for _, lang := range languageFallbackOrder(langs) {
+			if form := getVerbForm(lang, verb, "past_f"); form != "" {
+				return form
+			}
+		}
+	}
+	for _, lang := range languageFallbackOrder(langs) {
+		data := grammarDataForLang(lang)
+		if data == nil || len(data.Agreement.Participle) == 0 {
+			continue
+		}
+		rule, ok := data.Agreement.Participle[gender]
+		if !ok {
+			return participle
+		}
+		agreed := participle
+		if rule.Strip != "" {
+			if !core.HasSuffix(agreed, rule.Strip) {
+				// The rule's shape does not fit this participle; leave it.
+				return participle
+			}
+			agreed = agreed[:len(agreed)-len(rule.Strip)]
+		}
+		return agreed + rule.Add
+	}
+	return participle
+}
+
+// renderSubjectLeadForLanguages resolves a sentence-leading subject. The
+// noun table outranks the word bridge so a verb-biased dual key ("run" →
+// ausführen) still renders as its noun (Lauf); noun forms are title-cased
+// for the lead position (fichier → "Fichier supprimé"). Word-bridge values
+// keep their authored case (go.mod, URL).
+func renderSubjectLeadForLanguages(langs []string, word string) string {
+	if one, ok := nounOneForLanguages(langs, word); ok {
+		return Title(one)
+	}
+	return renderWordOrTitleForLanguages(langs, word)
+}
+
+// renderSubjectTailForLanguages resolves a mid-sentence subject: the same
+// noun-first lookup, without the lead capitalisation ("Impossible de
+// supprimer fichier"; German nouns are authored capitalised regardless).
+func renderSubjectTailForLanguages(langs []string, word string) string {
+	if one, ok := nounOneForLanguages(langs, word); ok {
+		return one
+	}
+	return renderWordForLanguages(langs, word)
+}
+
+func nounOneForLanguages(langs []string, word string) (string, bool) {
+	lower := core.Lower(core.Trim(word))
+	if lower == "" {
+		return "", false
+	}
+	for _, lang := range languageFallbackOrder(langs) {
+		if one := getNounForm(lang, lower, "one"); one != "" {
+			return one, true
+		}
+	}
+	return "", false
 }
 
 // ActionFailed returns a failure message: "Failed to delete file"
@@ -1176,7 +1694,7 @@ func actionFailedForLanguages(langs []string, verb, subject string) string {
 	if subject == "" {
 		return prefix + " " + verb
 	}
-	return prefix + " " + verb + " " + renderWordForLanguages(langs, subject)
+	return prefix + " " + verb + " " + renderSubjectTailForLanguages(langs, subject)
 }
 
 func failedPrefix(lang string) string {

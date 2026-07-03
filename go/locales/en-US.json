@@ -1,0 +1,25 @@
+{
+  "_comment": "American English override locale. Base `en` is the English of England (en-GB): a herb, ageing, travelled, totalled, marshalled. This file re-hears and re-spells only the words where the dialects genuinely part ways — everything else falls through to `en` and the built-in grammar tables.",
+  "gram": {
+    "article": {
+      "indefinite": { "default": "a", "vowel": "an" },
+      "definite": "the",
+      "vowel_sound_words": ["herb"]
+    },
+    "verb": {
+      "age": { "base": "age", "past": "aged", "gerund": "aging" },
+      "cancel": { "base": "cancel", "past": "canceled", "gerund": "canceling" },
+      "dial": { "base": "dial", "past": "dialed", "gerund": "dialing" },
+      "duel": { "base": "duel", "past": "dueled", "gerund": "dueling" },
+      "equal": { "base": "equal", "past": "equaled", "gerund": "equaling" },
+      "fuel": { "base": "fuel", "past": "fueled", "gerund": "fueling" },
+      "label": { "base": "label", "past": "labeled", "gerund": "labeling" },
+      "level": { "base": "level", "past": "leveled", "gerund": "leveling" },
+      "marshal": { "base": "marshal", "past": "marshaled", "gerund": "marshaling" },
+      "model": { "base": "model", "past": "modeled", "gerund": "modeling" },
+      "signal": { "base": "signal", "past": "signaled", "gerund": "signaling" },
+      "total": { "base": "total", "past": "totaled", "gerund": "totaling" },
+      "travel": { "base": "travel", "past": "traveled", "gerund": "traveling" }
+    }
+  }
+}

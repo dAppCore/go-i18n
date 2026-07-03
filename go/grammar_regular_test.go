@@ -17,7 +17,9 @@ func TestGrammarRegular_applyRegularPastTense_Good(t *testing.T) {
 		{"delete", "deleted"},  // ends in e → +d
 		{"carry", "carried"},   // consonant + y → ied
 		{"play", "played"},     // vowel + y → +ed (no ied)
-		{"panic", "panicked"},  // ends in c → +ked
+		{"panic", "panicked"},  // vowel + c → +ked (protects the hard /k/)
+		{"sync", "synced"},     // consonant + c → plain +ed, never "syncked"
+		{"arc", "arced"},       // consonant + c → plain +ed
 		{"stop", "stopped"},    // CVC short word → double consonant
 		{"deleted", "deleted"}, // already past, consonant before -ed → unchanged
 	}
@@ -52,13 +54,14 @@ func TestGrammarRegular_applyRegularGerund_Good(t *testing.T) {
 		verb string
 		want string
 	}{
-		{"die", "dying"},        // -ie → ying
-		{"delete", "deleting"},  // -e (consonant before) → drop e + ing
-		{"see", "seeing"},       // -ee → keep e
-		{"panic", "panicking"},  // -c → +king
-		{"stop", "stopping"},    // CVC → double
-		{"walk", "walking"},     // default
-		{"echo", "echoing"},     // ends in vowel+o, no special rule
+		{"die", "dying"},       // -ie → ying
+		{"delete", "deleting"}, // -e (consonant before) → drop e + ing
+		{"see", "seeing"},      // -ee → keep e
+		{"panic", "panicking"}, // vowel + c → +king
+		{"sync", "syncing"},    // consonant + c → plain +ing, never "syncking"
+		{"stop", "stopping"},   // CVC → double
+		{"walk", "walking"},    // default
+		{"echo", "echoing"},    // ends in vowel+o, no special rule
 	}
 	for _, tt := range tests {
 		if got := applyRegularGerund(tt.verb); got != tt.want {
@@ -67,33 +70,70 @@ func TestGrammarRegular_applyRegularGerund_Good(t *testing.T) {
 	}
 }
 
-// TestGrammarRegular_applyRegularPlural_Good covers the sibilant, consonant-y,
-// -f, -fe and -o special-case plural branches.
+// TestGrammarRegular_applyRegularPlural_Good covers the sibilant, consonant-y
+// and -o special-case plural branches. The f/fe → ves plural is deliberately
+// ABSENT here: it is a closed Old English class owned by irregularNouns
+// (PluralForm resolves leaf → leaves at that tier), and the productive rule
+// takes -s — which is why the hockey team is the Maple Leafs.
 //
-//	applyRegularPlural("leaf")  // "leaves"
+//	applyRegularPlural("leaf")  // "leafs" (PluralForm("leaf") → "leaves")
 //	applyRegularPlural("hero")  // "heroes"
 func TestGrammarRegular_applyRegularPlural_Good(t *testing.T) {
 	tests := []struct {
 		noun string
 		want string
 	}{
-		{"box", "boxes"},      // sibilant x → es
-		{"bus", "buses"},      // s → es
-		{"dish", "dishes"},    // sh → es
-		{"church", "churches"}, // ch → es
-		{"buzz", "buzzes"},    // z → es
-		{"city", "cities"},    // consonant + y → ies
-		{"key", "keys"},       // vowel + y → +s
-		{"leaf", "leaves"},    // f → ves
-		{"knife", "knives"},   // fe → ves
-		{"hero", "heroes"},    // -o special case
-		{"potato", "potatoes"}, // -o special case
-		{"piano", "pianos"},   // -o NOT special → +s
-		{"server", "servers"}, // default → +s
+		{"box", "boxes"},         // sibilant x → es
+		{"bus", "buses"},         // s → es
+		{"dish", "dishes"},       // sh → es
+		{"church", "churches"},   // ch → es
+		{"buzz", "buzzes"},       // zz → es (already doubled)
+		{"quiz", "quizzes"},      // single z after vowel → double + es
+		{"whiz", "whizzes"},      // single z after vowel → double + es
+		{"waltz", "waltzes"},     // z after consonant → plain es
+		{"basis", "bases"},       // Greek -sis → -ses
+		{"synopsis", "synopses"}, // Greek -sis → -ses
+		{"emphasis", "emphases"}, // Greek -sis → -ses
+		{"iris", "irises"},       // -is but not -sis → regular es
+		{"city", "cities"},       // consonant + y → ies
+		{"key", "keys"},          // vowel + y → +s
+		{"leaf", "leafs"},        // f is REGULAR +s; leaves lives in irregularNouns
+		{"knife", "knifes"},      // fe is REGULAR +s; knives lives in irregularNouns
+		{"roof", "roofs"},        // modern f-final takes -s, never "rooves"
+		{"chief", "chiefs"},      // not "chieves"
+		{"safe", "safes"},        // not "saves"
+		{"cliff", "cliffs"},      // ff-final takes -s
+		{"hero", "heroes"},       // -o special case
+		{"potato", "potatoes"},   // -o special case
+		{"piano", "pianos"},      // -o NOT special → +s
+		{"server", "servers"},    // default → +s
 	}
 	for _, tt := range tests {
 		if got := applyRegularPlural(tt.noun); got != tt.want {
 			t.Errorf("applyRegularPlural(%q) = %q, want %q", tt.noun, got, tt.want)
+		}
+	}
+}
+
+// TestGrammarRegular_PluralFormLoanClasses pins the classical-loan plurals
+// that ride the irregular table and the -sis rule end to end.
+//
+//	PluralForm("axis")   // "axes"
+//	PluralForm("corpus") // "corpora"
+func TestGrammarRegular_PluralFormLoanClasses(t *testing.T) {
+	tests := []struct {
+		noun string
+		want string
+	}{
+		{"axis", "axes"},         // table: not -sis, so the rule cannot reach it
+		{"corpus", "corpora"},    // table: Latin -us → -ora
+		{"basis", "bases"},       // rule: -sis → -ses
+		{"analysis", "analyses"}, // table and rule agree
+		{"status", "statuses"},   // NOT a Latin loan in English usage → regular es
+	}
+	for _, tt := range tests {
+		if got := PluralForm(tt.noun); got != tt.want {
+			t.Errorf("PluralForm(%q) = %q, want %q", tt.noun, got, tt.want)
 		}
 	}
 }
@@ -105,15 +145,27 @@ func TestGrammarRegular_shouldDoubleConsonant(t *testing.T) {
 		verb string
 		want bool
 	}{
-		{"stop", true},    // CVC short word
-		{"run", true},     // CVC short word
-		{"go", false},     // too short (< 3)
-		{"play", false},   // ends in y
-		{"fix", false},    // ends in x
-		{"flow", false},   // ends in w
-		{"hello", false},  // ends in vowel
-		{"commit", false}, // in noDoubleConsonant or long word path
-		{"visit", false},  // long word, no double
+		{"stop", true},      // CVC short word
+		{"run", true},       // CVC short word
+		{"quiz", true},      // qu is a /kw/ onset, so quiz IS CVC → quizzed
+		{"equal", true},     // same qu logic feeds the -l rule → equalled
+		{"go", false},       // too short (< 3)
+		{"play", false},     // ends in y
+		{"fix", false},      // ends in x
+		{"flow", false},     // ends in w
+		{"hello", false},    // ends in vowel
+		{"commit", true},    // dictionary stress: IH1 final → committed
+		{"visit", false},    // dictionary stress: IH0 final → visited
+		{"regret", true},    // dictionary stress — no table entry needed
+		{"kayak", false},    // dictionary stress: final syllable unstressed
+		{"reveal", false},   // vowel digraph gate outranks stress
+		{"marshal", true},   // en-GB -l doubling → marshalled
+		{"signal", true},    // en-GB -l doubling → signalled
+		{"total", true},     // en-GB -l doubling → totalled
+		{"parallel", false}, // in noDoubleConsonant: both dialects prefer paralleled
+		{"reveal", false},   // vowel digraph before -l → revealed
+		{"email", false},    // vowel digraph before -l → emailed
+		{"curl", false},     // consonant before -l → curled
 	}
 	for _, tt := range tests {
 		if got := shouldDoubleConsonant(tt.verb); got != tt.want {
