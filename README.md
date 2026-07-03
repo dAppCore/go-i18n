@@ -14,7 +14,7 @@ Novelty locales double as architecture proofs: `en-x-pirate` (vocabulary-only di
 
 **Module**: `dappco.re/go/i18n`
 **Licence**: EUPL-1.2
-**Language**: Go 1.25
+**Language**: Go 1.26
 
 ## Quick Start
 
