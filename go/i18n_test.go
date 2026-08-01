@@ -652,10 +652,10 @@ func TestAddHandler_Good_Variadic(t *testing.T) {
 	if 2 != len(handlers) {
 		t.Fatalf("want %v, got %v", 2, len(handlers))
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
 	}
-	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(ProgressHandler{}) {
+	if reflect.TypeOf(handlers[1]) != reflect.TypeFor[ProgressHandler]() {
 		t.Fatalf("expected type %T, got %T", ProgressHandler{}, handlers[1])
 	}
 }
@@ -676,7 +676,7 @@ func TestAddHandler_Good_SkipsNil(t *testing.T) {
 	if len(handlers) != 1 {
 		t.Fatalf("expected length %v, got %v", 1, handlers)
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
 	}
 }
@@ -695,7 +695,7 @@ func TestAddHandler_DoesNotMutateInputSlice(t *testing.T) {
 	if handlers[0] != nil {
 		t.Fatalf("expected nil, got %v", handlers[0])
 	}
-	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[1]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[1])
 	}
 }
@@ -735,10 +735,10 @@ func TestPrependHandler_Good_Variadic(t *testing.T) {
 	if 2 != len(handlers) {
 		t.Fatalf("want %v, got %v", 2, len(handlers))
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
 	}
-	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(ProgressHandler{}) {
+	if reflect.TypeOf(handlers[1]) != reflect.TypeFor[ProgressHandler]() {
 		t.Fatalf("expected type %T, got %T", ProgressHandler{}, handlers[1])
 	}
 }
@@ -759,7 +759,7 @@ func TestPrependHandler_Good_SkipsNil(t *testing.T) {
 	if len(handlers) != 1 {
 		t.Fatalf("expected length %v, got %v", 1, handlers)
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
 	}
 }
@@ -778,7 +778,7 @@ func TestPrependHandler_DoesNotMutateInputSlice(t *testing.T) {
 	if handlers[0] != nil {
 		t.Fatalf("expected nil, got %v", handlers[0])
 	}
-	if reflect.TypeOf(handlers[1]) != reflect.TypeOf(ProgressHandler{}) {
+	if reflect.TypeOf(handlers[1]) != reflect.TypeFor[ProgressHandler]() {
 		t.Fatalf("expected type %T, got %T", ProgressHandler{}, handlers[1])
 	}
 }
@@ -829,7 +829,7 @@ func TestResetHandlers_Good(t *testing.T) {
 	if len(svc.Handlers()) != len(DefaultHandlers()) {
 		t.Fatalf("expected length %v, got %v", len(DefaultHandlers()), svc.Handlers())
 	}
-	if reflect.TypeOf(svc.Handlers()[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(svc.Handlers()[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, svc.Handlers()[0])
 	}
 
@@ -843,7 +843,7 @@ func TestResetHandlers_Good(t *testing.T) {
 	if len(handlers) != len(DefaultHandlers()) {
 		t.Fatalf("expected length %v, got %v", len(DefaultHandlers()), handlers)
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
 	}
 	if "Status:" != T("i18n.label.status") {
@@ -870,7 +870,7 @@ func TestSetHandlers_Good(t *testing.T) {
 	if len(handlers) != 1 {
 		t.Fatalf("expected length %v, got %v", 1, handlers)
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(serviceStubHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[serviceStubHandler]() {
 		t.Fatalf("expected type %T, got %T", serviceStubHandler{}, handlers[0])
 	}
 	if "stub" != T("custom.stub") {
@@ -912,7 +912,7 @@ func TestNewWithHandlers_SkipsNil(t *testing.T) {
 	if len(handlers) != 1 {
 		t.Fatalf("expected length %v, got %v", 1, handlers)
 	}
-	if reflect.TypeOf(handlers[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(handlers[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, handlers[0])
 	}
 }

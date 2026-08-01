@@ -173,9 +173,7 @@ func WithWeights(w map[string]float64) TokeniserOption {
 		// Start from the defaults so callers can override only the weights they
 		// care about without accidentally disabling the rest of the signal set.
 		copied := DefaultWeights()
-		for key, value := range w {
-			copied[key] = value
-		}
+		maps.Copy(copied, w)
 		t.weights = copied
 	}
 }

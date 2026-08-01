@@ -1,7 +1,6 @@
 package i18n
 
 import (
-	"context"
 	"testing"
 
 	core "dappco.re/go"
@@ -79,7 +78,7 @@ func BenchmarkNewCoreService(b *testing.B) {
 func BenchmarkOnStartup(b *testing.B) {
 	coreSvc := benchCoreServiceFixture()
 	coreSvc.svc.SetMode(ModeCollect)
-	ctx := context.Background()
+	ctx := b.Context()
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
@@ -89,7 +88,7 @@ func BenchmarkOnStartup(b *testing.B) {
 
 func BenchmarkOnShutdown(b *testing.B) {
 	coreSvc := benchCoreServiceFixture()
-	ctx := context.Background()
+	ctx := b.Context()
 	b.ReportAllocs()
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {

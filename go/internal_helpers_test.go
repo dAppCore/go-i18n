@@ -69,9 +69,9 @@ func TestInternalHelpers_isAllUpper_Good(t *testing.T) {
 		{"URL", true},
 		{"Api", false},
 		{"api", false},
-		{"A1B2", true},  // digits ignored, all letters upper
-		{"", false},     // no letters → false (differs from multiplier's isAllUpper)
-		{"123", false},  // no letters → false
+		{"A1B2", true}, // digits ignored, all letters upper
+		{"", false},    // no letters → false (differs from multiplier's isAllUpper)
+		{"123", false}, // no letters → false
 		{"FILE-PATH", true},
 	}
 	for _, tt := range tests {

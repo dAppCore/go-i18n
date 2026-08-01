@@ -35,7 +35,7 @@ func TestSlovakComposition(t *testing.T) {
 		{"progress.read", T("i18n.progress.read"), "Čítanie..."},
 		{"count.file 3", T("i18n.count.file", 3), "3 súbory"},
 		{"fail.push branch", T("i18n.fail.push", "branch"), "Nepodarilo sa pushnúť vetva"},
-		{"bare article phrase", ArticlePhrase("file"), "súbor"},  // Slovak has no articles
+		{"bare article phrase", ArticlePhrase("file"), "súbor"},   // Slovak has no articles
 		{"bare definite phrase", DefinitePhrase("file"), "súbor"}, // none, definite or otherwise
 	}
 	for _, tt := range tests {
@@ -67,7 +67,7 @@ func TestSlovenianComposition(t *testing.T) {
 		{"progress.open", T("i18n.progress.open"), "Odpiranje..."},
 		{"count.task 4", T("i18n.count.task", 4), "4 naloge"},
 		{"fail.push branch", T("i18n.fail.push", "branch"), "Ni uspelo pushati veja"},
-		{"bare article phrase", ArticlePhrase("file"), "datoteka"},  // Slovenian has no articles
+		{"bare article phrase", ArticlePhrase("file"), "datoteka"},   // Slovenian has no articles
 		{"bare definite phrase", DefinitePhrase("file"), "datoteka"}, // none, definite or otherwise
 	}
 	for _, tt := range tests {
@@ -101,7 +101,7 @@ func TestCroatianComposition(t *testing.T) {
 		{"progress.check", T("i18n.progress.check"), "Provjera..."},
 		{"count.version 2", T("i18n.count.version", 2), "2 verzije"},
 		{"fail.push branch", T("i18n.fail.push", "branch"), "Nije uspjelo pushati grana"},
-		{"bare article phrase", ArticlePhrase("file"), "datoteka"},  // Croatian has no articles
+		{"bare article phrase", ArticlePhrase("file"), "datoteka"},   // Croatian has no articles
 		{"bare definite phrase", DefinitePhrase("file"), "datoteka"}, // none, definite or otherwise
 	}
 	for _, tt := range tests {

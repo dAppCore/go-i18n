@@ -52,8 +52,8 @@ func TestTokeniserFrench_matchFrenchArticleText(t *testing.T) {
 		{"les fichiers", "definite", true},
 		{"un fichier", "indefinite", true},
 		{"une branche", "indefinite", true},
-		{"de la", "indefinite", true},  // de + second field "la"
-		{"de du", "definite", true},    // de + second field "du"
+		{"de la", "indefinite", true}, // de + second field "la"
+		{"de du", "definite", true},   // de + second field "du"
 		{"d'accord", "indefinite", true},
 		{"j'aime", "definite", true},
 		{"qu'il", "definite", true},

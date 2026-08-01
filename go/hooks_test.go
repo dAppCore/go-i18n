@@ -598,7 +598,7 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	if len(coreSvc.Handlers()) != 1 {
 		t.Fatalf("expected length %v, got %v", 1, coreSvc.Handlers())
 	}
-	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, coreSvc.Handlers()[0])
 	}
 
@@ -606,7 +606,7 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	if len(coreSvc.Handlers()) != 2 {
 		t.Fatalf("expected length %v, got %v", 2, coreSvc.Handlers())
 	}
-	if reflect.TypeOf(coreSvc.Handlers()[1]) != reflect.TypeOf(ProgressHandler{}) {
+	if reflect.TypeOf(coreSvc.Handlers()[1]) != reflect.TypeFor[ProgressHandler]() {
 		t.Fatalf("expected type %T, got %T", ProgressHandler{}, coreSvc.Handlers()[1])
 	}
 
@@ -614,7 +614,7 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	if len(coreSvc.Handlers()) != 3 {
 		t.Fatalf("expected length %v, got %v", 3, coreSvc.Handlers())
 	}
-	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeOf(CountHandler{}) {
+	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeFor[CountHandler]() {
 		t.Fatalf("expected type %T, got %T", CountHandler{}, coreSvc.Handlers()[0])
 	}
 
@@ -627,7 +627,7 @@ func TestCoreService_DelegatesToWrappedService(t *testing.T) {
 	if len(coreSvc.Handlers()) == 0 {
 		t.Fatalf("expected non-empty")
 	}
-	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeOf(LabelHandler{}) {
+	if reflect.TypeOf(coreSvc.Handlers()[0]) != reflect.TypeFor[LabelHandler]() {
 		t.Fatalf("expected type %T, got %T", LabelHandler{}, coreSvc.Handlers()[0])
 	}
 	if err := errorFromResult(coreSvc.AddLoader(NewFSLoader(fstest.MapFS{
@@ -950,12 +950,10 @@ func TestAddMissingKeyHandler_Good_Concurrent(t *testing.T) {
 
 	const handlers = 32
 	var wg sync.WaitGroup
-	wg.Add(handlers)
-	for i := 0; i < handlers; i++ {
-		go func() {
-			defer wg.Done()
+	for range handlers {
+		wg.Go(func() {
 			AddMissingKeyHandler(func(MissingKey) {})
-		}()
+		})
 	}
 	wg.Wait()
 

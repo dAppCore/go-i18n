@@ -3,6 +3,7 @@ package i18n
 import (
 	// Note: AX-6 — grammar data merge/copy needs map cloning; pinned core has no map-copy primitive.
 	"maps"
+	"slices"
 	// Note: AX-6 — grammar quote helper needs Go string escaping; pinned core has no quote primitive.
 	"strconv"
 	// Note: AX-6 — grammar interpolation exposes template.FuncMap; pinned core has no template primitive.
@@ -1228,13 +1229,7 @@ func definiteLenitedWord(lang, word string) (string, bool) {
 	if !ok || forms.Gender == "" {
 		return "", false
 	}
-	lenites := false
-	for _, gender := range data.Articles.DefiniteLenition {
-		if gender == forms.Gender {
-			lenites = true
-			break
-		}
-	}
+	lenites := slices.Contains(data.Articles.DefiniteLenition, forms.Gender)
 	if !lenites {
 		return "", false
 	}

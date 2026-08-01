@@ -113,9 +113,9 @@ func TestMultiplierInternal_isAllUpper_Good(t *testing.T) {
 		{"ÉLÉMENT", true}, // accented uppercase, drives the rune path
 		{"Delete", false},
 		{"delete", false},
-		{"D3LETE", true},  // digits are not letters
-		{"", true},        // no letters at all
-		{"123!?", true},   // no letters
+		{"D3LETE", true}, // digits are not letters
+		{"", true},       // no letters at all
+		{"123!?", true},  // no letters
 		{"Élément", false},
 	}
 	for _, tt := range tests {

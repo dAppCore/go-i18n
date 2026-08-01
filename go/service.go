@@ -3,6 +3,7 @@ package i18n
 import (
 	// Note: AX-6 — cmp.Compare provides standard three-way comparison; core has no equivalent.
 	"cmp"
+	"maps"
 	// Note: AX-6 — go:embed requires embed.FS for bundled locale assets; core.Embed cannot be the target type.
 	"embed"
 	// Note: AX-6 — fs.FS is the structural public API for caller-provided locale filesystems.
@@ -1254,9 +1255,7 @@ func mergeContextExtra(dst map[string]any, value any) {
 	}
 	switch extra := value.(type) {
 	case map[string]any:
-		for key, item := range extra {
-			dst[key] = item
-		}
+		maps.Copy(dst, extra)
 	case map[string]string:
 		for key, item := range extra {
 			dst[key] = item
@@ -1265,9 +1264,7 @@ func mergeContextExtra(dst map[string]any, value any) {
 		if extra == nil || len(extra.Extra) == 0 {
 			return
 		}
-		for key, item := range extra.Extra {
-			dst[key] = item
-		}
+		maps.Copy(dst, extra.Extra)
 	}
 }
 
@@ -1560,21 +1557,13 @@ func mergeMissingKeyArgs(dst map[string]any, value any) {
 	}
 	switch v := value.(type) {
 	case map[string]any:
-		for key, item := range contextMapValuesAny(v) {
-			dst[key] = item
-		}
+		maps.Copy(dst, contextMapValuesAny(v))
 	case map[string]string:
-		for key, item := range contextMapValuesString(v) {
-			dst[key] = item
-		}
+		maps.Copy(dst, contextMapValuesString(v))
 	case *TranslationContext:
-		for key, item := range missingKeyContextArgs(v) {
-			dst[key] = item
-		}
+		maps.Copy(dst, missingKeyContextArgs(v))
 	case *Subject:
-		for key, item := range missingKeySubjectArgs(v) {
-			dst[key] = item
-		}
+		maps.Copy(dst, missingKeySubjectArgs(v))
 	}
 }
 
@@ -1692,9 +1681,7 @@ func (s *Service) ingestLocaleData(lang string, messages map[string]Message, gra
 	if existing == nil {
 		s.messages[lang] = make(map[string]Message, len(messages))
 	}
-	for key, message := range messages {
-		s.messages[lang][key] = message
-	}
+	maps.Copy(s.messages[lang], messages)
 	s.addAvailableLanguageLocked(language.Make(lang))
 	s.mu.Unlock()
 

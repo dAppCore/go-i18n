@@ -2,6 +2,7 @@ package i18n
 
 import (
 	"io/fs"
+	"maps"
 	"runtime"
 	"sync"
 	"sync/atomic"
@@ -39,7 +40,7 @@ type localeProviderRegistration struct {
 //   - Loader
 //
 //     i18n.RegisterLocaleProvider(myProvider)
-type LocaleProvider interface{}
+type LocaleProvider any
 
 var (
 	registeredLocales         []localeRegistration
@@ -270,9 +271,7 @@ func cloneMissingKey(mk MissingKey) MissingKey {
 		return mk
 	}
 	args := make(map[string]any, len(mk.Args))
-	for key, value := range mk.Args {
-		args[key] = value
-	}
+	maps.Copy(args, mk.Args)
 	mk.Args = args
 	return mk
 }

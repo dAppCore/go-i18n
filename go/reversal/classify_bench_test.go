@@ -551,7 +551,7 @@ func TestClassification_TopVerbs(t *testing.T) {
 
 		top := min(len(sorted), 8)
 		verbs := core.NewBuilder()
-		for i := 0; i < top; i++ {
+		for i := range top {
 			if i > 0 {
 				verbs.WriteString(", ")
 			}

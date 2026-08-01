@@ -81,10 +81,8 @@ func localeFilenameCandidates(lang string) []string {
 	// hyphen variants, then the base language tag.
 	variants := make([]string, 0, 4)
 	addVariant := func(candidate string) {
-		for _, existing := range variants {
-			if existing == candidate {
-				return
-			}
+		if slices.Contains(variants, candidate) {
+			return
 		}
 		variants = append(variants, candidate)
 	}

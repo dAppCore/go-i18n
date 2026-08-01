@@ -11,10 +11,7 @@ import (
 //	TimeAgo(time.Now().Add(-4 * time.Second)) // "just now"
 //	TimeAgo(time.Now().Add(-5 * time.Minute)) // "5 minutes ago"
 func TimeAgo(t time.Time) string {
-	duration := time.Since(t)
-	if duration < 0 {
-		duration = 0
-	}
+	duration := max(time.Since(t), 0)
 	switch {
 	case duration < 5*time.Second:
 		if text := T("time.just_now"); text != "time.just_now" {
