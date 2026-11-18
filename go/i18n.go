@@ -6,8 +6,8 @@ import (
 	// Note: AX-6 — message interpolation requires Go template parsing/execution; pinned core has no template primitive.
 	"text/template"
 
-	"dappco.re/go"
-	golog "dappco.re/go/log"
+	"github.com/dappcore/go"
+	golog "github.com/dappcore/go-log/go"
 )
 
 // T translates a message using the default service.

@@ -5,7 +5,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 func TestCoreServiceNilSafe(t *testing.T) {

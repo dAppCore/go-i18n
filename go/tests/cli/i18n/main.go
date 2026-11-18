@@ -1,9 +1,9 @@
 package main
 
 import (
-	"dappco.re/go"
-	"dappco.re/go/i18n"
-	golog "dappco.re/go/log"
+	"github.com/dappcore/go"
+	"github.com/dappcore/go-i18n/go"
+	golog "github.com/dappcore/go-log/go"
 )
 
 func main() {

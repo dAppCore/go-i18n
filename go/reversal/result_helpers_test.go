@@ -1,6 +1,6 @@
 package reversal
 
-import "dappco.re/go"
+import "github.com/dappcore/go"
 
 func valueFromResult[T any](r core.Result) (T, error) {
 	var zero T

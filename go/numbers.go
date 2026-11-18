@@ -4,7 +4,7 @@ import (
 	"math"
 	"strconv"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 func getNumberFormat() NumberFormat {

@@ -22,8 +22,8 @@ import (
 	"unicode"
 	"unicode/utf8"
 
-	"dappco.re/go"
-	i18n "dappco.re/go/i18n"
+	"github.com/dappcore/go"
+	i18n "github.com/dappcore/go-i18n/go"
 )
 
 var frenchElisionPrefixes = []string{"l", "d", "j", "m", "t", "s", "n", "c", "qu"}

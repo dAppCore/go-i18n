@@ -7,7 +7,7 @@ import (
 	"testing"
 	"testing/fstest"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 type testLocaleProvider struct {

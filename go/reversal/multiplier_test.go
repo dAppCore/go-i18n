@@ -3,7 +3,7 @@ package reversal
 import (
 	"testing"
 
-	i18n "dappco.re/go/i18n"
+	i18n "github.com/dappcore/go-i18n/go"
 )
 
 func TestMultiplier_Expand(t *testing.T) {

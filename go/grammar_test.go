@@ -5,7 +5,7 @@ import (
 	"text/template"
 	"time"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 type regionFallbackLoader struct{}

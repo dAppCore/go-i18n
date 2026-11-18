@@ -11,8 +11,8 @@ import (
 	// Note: AX-6 — language lists and lookup variants need generic slice sort/clone helpers; core has no equivalent.
 	"slices"
 
-	"dappco.re/go"
-	golog "dappco.re/go/log"
+	"github.com/dappcore/go"
+	golog "github.com/dappcore/go-log/go"
 	"golang.org/x/text/language"
 )
 

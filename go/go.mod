@@ -1,10 +1,10 @@
-module dappco.re/go/i18n
+module github.com/dappcore/go-i18n/go
 
 go 1.26.0
 
 require golang.org/x/text v0.40.0
 
 require (
-	dappco.re/go v0.12.0
-	dappco.re/go/log v0.13.1
+	github.com/dappcore/go v0.13.0
+	github.com/dappcore/go-log/go v0.14.0
 )

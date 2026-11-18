@@ -5,8 +5,8 @@ import (
 	"math"
 	"slices"
 
-	"dappco.re/go"
-	golog "dappco.re/go/log"
+	"github.com/dappcore/go"
+	golog "github.com/dappcore/go-log/go"
 )
 
 func failResult(v any) core.Result {

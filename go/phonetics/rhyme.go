@@ -1,6 +1,6 @@
 package phonetics
 
-import "dappco.re/go"
+import "github.com/dappcore/go"
 
 // RhymeKey returns the phoneme tail from the last PRIMARY-stressed vowel to
 // the end, stress digits stripped — the classical definition of a perfect

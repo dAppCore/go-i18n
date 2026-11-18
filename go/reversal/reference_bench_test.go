@@ -3,7 +3,7 @@ package reversal
 import (
 	"testing"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 // benchReferenceSamples is a small, realistic classified-text corpus spanning

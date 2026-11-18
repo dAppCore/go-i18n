@@ -3,7 +3,7 @@ package reversal
 import (
 	"testing"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 // TestReferenceFailResult covers each branch of the reversal-package

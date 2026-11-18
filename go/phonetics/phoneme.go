@@ -1,6 +1,6 @@
 package phonetics
 
-import "dappco.re/go"
+import "github.com/dappcore/go"
 
 // Pronunciation is one way of saying a word: an ordered list of ARPABET
 // phonemes, vowels carrying a trailing stress digit (0 none, 1 primary,

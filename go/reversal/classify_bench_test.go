@@ -4,7 +4,7 @@ import (
 	"sort"
 	"testing"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 // Domain categories for classification ground truth.
