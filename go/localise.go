@@ -3,7 +3,7 @@ package i18n
 import (
 	"sync"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 	"golang.org/x/text/language"
 )
 

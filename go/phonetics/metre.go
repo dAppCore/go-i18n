@@ -1,6 +1,6 @@
 package phonetics
 
-import "dappco.re/go"
+import "github.com/dappcore/go"
 
 // Scansion is the metrical reading of a line: the stress pattern across all
 // syllables, the best-fitting classical foot, and how regular the fit is.

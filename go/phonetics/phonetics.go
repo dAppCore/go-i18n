@@ -27,7 +27,7 @@ import (
 	// Note: AX-6 — the dictionary parse happens exactly once, lazily.
 	"sync"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 //go:embed cmudict.dict.gz

@@ -7,8 +7,8 @@ import (
 	"sync"
 	"sync/atomic"
 
-	"dappco.re/go"
-	golog "dappco.re/go/log"
+	"github.com/dappcore/go"
+	golog "github.com/dappcore/go-log/go"
 )
 
 var missingKeyHandler atomic.Value
@@ -277,7 +277,7 @@ func cloneMissingKey(mk MissingKey) MissingKey {
 }
 
 func missingKeyCaller() (string, int) {
-	const packagePrefix = "dappco.re/go/i18n."
+	const packagePrefix = "github.com/dappcore/go-i18n/go."
 
 	pcs := make([]uintptr, 16)
 	n := runtime.Callers(2, pcs)

@@ -7,7 +7,7 @@ import (
 	"io/fs"
 	"sync"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 // CoreService wraps the i18n Service as a Core framework service.

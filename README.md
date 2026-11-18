@@ -1,4 +1,4 @@
-[![Go Reference](https://pkg.go.dev/badge/dappco.re/go/core/i18n.svg)](https://pkg.go.dev/dappco.re/go/core/i18n)
+[![Go Reference](https://pkg.go.dev/badge/github.com/dappcore/go-i18n/go.svg)](https://pkg.go.dev/github.com/dappcore/go-i18n/go)
 [![License: EUPL-1.2](https://img.shields.io/badge/License-EUPL--1.2-blue.svg)](LICENSE.md)
 [![Go Version](https://img.shields.io/badge/Go-1.26-00ADD8?style=flat&logo=go)](go.mod)
 
@@ -12,14 +12,14 @@ The `phonetics` package gives the engine an ear: the vendored CMU Pronouncing Di
 
 Novelty locales double as architecture proofs: `en-x-pirate` (vocabulary-only dialect riding the `en` fallback chain — "Blimey! Couldn't heave plank"), `tlh` (Klingon: canonical Okrand vocabulary, aspect suffixes filling the past/gerund slots mechanically, and the `article.none` mechanism article-less languages like Japanese and Russian will reuse — "De' teqpu'") and `la` (Latin: subject + perfect passive participle IS lapidary Latin — "Tabula deleta", "Erratum inventum" — the Progress form is the gerundive in Cato's register ("Delenda..."), three-gender participle agreement, and the noun table closes the loop on English's own irregular plurals: errata, data, opera, indices, genera).
 
-**Module**: `dappco.re/go/i18n`
+**Module**: `github.com/dappcore/go-i18n/go`
 **Licence**: EUPL-1.2
 **Language**: Go 1.26
 
 ## Quick Start
 
 ```go
-import "dappco.re/go/i18n"
+import "github.com/dappcore/go-i18n/go"
 
 // Grammar primitives
 fmt.Println(i18n.PastTense("delete"))   // "deleted"

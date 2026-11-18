@@ -3,8 +3,8 @@ package reversal
 import (
 	"unicode"
 
-	"dappco.re/go"
-	i18n "dappco.re/go/i18n"
+	"github.com/dappcore/go"
+	i18n "github.com/dappcore/go-i18n/go"
 )
 
 // Multiplier generates deterministic grammatical variants of text

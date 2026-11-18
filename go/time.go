@@ -3,7 +3,7 @@ package i18n
 import (
 	"time"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 // TimeAgo returns a localised relative time string.

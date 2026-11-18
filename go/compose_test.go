@@ -3,7 +3,7 @@ package i18n
 import (
 	"testing"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 // --- S() constructor ---

@@ -11,8 +11,8 @@ import (
 	// Note: AX-6 — grammar casing and initialism rules need Unicode rune classes; pinned core has no rune helpers.
 	"unicode"
 
-	"dappco.re/go"
-	"dappco.re/go/i18n/phonetics"
+	"github.com/dappcore/go"
+	"github.com/dappcore/go-i18n/go/phonetics"
 )
 
 // GetGrammarData returns the grammar data for the specified language.

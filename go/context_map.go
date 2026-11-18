@@ -3,7 +3,7 @@ package i18n
 import (
 	"strconv"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 )
 
 func mapValueString(values any, key string) (string, bool) {

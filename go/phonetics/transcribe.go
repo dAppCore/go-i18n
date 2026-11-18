@@ -1,6 +1,6 @@
 package phonetics
 
-import "dappco.re/go"
+import "github.com/dappcore/go"
 
 // Style selects the transcription alphabet.
 type Style int

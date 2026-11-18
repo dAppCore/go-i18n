@@ -5,7 +5,7 @@ import (
 	"testing/fstest"
 	"time"
 
-	"dappco.re/go"
+	"github.com/dappcore/go"
 	"slices"
 )
 

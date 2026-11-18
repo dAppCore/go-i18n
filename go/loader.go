@@ -8,8 +8,8 @@ import (
 	// Note: AX-6 — slices.Sort provides deterministic language ordering; no verified core sort helper exists.
 	"slices"
 
-	"dappco.re/go"
-	golog "dappco.re/go/log"
+	"github.com/dappcore/go"
+	golog "github.com/dappcore/go-log/go"
 )
 
 // FSLoader loads translations from a filesystem (embedded or disk).
