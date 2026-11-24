@@ -230,6 +230,10 @@ func detectLanguage(supported []language.Tag) string {
 			return detected
 		}
 	}
+	// Windows sets none of those: ask it for the user's display language.
+	if detected := detectLanguageFromEnv(systemLanguage(), supported); detected != "" {
+		return detected
+	}
 	return ""
 }
 
