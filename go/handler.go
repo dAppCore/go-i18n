@@ -119,7 +119,7 @@ func (h DoneHandler) Handle(key string, args []any, next func() string) string {
 			}
 		}
 	}
-	if got := Title(PastTense(verb)); got != "" {
+	if got := ActionResult(verb, ""); got != "" {
 		return got
 	}
 	if next != nil {

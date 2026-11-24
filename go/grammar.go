@@ -100,6 +100,12 @@ func MergeGrammarData(lang string, data *GrammarData) {
 	if data.Number.CountsUseSingular {
 		existing.Number.CountsUseSingular = true
 	}
+	if data.Order.VerbFinal {
+		existing.Order.VerbFinal = true
+	}
+	if data.Case.DottedI {
+		existing.Case.DottedI = true
+	}
 }
 
 func mergeArticleForms(dst *ArticleForms, src ArticleForms) {
@@ -283,6 +289,8 @@ func cloneGrammarData(data *GrammarData) *GrammarData {
 			ConsonantSoundWords:  append([]string(nil), data.Articles.ConsonantSoundWords...),
 		},
 		Punct: data.Punct,
+		Order: data.Order,
+		Case:  data.Case,
 		Signals: SignalData{
 			NounDeterminers: append([]string(nil), data.Signals.NounDeterminers...),
 			VerbAuxiliaries: append([]string(nil), data.Signals.VerbAuxiliaries...),
@@ -429,6 +437,8 @@ func getVerbForm(lang, verb, form string) string {
 			return forms.Gerund
 		case "past_f":
 			return forms.PastFeminine
+		case "failed":
+			return forms.Failed
 		}
 	}
 	return ""
@@ -1100,12 +1110,13 @@ func isVowel(r rune) bool {
 // Hyphens and whitespace start a new segment; punctuation inside identifiers
 // such as dots and underscores is preserved so filenames stay readable.
 func Title(s string) string {
+	upper := upperFor(currentLangForGrammar())
 	b := core.NewBuilder()
 	b.Grow(len(s))
 	capNext := true
 	for _, r := range s {
 		if unicode.IsLetter(r) && capNext {
-			b.WriteRune(unicode.ToUpper(r))
+			b.WriteRune(upper(r))
 		} else {
 			b.WriteRune(r)
 		}
@@ -1536,9 +1547,26 @@ func Progress(verb string) string {
 // phrase exactly as authored.
 func sentenceCase(s string) string {
 	for i, r := range s {
-		return string(unicode.ToUpper(r)) + s[i+len(string(r)):]
+		return string(upperFor(currentLangForGrammar())(r)) + s[i+len(string(r)):]
 	}
 	return s
+}
+
+// upperFor is the locale's upper-casing: Unicode's, unless the locale
+// declares the dotted i (tr, az), where i → İ and ı → I.
+//
+//	upperFor("tr")('i') // 'İ'
+func upperFor(lang string) func(rune) rune {
+	if data := grammarDataForLang(lang); data != nil && data.Case.DottedI {
+		return unicode.TurkishCase.ToUpper
+	}
+	return unicode.ToUpper
+}
+
+// verbFinal reports whether the locale puts the verb after its subject.
+func verbFinal(lang string) bool {
+	data := grammarDataForLang(lang)
+	return data != nil && data.Order.VerbFinal
 }
 
 // ProgressSubject returns a progress message with subject: "Building project..."
@@ -1553,6 +1581,9 @@ func ProgressSubject(verb, subject string) string {
 	subject = core.Trim(subject)
 	if subject == "" {
 		return sentenceCase(g) + suffix
+	}
+	if verbFinal(lang) {
+		return renderSubjectLeadForLanguages([]string{lang}, subject) + " " + g + suffix
 	}
 	return sentenceCase(g) + " " + renderWord(lang, subject) + suffix
 }
@@ -1684,12 +1715,29 @@ func actionFailedForLanguages(langs []string, verb, subject string) string {
 	}
 	// Keep the failure verb in sentence case when no locale override exists.
 	verb = renderWordForLanguages(langs, core.Lower(verb))
-	prefix := failedPrefixForLanguages(langs)
 	subject = core.Trim(subject)
+	// A language with its own "couldn't" form of the verb says it that way
+	// round: "Dosya silinemedi", not a "failed to" phrase.
+	if failed := failedFormForLanguages(langs, verb); failed != "" {
+		if subject == "" {
+			return sentenceCase(failed)
+		}
+		return renderSubjectLeadForLanguages(langs, subject) + " " + failed
+	}
+	prefix := failedPrefixForLanguages(langs)
 	if subject == "" {
 		return prefix + " " + verb
 	}
 	return prefix + " " + verb + " " + renderSubjectTailForLanguages(langs, subject)
+}
+
+func failedFormForLanguages(langs []string, verb string) string {
+	for _, lang := range languageFallbackOrder(langs) {
+		if form := getVerbForm(lang, verb, "failed"); form != "" {
+			return form
+		}
+	}
+	return ""
 }
 
 func failedPrefix(lang string) string {

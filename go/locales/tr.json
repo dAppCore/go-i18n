@@ -1,0 +1,408 @@
+{
+	"_comment": "Türkçe (Turkish). Fallback is en (the English of England), so anything not authored here composes in English. Register matches real Turkish software UI: the done slot is the PASSIVE PAST (Dosya silindi, Mesaj gönderildi), the progress slot is the PASSIVE PRESENT CONTINUOUS (Siliniyor..., İndiriliyor...), and failure is the verb's own IMPOTENTIAL passive past (Dosya silinemedi, Dosya bulunamadı) carried as the 'failed' verb form, so the engine never builds a 'failed to' phrase for an authored verb. Turkish is verb-final (gram.order.verb_final): a progress phrase with a subject leads with it (Proje derleniyor...). No articles (article.none) and no grammatical gender. Numerals govern the SINGULAR (3 dosya, never *3 dosyalar: number.counts_use_singular); 'other' keeps the true plural for everything else. Upper-casing is Turkish (case.dotted_i): i → İ, ı → I, so 'indiriliyor' leads as 'İndiriliyor'. 'find' pairs bulundu/bulunamadı with aranıyor ('searching') for progress, which is what Turkish software shows while it looks. 'push' is itmek (the literal push); Turkish git tooling often keeps the English 'push', so treat that bridge as the least certain. Suffixed case endings (dosyayı, dosyayı silemedim) are not composed: every slot uses the nominative, which is what status lines use.",
+	"gram": {
+		"verb": {
+			"silmek": {
+				"base": "silmek",
+				"past": "silindi",
+				"gerund": "siliniyor",
+				"failed": "silinemedi"
+			},
+			"oluşturmak": {
+				"base": "oluşturmak",
+				"past": "oluşturuldu",
+				"gerund": "oluşturuluyor",
+				"failed": "oluşturulamadı"
+			},
+			"derlemek": {
+				"base": "derlemek",
+				"past": "derlendi",
+				"gerund": "derleniyor",
+				"failed": "derlenemedi"
+			},
+			"göndermek": {
+				"base": "göndermek",
+				"past": "gönderildi",
+				"gerund": "gönderiliyor",
+				"failed": "gönderilemedi"
+			},
+			"bulmak": {
+				"base": "bulmak",
+				"past": "bulundu",
+				"gerund": "aranıyor",
+				"failed": "bulunamadı"
+			},
+			"yazmak": {
+				"base": "yazmak",
+				"past": "yazıldı",
+				"gerund": "yazılıyor",
+				"failed": "yazılamadı"
+			},
+			"okumak": {
+				"base": "okumak",
+				"past": "okundu",
+				"gerund": "okunuyor",
+				"failed": "okunamadı"
+			},
+			"güncellemek": {
+				"base": "güncellemek",
+				"past": "güncellendi",
+				"gerund": "güncelleniyor",
+				"failed": "güncellenemedi"
+			},
+			"itmek": {
+				"base": "itmek",
+				"past": "itildi",
+				"gerund": "itiliyor",
+				"failed": "itilemedi"
+			},
+			"test etmek": {
+				"base": "test etmek",
+				"past": "test edildi",
+				"gerund": "test ediliyor",
+				"failed": "test edilemedi"
+			},
+			"denetlemek": {
+				"base": "denetlemek",
+				"past": "denetlendi",
+				"gerund": "denetleniyor",
+				"failed": "denetlenemedi"
+			},
+			"düzeltmek": {
+				"base": "düzeltmek",
+				"past": "düzeltildi",
+				"gerund": "düzeltiliyor",
+				"failed": "düzeltilemedi"
+			},
+			"çalıştırmak": {
+				"base": "çalıştırmak",
+				"past": "çalıştırıldı",
+				"gerund": "çalıştırılıyor",
+				"failed": "çalıştırılamadı"
+			},
+			"kaydetmek": {
+				"base": "kaydetmek",
+				"past": "kaydedildi",
+				"gerund": "kaydediliyor",
+				"failed": "kaydedilemedi"
+			},
+			"durdurmak": {
+				"base": "durdurmak",
+				"past": "durduruldu",
+				"gerund": "durduruluyor",
+				"failed": "durdurulamadı"
+			},
+			"kurmak": {
+				"base": "kurmak",
+				"past": "kuruldu",
+				"gerund": "kuruluyor",
+				"failed": "kurulamadı"
+			},
+			"başlatmak": {
+				"base": "başlatmak",
+				"past": "başlatıldı",
+				"gerund": "başlatılıyor",
+				"failed": "başlatılamadı"
+			},
+			"birleştirmek": {
+				"base": "birleştirmek",
+				"past": "birleştirildi",
+				"gerund": "birleştiriliyor",
+				"failed": "birleştirilemedi"
+			},
+			"açmak": {
+				"base": "açmak",
+				"past": "açıldı",
+				"gerund": "açılıyor",
+				"failed": "açılamadı"
+			},
+			"eklemek": {
+				"base": "eklemek",
+				"past": "eklendi",
+				"gerund": "ekleniyor",
+				"failed": "eklenemedi"
+			},
+			"indirmek": {
+				"base": "indirmek",
+				"past": "indirildi",
+				"gerund": "indiriliyor",
+				"failed": "indirilemedi"
+			},
+			"aramak": {
+				"base": "aramak",
+				"past": "arandı",
+				"gerund": "aranıyor",
+				"failed": "aranamadı"
+			},
+			"içe aktarmak": {
+				"base": "içe aktarmak",
+				"past": "içe aktarıldı",
+				"gerund": "içe aktarılıyor",
+				"failed": "içe aktarılamadı"
+			},
+			"kopyalamak": {
+				"base": "kopyalamak",
+				"past": "kopyalandı",
+				"gerund": "kopyalanıyor",
+				"failed": "kopyalanamadı"
+			},
+			"yüklemek": {
+				"base": "yüklemek",
+				"past": "yüklendi",
+				"gerund": "yükleniyor",
+				"failed": "yüklenemedi"
+			}
+		},
+		"noun": {
+			"dosya": {
+				"one": "dosya",
+				"other": "dosyalar"
+			},
+			"görev": {
+				"one": "görev",
+				"other": "görevler"
+			},
+			"hata": {
+				"one": "hata",
+				"other": "hatalar"
+			},
+			"mesaj": {
+				"one": "mesaj",
+				"other": "mesajlar"
+			},
+			"sunucu": {
+				"one": "sunucu",
+				"other": "sunucular"
+			},
+			"dizin": {
+				"one": "dizin",
+				"other": "dizinler"
+			},
+			"paket": {
+				"one": "paket",
+				"other": "paketler"
+			},
+			"kişi": {
+				"one": "kişi",
+				"other": "kişiler"
+			},
+			"çocuk": {
+				"one": "çocuk",
+				"other": "çocuklar"
+			},
+			"dal": {
+				"one": "dal",
+				"other": "dallar"
+			},
+			"sorun": {
+				"one": "sorun",
+				"other": "sorunlar"
+			},
+			"değişiklik": {
+				"one": "değişiklik",
+				"other": "değişiklikler"
+			},
+			"sürüm": {
+				"one": "sürüm",
+				"other": "sürümler"
+			},
+			"depo": {
+				"one": "depo",
+				"other": "depolar"
+			},
+			"kategori": {
+				"one": "kategori",
+				"other": "kategoriler"
+			},
+			"bağımlılık": {
+				"one": "bağımlılık",
+				"other": "bağımlılıklar"
+			},
+			"zafiyet": {
+				"one": "zafiyet",
+				"other": "zafiyetler"
+			},
+			"öğe": {
+				"one": "öğe",
+				"other": "öğeler"
+			},
+			"klasör": {
+				"one": "klasör",
+				"other": "klasörler"
+			},
+			"proje": {
+				"one": "proje",
+				"other": "projeler"
+			},
+			"file": {
+				"one": "dosya",
+				"other": "dosyalar"
+			},
+			"task": {
+				"one": "görev",
+				"other": "görevler"
+			},
+			"error": {
+				"one": "hata",
+				"other": "hatalar"
+			},
+			"message": {
+				"one": "mesaj",
+				"other": "mesajlar"
+			},
+			"server": {
+				"one": "sunucu",
+				"other": "sunucular"
+			},
+			"directory": {
+				"one": "dizin",
+				"other": "dizinler"
+			},
+			"package": {
+				"one": "paket",
+				"other": "paketler"
+			},
+			"person": {
+				"one": "kişi",
+				"other": "kişiler"
+			},
+			"child": {
+				"one": "çocuk",
+				"other": "çocuklar"
+			},
+			"branch": {
+				"one": "dal",
+				"other": "dallar"
+			},
+			"issue": {
+				"one": "sorun",
+				"other": "sorunlar"
+			},
+			"change": {
+				"one": "değişiklik",
+				"other": "değişiklikler"
+			},
+			"version": {
+				"one": "sürüm",
+				"other": "sürümler"
+			},
+			"repository": {
+				"one": "depo",
+				"other": "depolar"
+			},
+			"category": {
+				"one": "kategori",
+				"other": "kategoriler"
+			},
+			"dependency": {
+				"one": "bağımlılık",
+				"other": "bağımlılıklar"
+			},
+			"vulnerability": {
+				"one": "zafiyet",
+				"other": "zafiyetler"
+			},
+			"item": {
+				"one": "öğe",
+				"other": "öğeler"
+			},
+			"folder": {
+				"one": "klasör",
+				"other": "klasörler"
+			},
+			"project": {
+				"one": "proje",
+				"other": "projeler"
+			}
+		},
+		"article": {
+			"none": true
+		},
+		"word": {
+			"failed_to": "Yapılamadı:",
+			"delete": "silmek",
+			"create": "oluşturmak",
+			"build": "derlemek",
+			"send": "göndermek",
+			"find": "bulmak",
+			"write": "yazmak",
+			"read": "okumak",
+			"update": "güncellemek",
+			"push": "itmek",
+			"test": "test etmek",
+			"check": "denetlemek",
+			"fix": "düzeltmek",
+			"run": "çalıştırmak",
+			"commit": "kaydetmek",
+			"stop": "durdurmak",
+			"install": "kurmak",
+			"start": "başlatmak",
+			"merge": "birleştirmek",
+			"open": "açmak",
+			"save": "kaydetmek",
+			"add": "eklemek",
+			"download": "indirmek",
+			"search": "aramak",
+			"import": "içe aktarmak",
+			"copy": "kopyalamak",
+			"load": "yüklemek",
+			"file": "dosya",
+			"task": "görev",
+			"error": "hata",
+			"message": "mesaj",
+			"server": "sunucu",
+			"directory": "dizin",
+			"package": "paket",
+			"person": "kişi",
+			"child": "çocuk",
+			"branch": "dal",
+			"issue": "sorun",
+			"change": "değişiklik",
+			"version": "sürüm",
+			"repository": "depo",
+			"category": "kategori",
+			"dependency": "bağımlılık",
+			"vulnerability": "zafiyet",
+			"item": "öğe",
+			"folder": "klasör",
+			"project": "proje",
+			"repo": "depo"
+		},
+		"order": {
+			"verb_final": true
+		},
+		"case": {
+			"dotted_i": true
+		},
+		"punct": {
+			"label": ":",
+			"progress": "..."
+		},
+		"number": {
+			"thousands": ".",
+			"decimal": ",",
+			"percent": "%%%s",
+			"counts_use_singular": true
+		}
+	},
+	"prompt": {
+		"yes": "Evet",
+		"no": "Hayır",
+		"continue": "Devam edilsin mi?",
+		"proceed": "Devam etmek istiyor musunuz?",
+		"confirm": "Emin misiniz?",
+		"overwrite": "Üzerine yazılsın mı?",
+		"discard": "Değişiklikler silinsin mi?"
+	},
+	"time": {
+		"just_now": "az önce"
+	},
+	"lang": {
+		"tr": "Türkçe",
+		"en": "İngilizce",
+		"es": "İspanyolca",
+		"fr": "Fransızca",
+		"de": "Almanca",
+		"zh": "Çince"
+	}
+}

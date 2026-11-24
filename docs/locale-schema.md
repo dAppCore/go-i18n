@@ -182,6 +182,23 @@ These are classified as `TokenWord` by the reversal tokeniser and tracked in `Do
 - Multi-word phrases (`blocked_by` -> "blocked by")
 - Domain-specific terms that need consistent display
 
+## gram.order and gram.case -- Word order and casing
+
+```json
+"order": { "verb_final": true },
+"case": { "dotted_i": true }
+```
+
+`verb_final` puts the subject before the verb in progress phrases ("Proje derleniyor...", not "Derleniyor proje..."). `dotted_i` upper-cases with Turkish rules (i → İ, ı → I) everywhere the engine capitalises — Title, sentence-lead and progress forms. Both are Turkish's today; Azerbaijani shares the casing, Japanese and Korean the order.
+
+A verb entry may also carry `failed`, the language's own "couldn't" form. When it is present, `ActionFailed` says it subject-first instead of building a `failed_to` phrase:
+
+```json
+"silmek": { "base": "silmek", "past": "silindi", "gerund": "siliniyor", "failed": "silinemedi" }
+```
+
+`T("i18n.fail.delete", "file")` → "Dosya silinemedi".
+
 ## gram.punct -- Punctuation Rules
 
 ```json
