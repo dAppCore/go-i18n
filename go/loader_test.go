@@ -1119,3 +1119,25 @@ func TestLoader_FSLoader_LanguagesErr_Ugly(t *testing.T) {
 		t.Fatal("FSLoader_LanguagesErr was not exercised")
 	}
 }
+
+// A hidden file beside the locales (macOS's "._en.json" resource fork,
+// binary junk) is skipped: the real languages still load, and a service
+// built on them works.
+func TestLoader_FSLoader_Languages_SkipsHidden_Ugly(t *testing.T) {
+	fsys := fstest.MapFS{
+		"locales/en.json":   {Data: []byte(`{"app": {"hello": "Hello"}}`)},
+		"locales/._en.json": {Data: []byte("\x00\x05\x16\x07 Mac OS X resource fork")},
+		"locales/.tr.json":  {Data: []byte(`{"app": {"hello": "Merhaba"}}`)},
+	}
+	loader := NewFSLoader(fsys, "locales")
+	if langs := loader.Languages(); len(langs) != 1 || langs[0] != "en" {
+		t.Fatalf("languages = %v, want [en]", langs)
+	}
+	r := New()
+	if !r.OK {
+		t.Fatal(r.Error())
+	}
+	if got := r.Value.(*Service).AddLoader(loader); !got.OK {
+		t.Fatalf("AddLoader failed over a hidden file: %s", got.Error())
+	}
+}
