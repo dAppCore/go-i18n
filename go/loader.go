@@ -115,7 +115,10 @@ func (l *FSLoader) Languages() []string {
 		}
 		seen := make(map[string]struct{}, len(entries))
 		for _, entry := range entries {
-			if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") {
+			// Hidden files are never locales: macOS writes "._en.json"
+			// beside en.json when it copies to a non-Mac disk, and one
+			// unreadable "language" would fail the whole loader.
+			if entry.IsDir() || !core.HasSuffix(entry.Name(), ".json") || core.HasPrefix(entry.Name(), ".") {
 				continue
 			}
 			lang := core.TrimSuffix(entry.Name(), ".json")
