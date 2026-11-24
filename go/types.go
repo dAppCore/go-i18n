@@ -244,6 +244,27 @@ type GrammarData struct {
 	Intents   map[string]Intent    // semantic intent templates and metadata
 	Number    NumberFormat         // locale-specific number formatting
 	Agreement AgreementRules       // participle agreement declared by the locale
+	Order     WordOrder            // where the verb goes, declared by the locale
+	Case      CaseRules            // the locale's own upper-casing, where Unicode's default is wrong for it
+}
+
+// WordOrder declares where a locale puts the verb in composed phrases.
+// English, French and German lead with it ("Building project..."); a
+// verb-final language (Turkish, Japanese, Korean) puts the subject first
+// ("Proje derleniyor...").
+//
+//	order := i18n.WordOrder{VerbFinal: true} // gram.order.verb_final
+type WordOrder struct {
+	VerbFinal bool
+}
+
+// CaseRules declares a locale's upper-casing. Turkish and Azerbaijani have
+// a dotted and a dotless i, so i upper-cases to İ, not I: "İndiriliyor...",
+// never "Indiriliyor...".
+//
+//	rules := i18n.CaseRules{DottedI: true} // gram.case.dotted_i
+type CaseRules struct {
+	DottedI bool
 }
 
 // AgreementRules declares how a locale derives agreed participle forms,
@@ -296,6 +317,7 @@ type VerbForms struct {
 	Past         string // "deleted"
 	Gerund       string // "deleting"
 	PastFeminine string // Feminine-agreed participle where the locale's rule cannot derive it: "due" (dû)
+	Failed       string // The verb's own "couldn't be done" form, where the language has one: "silinemedi" (tr) → "Dosya silinemedi"
 }
 
 // NounForms holds plural and gender information for a noun.

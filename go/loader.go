@@ -198,6 +198,10 @@ func flattenWithGrammarAndIntents(prefix string, data map[string]any, out map[st
 				continue
 			}
 
+			if grammar != nil && loadGrammarOrderAndCase(fullKey, v, grammar) {
+				continue
+			}
+
 			if loadIntentBlock(fullKey, v, out, grammar) {
 				continue
 			}
@@ -455,6 +459,9 @@ func loadGrammarVerb(fullKey, key string, v map[string]any, grammar *GrammarData
 	}
 	if pastF, ok := v["past_f"].(string); ok {
 		forms.PastFeminine = pastF
+	}
+	if failed, ok := v["failed"].(string); ok {
+		forms.Failed = failed
 	}
 	grammar.Verbs[core.Lower(verbName)] = forms
 	return true
@@ -775,6 +782,26 @@ func loadGrammarNumber(fullKey string, v map[string]any, grammar *GrammarData) b
 		grammar.Number.CountsUseSingular = true
 	}
 	return true
+}
+
+// loadGrammarOrderAndCase reads the locale's word order and casing.
+//
+//	"order": { "verb_final": true }
+//	"case": { "dotted_i": true }
+func loadGrammarOrderAndCase(fullKey string, v map[string]any, grammar *GrammarData) bool {
+	switch fullKey {
+	case "gram.order":
+		if final, ok := v["verb_final"].(bool); ok {
+			grammar.Order.VerbFinal = final
+		}
+		return true
+	case "gram.case":
+		if dotted, ok := v["dotted_i"].(bool); ok {
+			grammar.Case.DottedI = dotted
+		}
+		return true
+	}
+	return false
 }
 
 func isVerbFormObject(m map[string]any) bool {
